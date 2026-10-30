@@ -66,31 +66,42 @@ export default function SettingsPage() {
     setMessage(null);
 
     try {
+      const payload: any = {
+        aiProvider,
+        aiModel,
+      };
+
+      if (smtpEmail && smtpAppPassword) {
+        payload.smtpEmail = smtpEmail;
+        payload.smtpAppPassword = smtpAppPassword;
+      }
+
+      if (aiApiKey) {
+        payload.aiApiKey = aiApiKey;
+      }
+
+      if (placesApiKey) {
+        payload.placesApiKey = placesApiKey;
+      }
+
       const res = await fetch('/api/settings/providers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          smtpEmail: smtpEmail || undefined,
-          smtpAppPassword: smtpAppPassword || undefined,
-          aiProvider,
-          aiModel,
-          aiApiKey: aiApiKey || undefined,
-          placesApiKey: placesApiKey || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      const json = await res.json();
+      const data = await res.json();
       if (res.ok) {
-        setMessage({ text: 'Configuration saved & encrypted at rest successfully.', type: 'success' });
+        setMessage({ text: 'All provider credentials and settings saved securely.', type: 'success' });
         setSmtpAppPassword('');
         setAiApiKey('');
         setPlacesApiKey('');
         fetchSettings();
       } else {
-        setMessage({ text: json.error || 'Failed to save configuration', type: 'error' });
+        setMessage({ text: data.error || 'Failed to update settings', type: 'error' });
       }
     } catch (err: any) {
-      setMessage({ text: `Network error: ${err.message}`, type: 'error' });
+      setMessage({ text: err.message || 'Network error saving settings', type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -104,8 +115,13 @@ export default function SettingsPage() {
       const res = await fetch('/api/suppression', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: newSuppressionEmail, reason: 'manual_block' }),
+        body: JSON.stringify({
+          value: newSuppressionEmail,
+          type: 'email',
+          reason: 'Manual operator suppression via settings console',
+        }),
       });
+
       if (res.ok) {
         setNewSuppressionEmail('');
         fetchSettings();
@@ -116,92 +132,105 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
-      {/* Header */}
-      <div className="mb-8 pb-6 border-b border-black/[0.08]">
-        <div className="mono-eyebrow text-black/50 mb-1">CONFIGURATION & SECURITY VAULT</div>
-        <h1 className="text-3xl font-medium tracking-tight text-black">Settings & Provider Integrations</h1>
-        <p className="text-sm text-black/60 mt-1">
-          Configure Google App Passwords for live outreach, live AI models (Gemini / OpenAI / Meta), and API keys. All keys are encrypted at rest with AES-256-GCM.
-        </p>
-      </div>
-
-      {message && (
-        <div className={`mb-8 p-4 rounded-[4px] text-xs font-mono flex items-center justify-between ${
-          message.type === 'success' ? 'bg-black text-white' : 'bg-red-50 text-red-800 border border-red-200'
-        }`}>
-          <span>{message.text}</span>
-          <button onClick={() => setMessage(null)} className="ml-4 opacity-70 hover:opacity-100">✕</button>
+    <div className="min-h-screen bg-[#ffffff]">
+      {/* Top Banner with Fresh Pink Gradient */}
+      <section className="bg-gradient-to-b from-[#fff5f6] via-[#fff1f2]/70 to-[#ffffff] border-b border-[#ffe4e6] px-6 py-10 relative overflow-hidden">
+        <div className="absolute -top-16 -right-16 w-80 h-80 rounded-full bg-[#fecdd3]/50 blur-3xl pointer-events-none"></div>
+        <div className="max-w-7xl mx-auto relative z-10">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white border border-[#fecdd3] text-[#f43f5e] shadow-sm mb-3">
+            <span className="w-2 h-2 rounded-full bg-[#f43f5e]"></span>
+            <span className="mono-eyebrow text-xs font-bold">SYSTEM CONFIGURATION</span>
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-[#111827]">Credentials & Governance</h1>
+          <p className="text-sm text-[#4b5563] mt-1 max-w-xl">
+            Configure Google App Passwords, AI reasoning keys, Places API tokens, and enforce fail-closed global suppression lists.
+          </p>
         </div>
-      )}
+      </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left Column: Live Integrations Form */}
+      <main className="max-w-4xl mx-auto px-6 py-10">
+        {message && (
+          <div
+            className={`mb-6 p-4 rounded-xl border text-xs font-mono flex items-center space-x-2.5 ${
+              message.type === 'success'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                : 'bg-rose-50 border-rose-200 text-rose-800'
+            }`}
+          >
+            {message.type === 'success' ? (
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            )}
+            <span>{message.text}</span>
+          </div>
+        )}
+
         <form onSubmit={handleSaveProviders} className="space-y-6">
           {/* Section 1: Live Email Sending via App Passwords */}
-          <div className="border border-black/[0.08] rounded-[4px] p-6 bg-white">
+          <div className="border border-[#e5e7eb] rounded-2xl p-6 bg-white shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <Mail className="w-5 h-5 text-[#ef2cc1]" />
-                <h3 className="text-base font-semibold text-black">Live Email Sending (Google App Passwords)</h3>
+              <div className="flex items-center space-x-2.5">
+                <Mail className="w-5 h-5 text-[#f43f5e]" />
+                <h3 className="text-base font-bold text-[#111827]">Live Email Sending (Google App Passwords)</h3>
               </div>
-              <span className={`mono-eyebrow text-[10px] px-2 py-0.5 rounded-[4px] ${
-                smtpConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-black/5 text-black/50'
+              <span className={`mono-eyebrow text-[10px] px-3 py-1 rounded-full font-bold ${
+                smtpConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-[#fff1f2] text-[#f43f5e]'
               }`}>
                 {smtpConfigured ? 'CONNECTED' : 'NOT CONFIGURED'}
               </span>
             </div>
 
-            <p className="text-xs text-black/60 mb-4 leading-relaxed">
-              Use a Google 16-character App Password (from Google Account → Security → 2-Step Verification → App passwords).
+            <p className="text-xs text-[#6b7280] mb-4 leading-relaxed font-mono">
+              Use a Google 16-character App Password (Google Account → Security → 2-Step Verification → App passwords).
             </p>
 
             <div className="space-y-3">
               <div>
-                <label className="mono-eyebrow text-black/60 block mb-1">GMAIL / SENDER ADDRESS</label>
+                <label className="mono-eyebrow text-[#4b5563] font-semibold block mb-1">GMAIL / SENDER ADDRESS</label>
                 <input
                   type="email"
                   placeholder="your-name@gmail.com"
                   value={smtpEmail}
                   onChange={(e) => setSmtpEmail(e.target.value)}
-                  className="w-full text-xs font-mono border border-black/20 rounded-[4px] p-2.5 focus:outline-none focus:border-black"
+                  className="w-full text-xs font-mono border border-[#e5e7eb] rounded-xl p-2.5 focus:outline-none focus:border-[#f43f5e] focus:ring-2 focus:ring-rose-500/10 text-[#111827]"
                 />
               </div>
 
               <div>
-                <label className="mono-eyebrow text-black/60 block mb-1">GOOGLE APP PASSWORD (16 CHARACTERS)</label>
+                <label className="mono-eyebrow text-[#4b5563] font-semibold block mb-1">GOOGLE APP PASSWORD (16 CHARACTERS)</label>
                 <input
                   type="password"
                   placeholder={smtpConfigured ? '•••••••••••••••• (Leave blank to keep existing)' : 'abcd efgh ijkl mnop'}
                   value={smtpAppPassword}
                   onChange={(e) => setSmtpAppPassword(e.target.value)}
-                  className="w-full text-xs font-mono border border-black/20 rounded-[4px] p-2.5 focus:outline-none focus:border-black"
+                  className="w-full text-xs font-mono border border-[#e5e7eb] rounded-xl p-2.5 focus:outline-none focus:border-[#f43f5e] focus:ring-2 focus:ring-rose-500/10 text-[#111827]"
                 />
               </div>
             </div>
           </div>
 
           {/* Section 2: AI Provider & Model Selection */}
-          <div className="border border-black/[0.08] rounded-[4px] p-6 bg-white">
+          <div className="border border-[#e5e7eb] rounded-2xl p-6 bg-white shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <Sparkles className="w-5 h-5 text-[#fc4c02]" />
-                <h3 className="text-base font-semibold text-black">AI Reasoning & Copywriting</h3>
+              <div className="flex items-center space-x-2.5">
+                <Sparkles className="w-5 h-5 text-[#f43f5e]" />
+                <h3 className="text-base font-bold text-[#111827]">AI Reasoning & Copywriting</h3>
               </div>
-              <span className={`mono-eyebrow text-[10px] px-2 py-0.5 rounded-[4px] ${
+              <span className={`mono-eyebrow text-[10px] px-3 py-1 rounded-full font-bold ${
                 aiKeyConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
               }`}>
                 {aiKeyConfigured ? 'API KEY ACTIVE' : 'KEY REQUIRED'}
               </span>
             </div>
 
-            <p className="text-xs text-black/60 mb-4">
+            <p className="text-xs text-[#6b7280] mb-4 font-mono">
               Choose your LLM provider and model for research analysis and personalized draft generation.
             </p>
 
             <div className="space-y-4">
               <div>
-                <label className="mono-eyebrow text-black/60 block mb-1">PROVIDER</label>
+                <label className="mono-eyebrow text-[#4b5563] font-semibold block mb-1.5">PROVIDER</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     { id: 'gemini', label: 'Google Gemini' },
@@ -217,10 +246,10 @@ export default function SettingsPage() {
                         else if (p.id === 'openai') setAiModel('ChatGPT 5.6 Mini');
                         else setAiModel('Meta Muse Spark 1.3 Contributor');
                       }}
-                      className={`mono-btn text-xs py-2 rounded-[4px] border transition ${
+                      className={`mono-btn text-xs py-2.5 rounded-full border transition font-semibold ${
                         aiProvider === p.id
-                          ? 'bg-black text-white border-black'
-                          : 'bg-white text-black/70 border-black/20 hover:bg-black/5'
+                          ? 'bg-[#f43f5e] text-white border-[#f43f5e] shadow-sm shadow-rose-500/20'
+                          : 'bg-[#fff1f2] text-[#f43f5e] border-[#fecdd3] hover:bg-[#ffe4e6]'
                       }`}
                     >
                       {p.label}
@@ -230,72 +259,54 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <label className="mono-eyebrow text-black/60 block mb-1">MODEL</label>
-                <select
+                <label className="mono-eyebrow text-[#4b5563] font-semibold block mb-1">MODEL SPECIFICATION</label>
+                <input
+                  type="text"
                   value={aiModel}
                   onChange={(e) => setAiModel(e.target.value)}
-                  className="w-full text-xs font-mono border border-black/20 rounded-[4px] p-2.5 bg-white focus:outline-none focus:border-black"
-                >
-                  {aiProvider === 'gemini' && (
-                    <>
-                      <option value="Gemini 3.6 flash">Gemini 3.6 flash (Fast, Low Latency)</option>
-                      <option value="gemini-2.5-pro">Gemini 2.5 Pro (Deep Research)</option>
-                    </>
-                  )}
-                  {aiProvider === 'openai' && (
-                    <>
-                      <option value="ChatGPT 5.6 Mini">ChatGPT 5.6 Mini (Standard)</option>
-                      <option value="gpt-4o">GPT-4o (High Precision)</option>
-                    </>
-                  )}
-                  {aiProvider === 'meta' && (
-                    <>
-                      <option value="Meta Muse Spark 1.3 Contributor">Meta Muse Spark 1.3 Contributor</option>
-                      <option value="meta-llama/Llama-3.3-70B-Instruct-Turbo">Llama 3.3 70B Instruct Turbo</option>
-                    </>
-                  )}
-                </select>
+                  className="w-full text-xs font-mono border border-[#e5e7eb] rounded-xl p-2.5 focus:outline-none focus:border-[#f43f5e] text-[#111827]"
+                />
               </div>
 
               <div>
-                <label className="mono-eyebrow text-black/60 block mb-1">{aiProvider.toUpperCase()} API KEY</label>
+                <label className="mono-eyebrow text-[#4b5563] font-semibold block mb-1">API KEY (AES-256-GCM ENCRYPTED)</label>
                 <input
                   type="password"
-                  placeholder={aiKeyConfigured ? '•••••••••••••••• (Leave blank to keep existing)' : 'Paste API Key here'}
+                  placeholder={aiKeyConfigured ? '•••••••••••••••• (Leave blank to keep existing)' : 'Enter API Key'}
                   value={aiApiKey}
                   onChange={(e) => setAiApiKey(e.target.value)}
-                  className="w-full text-xs font-mono border border-black/20 rounded-[4px] p-2.5 focus:outline-none focus:border-black"
+                  className="w-full text-xs font-mono border border-[#e5e7eb] rounded-xl p-2.5 focus:outline-none focus:border-[#f43f5e] text-[#111827]"
                 />
               </div>
             </div>
           </div>
 
-          {/* Section 3: Google Places API Key */}
-          <div className="border border-black/[0.08] rounded-[4px] p-6 bg-white">
+          {/* Section 3: Google Places Discovery */}
+          <div className="border border-[#e5e7eb] rounded-2xl p-6 bg-white shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <Key className="w-5 h-5 text-blue-600" />
-                <h3 className="text-base font-semibold text-black">Google Places API (Live Discovery)</h3>
+              <div className="flex items-center space-x-2.5">
+                <Key className="w-5 h-5 text-[#f43f5e]" />
+                <h3 className="text-base font-bold text-[#111827]">Google Places Discovery API</h3>
               </div>
-              <span className={`mono-eyebrow text-[10px] px-2 py-0.5 rounded-[4px] ${
-                placesKeyConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-black/5 text-black/50'
+              <span className={`mono-eyebrow text-[10px] px-3 py-1 rounded-full font-bold ${
+                placesKeyConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-[#f3f4f6] text-[#6b7280]'
               }`}>
-                {placesKeyConfigured ? 'CONFIGURED' : 'OPTIONAL / PENDING'}
+                {placesKeyConfigured ? 'KEY ACTIVE' : 'MOCK PROVIDER ACTIVE'}
               </span>
             </div>
 
-            <p className="text-xs text-black/60 mb-4">
-              Google Cloud API key with <strong>Places API (New)</strong> enabled for live small business discovery.
+            <p className="text-xs text-[#6b7280] mb-4 font-mono">
+              Required for continuous real-world business discovery. (Falls back safely to synthetic simulation if omitted).
             </p>
 
             <div>
-              <label className="mono-eyebrow text-black/60 block mb-1">GOOGLE PLACES API KEY</label>
+              <label className="mono-eyebrow text-[#4b5563] font-semibold block mb-1">PLACES API KEY</label>
               <input
                 type="password"
                 placeholder={placesKeyConfigured ? '•••••••••••••••• (Leave blank to keep existing)' : 'AIzaSy...'}
                 value={placesApiKey}
                 onChange={(e) => setPlacesApiKey(e.target.value)}
-                className="w-full text-xs font-mono border border-black/20 rounded-[4px] p-2.5 focus:outline-none focus:border-black"
+                className="w-full text-xs font-mono border border-[#e5e7eb] rounded-xl p-2.5 focus:outline-none focus:border-[#f43f5e] text-[#111827]"
               />
             </div>
           </div>
@@ -303,64 +314,70 @@ export default function SettingsPage() {
           <button
             type="submit"
             disabled={saving}
-            className="mono-btn w-full bg-black text-white hover:bg-black/80 py-3 rounded-[4px] text-xs flex items-center justify-center space-x-2 transition"
+            className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-6 py-3 rounded-full text-xs font-semibold flex items-center justify-center space-x-2 shadow-sm shadow-rose-500/20 transition active:scale-95 w-full tracking-wider"
           >
             <Save className="w-4 h-4" />
-            <span>{saving ? 'ENCRYPTING & SAVING...' : 'SAVE CONFIGURATION'}</span>
+            <span>{saving ? 'ENCRYPTING & PERSISTING...' : 'SAVE PROVIDER CREDENTIALS'}</span>
           </button>
         </form>
 
-        {/* Right Column: Global Suppression List */}
-        <div className="border border-black/[0.08] rounded-[4px] p-6 bg-white h-fit">
-          <div className="flex items-center space-x-2 mb-2">
+        {/* Global Suppression List */}
+        <div className="mt-12 pt-8 border-t border-[#f3f4f6]">
+          <div className="flex items-center space-x-2.5 mb-2">
             <ShieldCheck className="w-5 h-5 text-emerald-600" />
-            <h3 className="text-base font-semibold text-black">Global Suppression & Opt-Out List</h3>
+            <h3 className="text-lg font-bold text-[#111827]">Global Suppression Registry</h3>
           </div>
-          <p className="text-xs text-black/60 mb-6">
-            Recipients who opt out or are manually suppressed. Checked immediately before every live dispatch.
+          <p className="text-xs text-[#6b7280] mb-6 font-mono">
+            Unconditional opt-outs and blocked contacts. Outbound dispatches are strictly pre-checked against this list before transmission.
           </p>
 
-          <form onSubmit={handleAddSuppression} className="flex gap-2 mb-6">
+          <form onSubmit={handleAddSuppression} className="flex gap-3 mb-6">
             <input
-              type="email"
-              required
-              placeholder="exclude@example.com"
+              type="text"
+              placeholder="operator@do-not-contact.com or domain.com"
               value={newSuppressionEmail}
               onChange={(e) => setNewSuppressionEmail(e.target.value)}
-              className="flex-1 text-xs border border-black/20 rounded-[4px] px-3 py-2 font-mono focus:outline-none focus:border-black"
+              className="flex-1 text-xs font-mono border border-[#e5e7eb] rounded-full px-4 py-2.5 focus:outline-none focus:border-[#f43f5e] text-[#111827]"
             />
             <button
               type="submit"
-              className="mono-btn text-xs bg-black text-white hover:bg-black/80 px-3 py-2 rounded-[4px] flex items-center space-x-1"
+              className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-5 py-2.5 rounded-full text-xs font-semibold flex items-center space-x-1.5 shadow-sm shadow-rose-500/20"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>BLOCK</span>
+              <span>SUPPRESS</span>
             </button>
           </form>
 
-          <div className="border border-black/[0.06] rounded-[4px] divide-y divide-black/[0.06] max-h-80 overflow-y-auto">
-            {suppressions.length === 0 ? (
-              <div className="p-4 text-center text-xs font-mono text-black/40">
-                No suppression entries.
-              </div>
-            ) : (
-              suppressions.map((entry) => (
-                <div key={entry.id} className="p-3 flex items-center justify-between text-xs font-mono">
-                  <div>
-                    <div className="font-semibold text-black">{entry.normalized_email || 'Phone Record'}</div>
-                    <div className="text-[10px] text-black/40">
-                      Reason: {entry.reason} • {new Date(entry.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <span className="mono-eyebrow text-[9px] bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-[4px]">
-                    SUPPRESSED
-                  </span>
-                </div>
-              ))
-            )}
+          <div className="border border-[#e5e7eb] rounded-2xl overflow-hidden bg-white shadow-sm">
+            <table className="w-full text-left text-xs font-mono">
+              <thead className="bg-[#fff5f6] border-b border-[#ffe4e6] text-[#4b5563]">
+                <tr>
+                  <th className="py-3 px-4 font-bold">TYPE</th>
+                  <th className="py-3 px-4 font-bold">VALUE</th>
+                  <th className="py-3 px-4 font-bold">REASON</th>
+                  <th className="py-3 px-4 font-bold">DATE</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#f3f4f6]">
+                {suppressions.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-6 text-center text-[#9ca3af]">No suppression entries recorded yet.</td>
+                  </tr>
+                ) : (
+                  suppressions.map((s) => (
+                    <tr key={s.id}>
+                      <td className="py-3 px-4 font-bold text-[#f43f5e]">{s.suppression_type}</td>
+                      <td className="py-3 px-4 text-[#111827] font-semibold">{s.normalized_value}</td>
+                      <td className="py-3 px-4 text-[#6b7280]">{s.reason || 'Unspecified'}</td>
+                      <td className="py-3 px-4 text-[#9ca3af]">{new Date(s.created_at).toLocaleDateString()}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

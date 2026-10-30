@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Logo from '@/components/Logo';
-import { Mail, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Mail, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, Sparkles, Target, Zap } from 'lucide-react';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -17,13 +17,12 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  // Dynamic digit inputs (supports 6, 8, or variable length OTP)
-  // Defaulting to 8 digit boxes to match your Supabase OTP template
+  // 8 digit individual boxes matching Supabase OTP template
   const OTP_LENGTH = 8;
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Auto-focus first digit input when transitioning to OTP step
+  // Auto-focus first digit box when moving to OTP step
   useEffect(() => {
     if (step === 'otp') {
       setTimeout(() => {
@@ -68,7 +67,6 @@ export default function AuthPage() {
 
   // 2. Handle OTP digit input changes, auto-advance, and paste
   const handleDigitChange = (index: number, value: string) => {
-    // If pasted full string (e.g. 8 digits or 6 digits)
     if (value.length > 1) {
       const pasted = value.replace(/\D/g, '').slice(0, OTP_LENGTH);
       if (pasted.length > 0) {
@@ -127,7 +125,7 @@ export default function AuthPage() {
 
       if (error) {
         setMessage({ text: error.message, type: 'error' });
-      } else if (data.session) {
+      } else {
         setMessage({ text: 'Access granted. Initializing session...', type: 'success' });
         setTimeout(() => {
           router.push('/');
@@ -143,101 +141,90 @@ export default function AuthPage() {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const code = digits.join('');
-    verifyCode(code);
+    verifyCode(digits.join(''));
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[#080915] text-white select-none">
-      {/* LEFT COLUMN: Flat Artistic Studio Edition */}
-      <div className="hidden lg:flex lg:w-7/12 flex-col justify-between p-16 relative border-r border-white/[0.08] bg-[#0c0d1c] overflow-hidden">
-        {/* Flat Abstract Geometric Art Background */}
-        <div className="absolute inset-0 pointer-events-none opacity-40">
-          <div className="absolute -top-24 -left-20 w-[420px] h-[420px] rounded-full bg-[#f43f5e] opacity-25 filter blur-[90px]"></div>
-          <div className="absolute top-1/2 -right-16 w-[360px] h-[360px] rounded-full bg-[#38bdf8] opacity-20 filter blur-[100px]"></div>
-          <div className="absolute -bottom-20 left-1/3 w-[380px] h-[380px] rounded-full bg-[#a855f7] opacity-20 filter blur-[90px]"></div>
-
-          <svg className="absolute inset-0 w-full h-full opacity-15" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="art-grid" width="48" height="48" patternUnits="userSpaceOnUse">
-                <circle cx="2" cy="2" r="1" fill="#ffffff" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#art-grid)" />
-          </svg>
-        </div>
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[#ffffff] text-[#111827] select-none">
+      {/* LEFT COLUMN: Bright, Fresh & Flat Pink Artistic Studio Canvas */}
+      <div className="hidden lg:flex lg:w-7/12 flex-col justify-between p-16 relative border-r border-[#ffe4e6] bg-gradient-to-br from-[#fff5f6] via-[#fff1f2]/80 to-[#fdf2f8] overflow-hidden">
+        {/* Soft, Artistic Abstract Blobs */}
+        <div className="absolute -top-24 -left-20 w-[460px] h-[460px] rounded-full bg-[#fecdd3]/70 blur-3xl pointer-events-none"></div>
+        <div className="absolute top-1/2 -right-20 w-[400px] h-[400px] rounded-full bg-[#bae6fd]/50 blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-24 left-1/4 w-[420px] h-[420px] rounded-full bg-[#fbcfe8]/60 blur-3xl pointer-events-none"></div>
 
         {/* Brand Header */}
         <div className="relative z-10 flex items-center">
-          <Logo theme="dark" height={38} showSubtitle={true} />
+          <Logo theme="light" height={36} showSubtitle={false} />
+          <span className="mono-eyebrow text-xs text-[#f43f5e] font-bold tracking-widest pl-3 ml-3 border-l border-[#fecdd3]">
+            PROSPECTING STUDIO
+          </span>
         </div>
 
         {/* Narrative & Editorial Centerpiece */}
         <div className="relative z-10 max-w-xl my-auto py-10">
-          <div className="inline-flex items-center space-x-2.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 mb-8 backdrop-blur-sm">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-[#ffffff] border border-[#fecdd3] text-[#f43f5e] shadow-sm mb-6">
             <span className="w-2 h-2 rounded-full bg-[#f43f5e]"></span>
-            <span className="w-2 h-2 rounded-full bg-[#38bdf8]"></span>
-            <span className="w-2 h-2 rounded-full bg-[#c084fc]"></span>
-            <span className="text-[11px] font-mono tracking-wider text-white/80 pl-1 uppercase">
-              STUDIO EDITION
+            <span className="text-[11px] font-mono font-semibold tracking-wider uppercase">
+              EMPIRICAL AI PROSPECTING
             </span>
           </div>
 
-          <h2 className="text-4xl xl:text-5xl font-medium tracking-tight text-white leading-[1.2] mb-6 font-serif">
-            Outreach crafted like an editorial piece, grounded in observation.
+          <h2 className="text-4xl xl:text-5xl font-semibold tracking-tight text-[#111827] leading-[1.2] mb-6">
+            High-intent outreach, grounded in verified business observations.
           </h2>
 
-          <p className="text-white/65 text-base leading-relaxed mb-10 font-normal">
-            Evee observes public business surfaces, notices missing customer workflows, and composes bespoke correspondence with human precision.
+          <p className="text-[#4b5563] text-base leading-relaxed mb-10">
+            Evee inspects public business web presence, extracts concrete operational gaps, and drafts personalized emails with mandatory operator approval.
           </p>
 
+          {/* Crisp, Flat Color Tiles */}
           <div className="grid grid-cols-3 gap-3.5 pt-2">
-            <div className="bg-[#15172b] border border-[#262842] rounded-lg p-4">
+            <div className="bg-[#ffffff] border border-[#fecdd3] rounded-2xl p-4 shadow-sm hover:border-[#f43f5e] transition">
               <div className="w-3 h-3 rounded-full bg-[#f43f5e] mb-2.5"></div>
-              <div className="text-xs font-semibold text-white">Observation</div>
-              <div className="text-[11px] text-white/50 mt-1 font-mono">Empirical facts</div>
+              <div className="text-xs font-bold text-[#111827]">Observation</div>
+              <div className="text-[11px] text-[#6b7280] mt-1 font-mono">Empirical proof</div>
             </div>
 
-            <div className="bg-[#15172b] border border-[#262842] rounded-lg p-4">
-              <div className="w-3 h-3 rounded-full bg-[#38bdf8] mb-2.5"></div>
-              <div className="text-xs font-semibold text-white">Qualification</div>
-              <div className="text-[11px] text-white/50 mt-1 font-mono">100-pt evidence</div>
+            <div className="bg-[#ffffff] border border-[#bae6fd] rounded-2xl p-4 shadow-sm hover:border-[#0284c7] transition">
+              <div className="w-3 h-3 rounded-full bg-[#0284c7] mb-2.5"></div>
+              <div className="text-xs font-bold text-[#111827]">100-Pt Scoring</div>
+              <div className="text-[11px] text-[#6b7280] mt-1 font-mono">Deterministic caps</div>
             </div>
 
-            <div className="bg-[#15172b] border border-[#262842] rounded-lg p-4">
-              <div className="w-3 h-3 rounded-full bg-[#c084fc] mb-2.5"></div>
-              <div className="text-xs font-semibold text-white">Governance</div>
-              <div className="text-[11px] text-white/50 mt-1 font-mono">Fail-closed gate</div>
+            <div className="bg-[#ffffff] border border-[#fbcfe8] rounded-2xl p-4 shadow-sm hover:border-[#db2777] transition">
+              <div className="w-3 h-3 rounded-full bg-[#db2777] mb-2.5"></div>
+              <div className="text-xs font-bold text-[#111827]">Fail-Closed</div>
+              <div className="text-[11px] text-[#6b7280] mt-1 font-mono">Operator control</div>
             </div>
           </div>
         </div>
 
         {/* Footer Signature */}
-        <div className="relative z-10 flex items-center justify-between text-xs font-mono text-white/40 pt-6 border-t border-white/[0.08]">
+        <div className="relative z-10 flex items-center justify-between text-xs font-mono text-[#9ca3af] pt-6 border-t border-[#fecdd3]">
           <span>EVEE PLATFORM • SINGULR TECH</span>
-          <span>EST. 2026</span>
+          <span>ENTERPRISE EDITION</span>
         </div>
       </div>
 
-      {/* RIGHT COLUMN: The High-Contrast Authentication Form with 8-Digit Box Design */}
-      <div className="w-full lg:w-5/12 flex flex-col justify-center items-center px-4 sm:px-10 py-16 bg-white text-black min-h-screen">
-        <div className="w-full max-w-md">
-          {/* Mobile-only brand logo */}
+      {/* RIGHT COLUMN: Clean White Auth Panel */}
+      <div className="w-full lg:w-5/12 flex flex-col justify-center items-center px-6 sm:px-12 py-16 bg-[#ffffff] min-h-screen">
+        <div className="w-full max-w-sm">
+          {/* Mobile-only logo */}
           <div className="lg:hidden text-center mb-8 flex justify-center">
-            <Logo theme="light" height={32} showSubtitle={true} />
+            <Logo theme="light" height={32} showSubtitle={false} />
           </div>
 
-          {/* Form Header */}
           <div className="mb-8">
-            <span className="mono-eyebrow text-black/40 block mb-1">OPERATOR ACCESS</span>
-            <h3 className="text-2xl font-medium tracking-tight text-black">
+            <span className="mono-eyebrow text-[#f43f5e] font-bold block mb-1">OPERATOR CONSOLE</span>
+            <h3 className="text-2xl font-bold tracking-tight text-[#111827]">
               {step === 'otp'
                 ? 'Enter verification code'
                 : mode === 'signup'
-                ? 'Create an account'
-                : 'Sign in to Console'}
+                ? 'Create your account'
+                : 'Welcome back'}
             </h3>
-            <p className="text-xs text-black/60 mt-1 font-mono">
+            <p className="text-xs text-[#6b7280] mt-1 font-mono">
               {step === 'otp'
                 ? `Enter the 8-digit code sent to ${email}`
                 : 'Enter your email to receive an instant verification passcode.'}
@@ -247,10 +234,10 @@ export default function AuthPage() {
           {/* Feedback message banner */}
           {message && (
             <div
-              className={`mb-6 p-3 rounded-[4px] text-xs font-mono flex items-start space-x-2.5 ${
+              className={`mb-6 p-3.5 rounded-xl border text-xs font-mono flex items-start space-x-2.5 ${
                 message.type === 'success'
-                  ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
-                  : 'bg-rose-50 text-rose-900 border border-rose-200'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  : 'bg-rose-50 border-rose-200 text-rose-800'
               }`}
             >
               {message.type === 'success' ? (
@@ -266,30 +253,28 @@ export default function AuthPage() {
             <form onSubmit={handleSendOtp} className="space-y-4">
               {mode === 'signup' && (
                 <div>
-                  <label className="mono-eyebrow text-black/60 block mb-1.5">FULL NAME</label>
+                  <label className="mono-eyebrow text-[#4b5563] font-semibold block mb-1.5">OPERATOR NAME</label>
                   <input
                     type="text"
-                    required
                     placeholder="Aditya Dixit"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    className="w-full text-xs font-mono border border-black/20 rounded-[4px] p-3 focus:outline-none focus:border-black transition"
+                    className="w-full px-3.5 py-2.5 text-sm border border-[#e5e7eb] rounded-xl focus:outline-none focus:border-[#f43f5e] focus:ring-2 focus:ring-rose-500/10 transition text-[#111827]"
                   />
                 </div>
               )}
 
               <div>
-                <label className="mono-eyebrow text-black/60 block mb-1.5">EMAIL ADDRESS</label>
+                <label className="mono-eyebrow text-[#4b5563] font-semibold block mb-1.5">WORK EMAIL</label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-black/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Mail className="w-4 h-4 text-[#9ca3af] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
                     required
-                    autoFocus
-                    placeholder="operator@singulr.tech"
+                    placeholder="operator@company.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-3 py-3 text-xs font-mono border border-black/20 rounded-[4px] focus:outline-none focus:border-black transition"
+                    className="w-full pl-10 pr-3.5 py-2.5 text-sm border border-[#e5e7eb] rounded-xl focus:outline-none focus:border-[#f43f5e] focus:ring-2 focus:ring-rose-500/10 transition text-[#111827]"
                   />
                 </div>
               </div>
@@ -297,7 +282,7 @@ export default function AuthPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="mono-btn w-full bg-black text-white hover:bg-black/85 py-3.5 rounded-[4px] text-xs flex items-center justify-center space-x-2 transition mt-2 tracking-wider"
+                className="w-full bg-[#f43f5e] hover:bg-[#e11d48] text-white font-semibold py-3 rounded-full text-xs flex items-center justify-center space-x-2 transition mt-2 shadow-sm shadow-rose-500/20 active:scale-[0.99] tracking-wider"
               >
                 <span>{loading ? 'SENDING CODE...' : 'CONTINUE WITH PASSCODE'}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -307,20 +292,20 @@ export default function AuthPage() {
             <form onSubmit={handleFormSubmit} className="space-y-6">
               <div>
                 <div className="flex justify-between items-center mb-3">
-                  <label className="mono-eyebrow text-black/60">8-DIGIT PASSCODE</label>
+                  <label className="mono-eyebrow text-[#4b5563] font-semibold">8-DIGIT PASSCODE</label>
                   <button
                     type="button"
                     onClick={() => {
                       setStep('email');
                       setMessage(null);
                     }}
-                    className="mono-eyebrow text-[10px] text-black/40 hover:text-black underline"
+                    className="mono-eyebrow text-[10px] text-[#f43f5e] hover:underline"
                   >
                     Change Email
                   </button>
                 </div>
 
-                {/* 8 Individual Digit Boxes */}
+                {/* 8 Digit Boxes with Auto-Advance */}
                 <div className="grid grid-cols-8 gap-1.5 sm:gap-2">
                   {digits.map((digit, index) => (
                     <input
@@ -335,10 +320,10 @@ export default function AuthPage() {
                       value={digit}
                       onChange={(e) => handleDigitChange(index, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(index, e)}
-                      className={`h-12 text-center text-lg font-mono font-bold border rounded-md focus:outline-none transition-all ${
+                      className={`h-12 text-center text-lg font-mono font-bold border rounded-xl focus:outline-none transition-all ${
                         digit
-                          ? 'border-black bg-black/[0.02] text-black shadow-sm'
-                          : 'border-black/20 bg-white text-black/90 focus:border-black focus:ring-2 focus:ring-black/10'
+                          ? 'border-[#f43f5e] bg-[#fff1f2] text-[#f43f5e] shadow-sm'
+                          : 'border-[#e5e7eb] bg-white text-[#111827] focus:border-[#f43f5e] focus:ring-2 focus:ring-rose-500/10'
                       }`}
                     />
                   ))}
@@ -348,9 +333,9 @@ export default function AuthPage() {
               <button
                 type="submit"
                 disabled={loading || digits.join('').length !== OTP_LENGTH}
-                className="mono-btn w-full bg-black text-white hover:bg-black/85 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-[4px] text-xs flex items-center justify-center space-x-2 transition tracking-wider"
+                className="w-full bg-[#f43f5e] hover:bg-[#e11d48] text-white font-semibold py-3 rounded-full text-xs flex items-center justify-center space-x-2 transition shadow-sm shadow-rose-500/20 disabled:opacity-50 disabled:cursor-not-allowed tracking-wider"
               >
-                <ShieldCheck className="w-4 h-4 text-[#c8f6f9]" />
+                <ShieldCheck className="w-4 h-4 text-white" />
                 <span>{loading ? 'AUTHENTICATING...' : 'VERIFY & SIGN IN'}</span>
               </button>
 
@@ -358,7 +343,7 @@ export default function AuthPage() {
                 type="button"
                 onClick={() => handleSendOtp()}
                 disabled={loading}
-                className="mono-eyebrow w-full text-center text-[11px] text-black/50 hover:text-black block transition"
+                className="mono-eyebrow w-full text-center text-[11px] text-[#6b7280] hover:text-[#f43f5e] block transition"
               >
                 Resend verification code
               </button>
@@ -366,7 +351,7 @@ export default function AuthPage() {
           )}
 
           {/* Mode Switcher */}
-          <div className="mt-8 pt-6 border-t border-black/[0.08] flex items-center justify-between text-xs font-mono">
+          <div className="mt-8 pt-6 border-t border-[#f3f4f6] flex items-center justify-between text-xs font-mono">
             {step === 'email' && mode === 'signin' ? (
               <>
                 <button
@@ -375,9 +360,9 @@ export default function AuthPage() {
                     setMode('signup');
                     setMessage(null);
                   }}
-                  className="text-black/60 hover:text-black underline"
+                  className="text-[#f43f5e] hover:underline"
                 >
-                  Create an account
+                  Create account
                 </button>
                 <button
                   type="button"
@@ -385,9 +370,9 @@ export default function AuthPage() {
                     setMode('forgot');
                     setMessage(null);
                   }}
-                  className="text-black/40 hover:text-black"
+                  className="text-[#9ca3af] hover:text-[#4b5563]"
                 >
-                  Help
+                  Need help?
                 </button>
               </>
             ) : (
@@ -398,16 +383,16 @@ export default function AuthPage() {
                   setMode('signin');
                   setMessage(null);
                 }}
-                className="text-black/60 hover:text-black underline w-full text-center"
+                className="text-[#f43f5e] hover:underline w-full text-center"
               >
-                ← Return to sign in
+                Back to Sign In
               </button>
             )}
           </div>
 
           {/* Compliance & Security Tag */}
-          <div className="mt-12 text-center text-[10px] font-mono text-black/40 flex items-center justify-center space-x-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-black/30" />
+          <div className="mt-12 text-center text-[10px] font-mono text-[#9ca3af] flex items-center justify-center space-x-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
             <span>PROTECTED BY SUPABASE ROW LEVEL SECURITY</span>
           </div>
         </div>

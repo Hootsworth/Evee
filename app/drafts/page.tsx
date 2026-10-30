@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Check, X, ShieldAlert, Sparkles, Send, ExternalLink, ArrowRight } from 'lucide-react';
+import { Check, X, ShieldAlert, Sparkles, Send, ExternalLink, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export default function DraftsApprovalPage() {
   const [drafts, setDrafts] = useState<any[]>([]);
@@ -75,13 +75,12 @@ export default function DraftsApprovalPage() {
           workflowId: approvedWorkflow.id,
         }),
       });
-
+      const data = await res.json();
       if (res.ok) {
-        alert('Email queued for controlled sending! Background worker will process with suppression & safety checks.');
+        alert('Email queued for outbound dispatch!');
         fetchDrafts();
       } else {
-        const json = await res.json();
-        alert(`Error queuing: ${json.error}`);
+        alert(`Error: ${data.error || 'Failed to queue outreach'}`);
       }
     } catch (err: any) {
       alert(`Error: ${err.message}`);
@@ -91,129 +90,145 @@ export default function DraftsApprovalPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-black/[0.08]">
-        <div>
-          <div className="mono-eyebrow text-black/50 mb-1">HUMAN-IN-THE-LOOP SAFETY GATE</div>
-          <h1 className="text-3xl font-medium tracking-tight text-black">Draft Approval Queue</h1>
-          <p className="text-sm text-black/60 mt-1">
+    <div className="min-h-screen bg-[#ffffff]">
+      {/* Top Banner with Fresh Pink Gradient */}
+      <section className="bg-gradient-to-b from-[#fff5f6] via-[#fff1f2]/70 to-[#ffffff] border-b border-[#ffe4e6] px-6 py-10 relative overflow-hidden">
+        <div className="absolute -top-16 -right-16 w-80 h-80 rounded-full bg-[#fecdd3]/50 blur-3xl pointer-events-none"></div>
+        <div className="max-w-7xl mx-auto relative z-10">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white border border-[#fecdd3] text-[#f43f5e] shadow-sm mb-3">
+            <span className="w-2 h-2 rounded-full bg-[#f43f5e]"></span>
+            <span className="mono-eyebrow text-xs font-bold">HUMAN-IN-THE-LOOP SAFETY GATE</span>
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-[#111827]">Draft Approval Queue</h1>
+          <p className="text-sm text-[#4b5563] mt-1 max-w-xl">
             Review personalized outreach drafts. Automated dispatch remains strictly blocked until explicit operator approval.
           </p>
         </div>
-      </div>
+      </section>
 
-      {loading ? (
-        <div className="py-20 text-center font-mono text-sm text-black/40">Loading drafts...</div>
-      ) : drafts.length === 0 ? (
-        <div className="border border-black/[0.08] rounded-[4px] p-16 text-center bg-[#f9f9fa]">
-          <p className="text-sm text-black/60 font-mono">No drafts generated yet. Trigger a discovery run in Campaigns.</p>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {drafts.map((draft) => {
-            const isApproved = draft.approval_status === 'approved';
-            const isRejected = draft.approval_status === 'rejected';
+      <main className="max-w-7xl mx-auto px-6 py-10">
+        {loading ? (
+          <div className="py-20 text-center font-mono text-sm text-[#9ca3af]">Loading drafts...</div>
+        ) : drafts.length === 0 ? (
+          <div className="border border-[#e5e7eb] rounded-2xl p-16 text-center bg-[#fff5f6]/50">
+            <ShieldCheck className="w-12 h-12 text-[#f43f5e]/40 mx-auto mb-3" />
+            <p className="text-sm text-[#6b7280] font-mono">No drafts generated yet. Trigger a discovery run in Campaigns.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {drafts.map((draft) => {
+              const isApproved = draft.approval_status === 'approved';
+              const isRejected = draft.approval_status === 'rejected';
 
-            return (
-              <div
-                key={draft.id}
-                className={`border rounded-[4px] p-6 bg-white transition ${
-                  isApproved
-                    ? 'border-emerald-300 bg-emerald-50/10'
-                    : isRejected
-                    ? 'border-rose-200 bg-rose-50/10 opacity-60'
-                    : 'border-black/[0.12]'
-                }`}
-              >
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
-                  <div>
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-semibold text-base text-black">
-                        {draft.business?.display_name || 'Prospect Business'}
-                      </span>
-                      <span className="text-xs text-black/40 font-mono">
-                        ({draft.business?.city || 'India'})
+              return (
+                <div
+                  key={draft.id}
+                  className={`border rounded-2xl p-6 bg-white shadow-sm transition ${
+                    isApproved
+                      ? 'border-emerald-300 bg-emerald-50/10'
+                      : isRejected
+                      ? 'border-rose-200 bg-rose-50/10 opacity-60'
+                      : 'border-[#e5e7eb] hover:border-[#fecdd3]'
+                  }`}
+                >
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
+                    <div>
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="font-bold text-base text-[#111827]">
+                          {draft.business?.display_name || 'Prospect Business'}
+                        </span>
+                        <span className="text-xs text-[#9ca3af] font-mono">
+                          ({draft.business?.city || 'India'})
+                        </span>
+                      </div>
+                      <div className="text-xs text-[#4b5563] font-mono">
+                        To: {draft.contact?.email_address || draft.business?.general_business_email || 'No email discovered'}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <span
+                        className={`mono-eyebrow text-xs px-3 py-1 rounded-full font-bold ${
+                          isApproved
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : isRejected
+                            ? 'bg-rose-100 text-rose-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {draft.approval_status.toUpperCase()}
                       </span>
                     </div>
-                    <div className="text-xs text-black/60 font-mono">
-                      To: {draft.contact?.email_address || draft.business?.general_business_email || 'No email discovered'}
+                  </div>
+
+                  {/* Email Subject & Body Preview */}
+                  <div className="bg-[#f9fafb] border border-[#f3f4f6] rounded-xl p-4 mb-4">
+                    <div className="text-xs font-mono text-[#9ca3af] mb-1 font-bold">SUBJECT:</div>
+                    <div className="text-sm font-bold text-[#111827] mb-3">{draft.subject}</div>
+
+                    <div className="text-xs font-mono text-[#9ca3af] mb-1 font-bold">BODY TEXT:</div>
+                    <div className="text-xs font-mono text-[#374151] whitespace-pre-line leading-relaxed bg-white p-4 border border-[#e5e7eb] rounded-xl">
+                      {draft.body_text}
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <span
-                      className={`mono-eyebrow text-xs px-2.5 py-1 rounded-[4px] font-semibold ${
-                        isApproved
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : isRejected
-                          ? 'bg-rose-100 text-rose-800'
-                          : 'bg-amber-100 text-amber-800'
-                      }`}
-                    >
-                      {draft.approval_status.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Email Subject & Body Preview */}
-                <div className="bg-[#f9f9fa] border border-black/[0.06] rounded-[4px] p-4 mb-4">
-                  <div className="text-xs font-mono text-black/50 mb-1">SUBJECT:</div>
-                  <div className="text-sm font-semibold text-black mb-3">{draft.subject}</div>
-
-                  <div className="text-xs font-mono text-black/50 mb-1">BODY TEXT:</div>
-                  <div className="text-xs font-mono text-black/80 whitespace-pre-line leading-relaxed bg-white p-3 border border-black/[0.04] rounded-[4px]">
-                    {draft.body_text}
-                  </div>
-                </div>
-
-                {/* Grounding & Evidence Summary */}
-                <div className="flex items-center justify-between text-xs text-black/60 font-mono mb-6">
-                  <div>
-                    <span className="text-black/40">EVIDENCE GROUNDING:</span> {draft.personalization_summary}
-                  </div>
-                </div>
-
-                {/* Action Controls */}
-                <div className="flex items-center justify-end space-x-3 pt-3 border-t border-black/[0.06]">
-                  {!isApproved && !isRejected && (
-                    <>
-                      <button
-                        onClick={() => handleReject(draft.id)}
-                        disabled={actionLoading === draft.id}
-                        className="mono-btn text-xs text-rose-700 hover:bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-[4px] transition flex items-center space-x-1"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                        <span>REJECT</span>
-                      </button>
-
-                      <button
-                        onClick={() => handleApprove(draft.id)}
-                        disabled={actionLoading === draft.id}
-                        className="mono-btn text-xs bg-black text-white hover:bg-black/80 px-4 py-1.5 rounded-[4px] transition flex items-center space-x-1.5"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>APPROVE DRAFT</span>
-                      </button>
-                    </>
+                  {/* Grounded Evidence Reference */}
+                  {draft.evidence_used && draft.evidence_used.length > 0 && (
+                    <div className="mb-4 text-xs font-mono">
+                      <span className="text-[#9ca3af] block mb-1">FACTUAL CITATIONS:</span>
+                      <div className="flex flex-wrap gap-2">
+                        {draft.evidence_used.map((ev: string, idx: number) => (
+                          <span key={idx} className="bg-[#fff1f2] text-[#f43f5e] px-2.5 py-1 rounded-full text-[11px] font-semibold border border-[#fecdd3]">
+                            {ev}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   )}
 
-                  {isApproved && (
-                    <button
-                      onClick={() => handleQueueForSend(draft)}
-                      disabled={actionLoading === draft.id}
-                      className="mono-btn text-xs bg-[#c8f6f9] text-black hover:bg-[#aef0f5] px-4 py-1.5 rounded-[4px] transition flex items-center space-x-1.5 font-semibold"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>QUEUE FOR CONTROLLED SEND</span>
-                    </button>
-                  )}
+                  {/* Action Bar */}
+                  <div className="pt-4 border-t border-[#f3f4f6] flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center space-x-2">
+                      {!isApproved && (
+                        <button
+                          onClick={() => handleApprove(draft.id)}
+                          disabled={actionLoading === draft.id}
+                          className="mono-btn bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-full text-xs font-semibold flex items-center space-x-1.5 transition active:scale-95"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>APPROVE</span>
+                        </button>
+                      )}
+
+                      {!isRejected && (
+                        <button
+                          onClick={() => handleReject(draft.id)}
+                          disabled={actionLoading === draft.id}
+                          className="mono-btn bg-[#f3f4f6] hover:bg-[#e5e7eb] text-[#374151] px-4 py-2 rounded-full text-xs font-semibold flex items-center space-x-1.5 transition active:scale-95"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>REJECT</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {isApproved && (
+                      <button
+                        onClick={() => handleQueueForSend(draft)}
+                        disabled={actionLoading === draft.id}
+                        className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-5 py-2 rounded-full text-xs font-semibold flex items-center space-x-2 shadow-sm shadow-rose-500/20 transition active:scale-95"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>QUEUE FOR OUTBOUND DISPATCH</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </main>
     </div>
   );
 }
