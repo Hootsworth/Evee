@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import Logo from '@/components/Logo';
 import { ShieldAlert, Zap, Globe, Mail, Sparkles, Sliders, FileText, CheckCircle2, User, LogOut } from 'lucide-react';
 
 export default function NavBar() {
@@ -59,13 +60,9 @@ export default function NavBar() {
   return (
     <header className="sticky top-0 z-50 bg-[#010120] text-white border-b border-white/10 px-6 py-3.5">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Brand Wordmark & Gradient Ribbon Dot */}
+        {/* Brand Logo & Navigation */}
         <div className="flex items-center space-x-8">
-          <Link href="/" className="flex items-center space-x-2 group">
-            <span className="font-bold tracking-tight text-xl text-white">EVEE</span>
-            <span className="w-2.5 h-2.5 rounded-full brand-gradient inline-block shadow-sm"></span>
-            <span className="mono-eyebrow text-[10px] text-white/50 tracking-widest pl-1">PROSPECTING</span>
-          </Link>
+          <Logo theme="dark" height={26} />
 
           {/* Navigation Links */}
           <nav className="hidden md:flex items-center space-x-1">
