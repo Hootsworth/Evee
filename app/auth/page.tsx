@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Mail, KeyRound, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Mail, KeyRound, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, Sparkles, Terminal, Check } from 'lucide-react';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -18,7 +17,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  // 1. Send OTP via Supabase Auth
+  // 1. Send OTP
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
@@ -27,7 +26,7 @@ export default function AuthPage() {
     setMessage(null);
 
     try {
-      const { data, error } = await supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
         options: {
           shouldCreateUser: mode === 'signup',
@@ -40,18 +39,18 @@ export default function AuthPage() {
       } else {
         setStep('otp');
         setMessage({
-          text: `Verification code sent to ${email}. Check your inbox or spam.`,
+          text: `A 6-digit verification code has been dispatched to ${email}`,
           type: 'success',
         });
       }
     } catch (err: any) {
-      setMessage({ text: err.message || 'Failed to send OTP code', type: 'error' });
+      setMessage({ text: err.message || 'Failed to dispatch verification code', type: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
-  // 2. Verify OTP code
+  // 2. Verify OTP
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otp) return;
@@ -69,54 +68,117 @@ export default function AuthPage() {
       if (error) {
         setMessage({ text: error.message, type: 'error' });
       } else if (data.session) {
-        setMessage({ text: 'Authentication successful! Redirecting...', type: 'success' });
+        setMessage({ text: 'Access granted. Initializing session...', type: 'success' });
         setTimeout(() => {
           router.push('/');
           router.refresh();
-        }, 1000);
+        }, 800);
       }
     } catch (err: any) {
-      setMessage({ text: err.message || 'Invalid verification code', type: 'error' });
+      setMessage({ text: err.message || 'Invalid or expired passcode', type: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[85vh] flex flex-col justify-center items-center px-6 py-16 bg-[#ffffff]">
-      {/* Background ambient glow matching Together AI brand ribbon */}
-      <div className="absolute w-[500px] h-[500px] brand-gradient opacity-10 blur-[120px] rounded-full pointer-events-none -top-20"></div>
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[#010120] text-white overflow-hidden select-none">
+      {/* LEFT COLUMN: Together AI Immersive Platform Showcase (Desktop) */}
+      <div className="hidden lg:flex lg:w-7/12 flex-col justify-between p-16 relative border-r border-white/10 bg-[#010120]">
+        {/* Glow ribbon effect */}
+        <div className="absolute top-1/4 -left-20 w-96 h-96 brand-gradient opacity-20 blur-[130px] rounded-full pointer-events-none"></div>
+        <div className="absolute bottom-10 right-10 w-80 h-80 bg-[#c8f6f9] opacity-10 blur-[140px] rounded-full pointer-events-none"></div>
 
-      <div className="w-full max-w-md relative z-10">
-        {/* Header Branding */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center space-x-2 group mb-3">
-            <span className="font-extrabold tracking-tight text-2xl text-black">EVEE</span>
-            <span className="w-2.5 h-2.5 rounded-full brand-gradient inline-block shadow-sm"></span>
-            <span className="mono-eyebrow text-xs text-black/40 tracking-widest pl-1">PLATFORM</span>
-          </Link>
-          <h1 className="text-2xl font-medium tracking-tight text-black">
-            {mode === 'signup'
-              ? 'Create your operator account'
-              : mode === 'forgot'
-              ? 'Recover your account'
-              : 'Sign in to Evee'}
-          </h1>
-          <p className="text-xs text-black/50 mt-1.5 font-mono">
-            {step === 'otp'
-              ? 'Enter the 6-digit one-time code sent to your email.'
-              : 'Passwordless OTP verification for maximum credential security.'}
-          </p>
+        {/* Brand Header */}
+        <div className="relative z-10 flex items-center space-x-3">
+          <span className="text-3xl font-bold tracking-tight text-white">EVEE</span>
+          <span className="w-2.5 h-2.5 rounded-full brand-gradient inline-block shadow-sm"></span>
+          <span className="mono-eyebrow text-xs text-white/40 tracking-widest pl-1">AUTONOMOUS PROSPECTING</span>
         </div>
 
-        {/* Auth Card (Together AI Card aesthetic: clean border, 4px rounded, mono labels) */}
-        <div className="border border-black/[0.12] rounded-[4px] bg-white p-8 shadow-sm">
+        {/* Narrative Hero */}
+        <div className="relative z-10 max-w-xl my-auto py-12">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-[4px] bg-white/5 border border-white/15 mb-6">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#c8f6f9]"></span>
+            <span className="mono-eyebrow text-[10px] text-white/90">ENTERPRISE AUDIT & RESEARCH PIPELINE</span>
+          </div>
+
+          <h2 className="text-4xl xl:text-5xl font-medium tracking-tight text-white leading-[1.15] mb-6">
+            High-intent prospecting, verified by empirical evidence.
+          </h2>
+
+          <p className="text-white/60 text-base leading-relaxed mb-10">
+            Evee inspects public web infrastructure, extracts concrete operational gaps (broken booking widgets, missing digital menus, viewport bugs), and drafts grounded outreach with mandatory operator approval.
+          </p>
+
+          {/* Architectural Pillars */}
+          <div className="space-y-4 font-mono text-xs text-white/80">
+            <div className="flex items-center space-x-3 bg-white/5 border border-white/10 p-3.5 rounded-[4px]">
+              <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <Check className="w-3.5 h-3.5" />
+              </div>
+              <span>Deterministic 100-pt qualification scoring with hard evidence caps.</span>
+            </div>
+
+            <div className="flex items-center space-x-3 bg-white/5 border border-white/10 p-3.5 rounded-[4px]">
+              <div className="w-6 h-6 rounded-full bg-[#ef2cc1]/20 text-[#ef2cc1] flex items-center justify-center shrink-0">
+                <Check className="w-3.5 h-3.5" />
+              </div>
+              <span>Strict fail-closed email sending: 0 automated emails without explicit approval.</span>
+            </div>
+
+            <div className="flex items-center space-x-3 bg-white/5 border border-white/10 p-3.5 rounded-[4px]">
+              <div className="w-6 h-6 rounded-full bg-[#c8f6f9]/20 text-[#c8f6f9] flex items-center justify-center shrink-0">
+                <Check className="w-3.5 h-3.5" />
+              </div>
+              <span>Anti-spam compliance: instant pre-send global suppression & opt-out checks.</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Info */}
+        <div className="relative z-10 flex items-center justify-between text-xs font-mono text-white/40 pt-8 border-t border-white/10">
+          <span>SINGULR TECH • ARCHITECTURE V2.0</span>
+          <span>AES-256-GCM PROTECTED</span>
+        </div>
+      </div>
+
+      {/* RIGHT COLUMN: The High-Contrast Authentication Card (White Surface on Mobile / High-Contrast Clean on Desktop) */}
+      <div className="w-full lg:w-5/12 flex flex-col justify-center items-center px-6 sm:px-12 py-16 bg-white text-black min-h-screen">
+        <div className="w-full max-w-sm">
+          {/* Mobile-only header */}
+          <div className="lg:hidden text-center mb-8">
+            <div className="inline-flex items-center space-x-2 mb-2">
+              <span className="text-2xl font-bold tracking-tight text-black">EVEE</span>
+              <span className="w-2.5 h-2.5 rounded-full brand-gradient inline-block shadow-sm"></span>
+            </div>
+            <div className="mono-eyebrow text-xs text-black/40">PROSPECTING PLATFORM</div>
+          </div>
+
+          {/* Form Header */}
+          <div className="mb-8">
+            <span className="mono-eyebrow text-black/40 block mb-1">OPERATOR ACCESS</span>
+            <h3 className="text-2xl font-medium tracking-tight text-black">
+              {mode === 'signup'
+                ? 'Create an account'
+                : mode === 'forgot'
+                ? 'Account Recovery'
+                : 'Sign in to Console'}
+            </h3>
+            <p className="text-xs text-black/60 mt-1 font-mono">
+              {step === 'otp'
+                ? 'Enter the 6-digit code sent to your inbox.'
+                : 'Enter your email to receive an instant authentication passcode.'}
+            </p>
+          </div>
+
+          {/* Banner message */}
           {message && (
             <div
-              className={`mb-6 p-3 rounded-[4px] text-xs font-mono flex items-start space-x-2 ${
+              className={`mb-6 p-3 rounded-[4px] text-xs font-mono flex items-start space-x-2.5 ${
                 message.type === 'success'
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                  : 'bg-rose-50 text-rose-800 border border-rose-200'
+                  ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
+                  : 'bg-rose-50 text-rose-900 border border-rose-200'
               }`}
             >
               {message.type === 'success' ? (
@@ -124,7 +186,7 @@ export default function AuthPage() {
               ) : (
                 <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               )}
-              <span>{message.text}</span>
+              <span className="leading-relaxed">{message.text}</span>
             </div>
           )}
 
@@ -132,29 +194,30 @@ export default function AuthPage() {
             <form onSubmit={handleSendOtp} className="space-y-4">
               {mode === 'signup' && (
                 <div>
-                  <label className="mono-eyebrow text-black/60 block mb-1">YOUR NAME</label>
+                  <label className="mono-eyebrow text-black/60 block mb-1.5">FULL NAME</label>
                   <input
                     type="text"
                     required
                     placeholder="Aditya Dixit"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    className="w-full text-xs font-mono border border-black/20 rounded-[4px] p-2.5 focus:outline-none focus:border-black"
+                    className="w-full text-xs font-mono border border-black/20 rounded-[4px] p-3 focus:outline-none focus:border-black transition"
                   />
                 </div>
               )}
 
               <div>
-                <label className="mono-eyebrow text-black/60 block mb-1">EMAIL ADDRESS</label>
+                <label className="mono-eyebrow text-black/60 block mb-1.5">EMAIL ADDRESS</label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-black/40 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Mail className="w-4 h-4 text-black/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
                     required
+                    autoFocus
                     placeholder="operator@singulr.tech"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 text-xs font-mono border border-black/20 rounded-[4px] focus:outline-none focus:border-black"
+                    className="w-full pl-10 pr-3 py-3 text-xs font-mono border border-black/20 rounded-[4px] focus:outline-none focus:border-black transition"
                   />
                 </div>
               </div>
@@ -162,27 +225,27 @@ export default function AuthPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="mono-btn w-full bg-black text-white hover:bg-black/85 py-3 rounded-[4px] text-xs flex items-center justify-center space-x-2 transition mt-2"
+                className="mono-btn w-full bg-black text-white hover:bg-black/85 py-3.5 rounded-[4px] text-xs flex items-center justify-center space-x-2 transition mt-2 tracking-wider"
               >
-                <span>{loading ? 'SENDING CODE...' : 'CONTINUE WITH OTP'}</span>
+                <span>{loading ? 'SENDING CODE...' : 'CONTINUE WITH PASSCODE'}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </form>
           ) : (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="mono-eyebrow text-black/60">6-DIGIT VERIFICATION CODE</label>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="mono-eyebrow text-black/60">6-DIGIT PASSCODE</label>
                   <button
                     type="button"
                     onClick={() => setStep('email')}
                     className="mono-eyebrow text-[10px] text-black/40 hover:text-black underline"
                   >
-                    Change Email
+                    Edit Email
                   </button>
                 </div>
                 <div className="relative">
-                  <KeyRound className="w-4 h-4 text-black/40 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <KeyRound className="w-4 h-4 text-black/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
@@ -191,7 +254,7 @@ export default function AuthPage() {
                     placeholder="123456"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 text-sm font-mono tracking-widest border border-black/20 rounded-[4px] focus:outline-none focus:border-black"
+                    className="w-full pl-10 pr-3 py-3 text-sm font-mono tracking-widest font-bold border border-black/20 rounded-[4px] focus:outline-none focus:border-black transition"
                   />
                 </div>
               </div>
@@ -199,25 +262,25 @@ export default function AuthPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="mono-btn w-full bg-black text-white hover:bg-black/85 py-3 rounded-[4px] text-xs flex items-center justify-center space-x-2 transition mt-2"
+                className="mono-btn w-full bg-black text-white hover:bg-black/85 py-3.5 rounded-[4px] text-xs flex items-center justify-center space-x-2 transition mt-2 tracking-wider"
               >
                 <ShieldCheck className="w-4 h-4 text-[#c8f6f9]" />
-                <span>{loading ? 'VERIFYING...' : 'VERIFY & ENTER'}</span>
+                <span>{loading ? 'AUTHENTICATING...' : 'VERIFY & SIGN IN'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleSendOtp}
                 disabled={loading}
-                className="mono-eyebrow w-full text-center text-[10px] text-black/50 hover:text-black block pt-2"
+                className="mono-eyebrow w-full text-center text-[11px] text-black/50 hover:text-black block pt-2"
               >
-                Didn't receive code? Resend
+                Resend verification code
               </button>
             </form>
           )}
 
-          {/* Mode switch tabs */}
-          <div className="mt-8 pt-6 border-t border-black/[0.08] flex justify-between items-center text-xs font-mono">
+          {/* Mode Switcher */}
+          <div className="mt-8 pt-6 border-t border-black/[0.08] flex items-center justify-between text-xs font-mono">
             {mode === 'signin' ? (
               <>
                 <button
@@ -240,7 +303,7 @@ export default function AuthPage() {
                   }}
                   className="text-black/40 hover:text-black"
                 >
-                  Lost access?
+                  Help
                 </button>
               </>
             ) : (
@@ -253,16 +316,16 @@ export default function AuthPage() {
                 }}
                 className="text-black/60 hover:text-black underline w-full text-center"
               >
-                ← Back to sign in
+                ← Return to sign in
               </button>
             )}
           </div>
-        </div>
 
-        {/* Security Disclosures */}
-        <div className="mt-8 text-center text-[11px] font-mono text-black/40 flex items-center justify-center space-x-2">
-          <ShieldCheck className="w-3.5 h-3.5 text-black/40" />
-          <span>Evee uses Supabase Auth with PKCE and rate-limited OTP tokens.</span>
+          {/* Compliance & Security Tag */}
+          <div className="mt-12 text-center text-[10px] font-mono text-black/40 flex items-center justify-center space-x-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-black/30" />
+            <span>PROTECTED BY SUPABASE ROW LEVEL SECURITY</span>
+          </div>
         </div>
       </div>
     </div>
