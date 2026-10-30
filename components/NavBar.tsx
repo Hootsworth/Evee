@@ -41,7 +41,6 @@ export default function NavBar() {
     router.refresh();
   };
 
-  // Streamlined 4 core primary items (Leads & Drafts are the primary actions)
   const navItems = [
     { label: 'DASHBOARD', href: '/' },
     { label: 'CAMPAIGNS', href: '/campaigns' },
@@ -55,13 +54,13 @@ export default function NavBar() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-[#ffffff] border-b border-[#f3e8ee] px-6 py-3.5 shadow-[0_1px_3px_rgba(244,63,94,0.04)]">
+    <header className="sticky top-0 z-50 bg-[#ffffff] border-b border-[#e5e7eb] px-6 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Brand Logo & Clean Flat Navigation */}
         <div className="flex items-center space-x-10">
           <Logo theme="light" height={28} showSubtitle={false} />
 
-          {/* Clean, De-cluttered Navigation Links */}
+          {/* Clean Flat Navigation Links */}
           <nav className="hidden md:flex items-center space-x-1.5">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
@@ -71,14 +70,14 @@ export default function NavBar() {
                   href={item.href}
                   className={`mono-btn text-xs px-3.5 py-1.5 rounded-full transition-all flex items-center space-x-1.5 ${
                     isActive
-                      ? 'bg-[#f43f5e] text-white font-semibold shadow-sm shadow-rose-500/20'
-                      : 'text-[#4b5563] hover:text-[#f43f5e] hover:bg-[#fff1f2]'
+                      ? 'bg-[#f43f5e] text-white font-medium shadow-sm'
+                      : 'text-[#4b5563] hover:text-[#111827] hover:bg-[#f3f4f6]'
                   }`}
                 >
                   <span>{item.label}</span>
                   {item.badge !== undefined && (
                     <span
-                      className={`ml-1 px-1.5 py-0.2 text-[10px] font-bold rounded-full ${
+                      className={`ml-1 px-1.5 py-0.2 text-[10px] font-medium rounded-full ${
                         isActive
                           ? 'bg-white text-[#f43f5e]'
                           : 'bg-[#f43f5e] text-white'
@@ -93,25 +92,25 @@ export default function NavBar() {
           </nav>
         </div>
 
-        {/* Right Actions: Clean & Bright */}
+        {/* Right Actions: Flat, Crisp & Thin */}
         <div className="flex items-center space-x-3">
           <Link
             href="/campaigns"
-            className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-4 py-1.5 rounded-full text-xs font-semibold flex items-center space-x-1.5 shadow-sm shadow-rose-500/20 transition active:scale-95"
+            className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-4 py-1.5 rounded-full text-xs font-medium flex items-center space-x-1.5 shadow-sm transition active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>NEW CAMPAIGN</span>
           </Link>
 
           {user && (
-            <div className="flex items-center space-x-2 pl-2 border-l border-[#f3e8ee]">
-              <span className="mono-eyebrow text-[11px] text-[#6b7280] max-w-[130px] truncate hidden lg:inline">
+            <div className="flex items-center space-x-2 pl-2 border-l border-[#e5e7eb]">
+              <span className="mono-eyebrow text-[11px] text-[#6b7280] max-w-[130px] truncate hidden lg:inline font-normal">
                 {user.email}
               </span>
               <button
                 onClick={handleSignOut}
                 title="Sign out"
-                className="p-1.5 rounded-full text-[#9ca3af] hover:text-[#f43f5e] hover:bg-[#fff1f2] transition"
+                className="p-1.5 rounded-full text-[#9ca3af] hover:text-[#111827] hover:bg-[#f3f4f6] transition"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
