@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Logo from '@/components/Logo';
-import { Mail, KeyRound, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
+import { Mail, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -13,14 +13,26 @@ export default function AuthPage() {
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  // 1. Send OTP
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // 6 Individual digit inputs for the OTP box design
+  const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Auto-focus first digit input when transitioning to OTP step
+  useEffect(() => {
+    if (step === 'otp') {
+      setTimeout(() => {
+        inputRefs.current[0]?.focus();
+      }, 100);
+    }
+  }, [step]);
+
+  // 1. Send OTP (Strictly sends 6-digit passcode without confirmation links)
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!email) return;
 
     setLoading(true);
@@ -30,8 +42,8 @@ export default function AuthPage() {
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
         options: {
-          shouldCreateUser: mode === 'signup',
-          data: mode === 'signup' && displayName ? { display_name: displayName.trim() } : undefined,
+          shouldCreateUser: true, // Seamless sign up & sign in with OTP
+          data: displayName ? { display_name: displayName.trim() } : undefined,
         },
       });
 
@@ -39,8 +51,9 @@ export default function AuthPage() {
         setMessage({ text: error.message, type: 'error' });
       } else {
         setStep('otp');
+        setDigits(['', '', '', '', '', '']);
         setMessage({
-          text: `A 6-digit verification code has been dispatched to ${email}`,
+          text: `A 6-digit verification code was sent to ${email}`,
           type: 'success',
         });
       }
@@ -51,10 +64,53 @@ export default function AuthPage() {
     }
   };
 
-  // 2. Verify OTP
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otp) return;
+  // 2. Handle OTP digit input changes, auto-advance, and paste
+  const handleDigitChange = (index: number, value: string) => {
+    // If pasted full string (e.g. 123456)
+    if (value.length > 1) {
+      const pasted = value.replace(/\D/g, '').slice(0, 6);
+      if (pasted.length > 0) {
+        const newDigits = [...digits];
+        for (let i = 0; i < 6; i++) {
+          newDigits[i] = pasted[i] || '';
+        }
+        setDigits(newDigits);
+        const focusIdx = Math.min(pasted.length, 5);
+        inputRefs.current[focusIdx]?.focus();
+
+        if (pasted.length === 6) {
+          verifyCode(pasted);
+        }
+      }
+      return;
+    }
+
+    const cleaned = value.replace(/\D/g, '');
+    const newDigits = [...digits];
+    newDigits[index] = cleaned;
+    setDigits(newDigits);
+
+    // Auto-advance to next box if filled
+    if (cleaned && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-submit if all 6 digits are filled
+    const fullCode = newDigits.join('');
+    if (fullCode.length === 6 && !newDigits.includes('')) {
+      verifyCode(fullCode);
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !digits[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  // 3. Verify OTP
+  const verifyCode = async (codeToVerify: string) => {
+    if (codeToVerify.length !== 6) return;
 
     setLoading(true);
     setMessage(null);
@@ -62,7 +118,7 @@ export default function AuthPage() {
     try {
       const { data, error } = await supabase.auth.verifyOtp({
         email: email.trim().toLowerCase(),
-        token: otp.trim(),
+        token: codeToVerify.trim(),
         type: 'email',
       });
 
@@ -73,29 +129,30 @@ export default function AuthPage() {
         setTimeout(() => {
           router.push('/');
           router.refresh();
-        }, 800);
+        }, 600);
       }
     } catch (err: any) {
-      setMessage({ text: err.message || 'Invalid or expired passcode', type: 'error' });
+      setMessage({ text: err.message || 'Invalid or expired verification code', type: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    verifyCode(digits.join(''));
+  };
+
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[#080915] text-white select-none">
-      {/* LEFT COLUMN: Artistic, Flat Geometric Palette (Pink, Cyan, Indigo, Cream) */}
+      {/* LEFT COLUMN: Flat Artistic Studio Edition */}
       <div className="hidden lg:flex lg:w-7/12 flex-col justify-between p-16 relative border-r border-white/[0.08] bg-[#0c0d1c] overflow-hidden">
         {/* Flat Abstract Geometric Art Background */}
         <div className="absolute inset-0 pointer-events-none opacity-40">
-          {/* Flat angled pastel block - Rose/Pink */}
           <div className="absolute -top-24 -left-20 w-[420px] h-[420px] rounded-full bg-[#f43f5e] opacity-25 filter blur-[90px]"></div>
-          {/* Flat Cyan accent block */}
           <div className="absolute top-1/2 -right-16 w-[360px] h-[360px] rounded-full bg-[#38bdf8] opacity-20 filter blur-[100px]"></div>
-          {/* Flat Violet/Indigo block */}
           <div className="absolute -bottom-20 left-1/3 w-[380px] h-[380px] rounded-full bg-[#a855f7] opacity-20 filter blur-[90px]"></div>
 
-          {/* Clean Flat Graphic Lines & Bauhaus-style Accents */}
           <svg className="absolute inset-0 w-full h-full opacity-15" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="art-grid" width="48" height="48" patternUnits="userSpaceOnUse">
@@ -113,7 +170,6 @@ export default function AuthPage() {
 
         {/* Narrative & Editorial Centerpiece */}
         <div className="relative z-10 max-w-xl my-auto py-10">
-          {/* Flat Color Pill Pill */}
           <div className="inline-flex items-center space-x-2.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 mb-8 backdrop-blur-sm">
             <span className="w-2 h-2 rounded-full bg-[#f43f5e]"></span>
             <span className="w-2 h-2 rounded-full bg-[#38bdf8]"></span>
@@ -131,7 +187,6 @@ export default function AuthPage() {
             Evee observes public business surfaces, notices missing customer workflows, and composes bespoke correspondence with human precision.
           </p>
 
-          {/* Flat Artistic Color Badges */}
           <div className="grid grid-cols-3 gap-3.5 pt-2">
             <div className="bg-[#15172b] border border-[#262842] rounded-lg p-4">
               <div className="w-3 h-3 rounded-full bg-[#f43f5e] mb-2.5"></div>
@@ -160,7 +215,7 @@ export default function AuthPage() {
         </div>
       </div>
 
-      {/* RIGHT COLUMN: The High-Contrast Authentication Form */}
+      {/* RIGHT COLUMN: The High-Contrast Authentication Form with 6-Digit Box Design */}
       <div className="w-full lg:w-5/12 flex flex-col justify-center items-center px-6 sm:px-12 py-16 bg-white text-black min-h-screen">
         <div className="w-full max-w-sm">
           {/* Mobile-only brand logo */}
@@ -172,20 +227,20 @@ export default function AuthPage() {
           <div className="mb-8">
             <span className="mono-eyebrow text-black/40 block mb-1">OPERATOR ACCESS</span>
             <h3 className="text-2xl font-medium tracking-tight text-black">
-              {mode === 'signup'
+              {step === 'otp'
+                ? 'Enter verification code'
+                : mode === 'signup'
                 ? 'Create an account'
-                : mode === 'forgot'
-                ? 'Account Recovery'
                 : 'Sign in to Console'}
             </h3>
             <p className="text-xs text-black/60 mt-1 font-mono">
               {step === 'otp'
-                ? 'Enter the 6-digit code sent to your inbox.'
-                : 'Enter your email to receive an instant authentication passcode.'}
+                ? `Enter the 6-digit code sent to ${email}`
+                : 'Enter your email to receive an instant verification passcode.'}
             </p>
           </div>
 
-          {/* Banner message */}
+          {/* Feedback message banner */}
           {message && (
             <div
               className={`mb-6 p-3 rounded-[4px] text-xs font-mono flex items-start space-x-2.5 ${
@@ -245,37 +300,51 @@ export default function AuthPage() {
               </button>
             </form>
           ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
+            <form onSubmit={handleFormSubmit} className="space-y-6">
               <div>
-                <div className="flex justify-between items-center mb-1.5">
+                <div className="flex justify-between items-center mb-3">
                   <label className="mono-eyebrow text-black/60">6-DIGIT PASSCODE</label>
                   <button
                     type="button"
-                    onClick={() => setStep('email')}
+                    onClick={() => {
+                      setStep('email');
+                      setMessage(null);
+                    }}
                     className="mono-eyebrow text-[10px] text-black/40 hover:text-black underline"
                   >
-                    Edit Email
+                    Change Email
                   </button>
                 </div>
-                <div className="relative">
-                  <KeyRound className="w-4 h-4 text-black/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    required
-                    maxLength={6}
-                    autoFocus
-                    placeholder="123456"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    className="w-full pl-10 pr-3 py-3 text-sm font-mono tracking-widest font-bold border border-black/20 rounded-[4px] focus:outline-none focus:border-black transition"
-                  />
+
+                {/* 6 Individual Digit Boxes */}
+                <div className="flex items-center justify-between gap-2 sm:gap-2.5">
+                  {digits.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => {
+                        inputRefs.current[index] = el;
+                      }}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6} // allows paste of full string on any box
+                      value={digit}
+                      onChange={(e) => handleDigitChange(index, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(index, e)}
+                      className={`w-11 sm:w-12 h-14 text-center text-xl font-mono font-bold border rounded-lg focus:outline-none transition-all ${
+                        digit
+                          ? 'border-black bg-black/[0.02] text-black shadow-sm'
+                          : 'border-black/20 bg-white text-black/90 focus:border-black focus:ring-2 focus:ring-black/10'
+                      }`}
+                    />
+                  ))}
                 </div>
               </div>
 
               <button
                 type="submit"
-                disabled={loading}
-                className="mono-btn w-full bg-black text-white hover:bg-black/85 py-3.5 rounded-[4px] text-xs flex items-center justify-center space-x-2 transition mt-2 tracking-wider"
+                disabled={loading || digits.join('').length !== 6}
+                className="mono-btn w-full bg-black text-white hover:bg-black/85 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-[4px] text-xs flex items-center justify-center space-x-2 transition tracking-wider"
               >
                 <ShieldCheck className="w-4 h-4 text-[#c8f6f9]" />
                 <span>{loading ? 'AUTHENTICATING...' : 'VERIFY & SIGN IN'}</span>
@@ -283,9 +352,9 @@ export default function AuthPage() {
 
               <button
                 type="button"
-                onClick={handleSendOtp}
+                onClick={() => handleSendOtp()}
                 disabled={loading}
-                className="mono-eyebrow w-full text-center text-[11px] text-black/50 hover:text-black block pt-2"
+                className="mono-eyebrow w-full text-center text-[11px] text-black/50 hover:text-black block transition"
               >
                 Resend verification code
               </button>
@@ -294,13 +363,12 @@ export default function AuthPage() {
 
           {/* Mode Switcher */}
           <div className="mt-8 pt-6 border-t border-black/[0.08] flex items-center justify-between text-xs font-mono">
-            {mode === 'signin' ? (
+            {step === 'email' && mode === 'signin' ? (
               <>
                 <button
                   type="button"
                   onClick={() => {
                     setMode('signup');
-                    setStep('email');
                     setMessage(null);
                   }}
                   className="text-black/60 hover:text-black underline"
@@ -311,7 +379,6 @@ export default function AuthPage() {
                   type="button"
                   onClick={() => {
                     setMode('forgot');
-                    setStep('email');
                     setMessage(null);
                   }}
                   className="text-black/40 hover:text-black"
@@ -323,8 +390,8 @@ export default function AuthPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setMode('signin');
                   setStep('email');
+                  setMode('signin');
                   setMessage(null);
                 }}
                 className="text-black/60 hover:text-black underline w-full text-center"
@@ -332,6 +399,12 @@ export default function AuthPage() {
                 ← Return to sign in
               </button>
             )}
+          </div>
+
+          {/* Compliance & Security Tag */}
+          <div className="mt-12 text-center text-[10px] font-mono text-black/40 flex items-center justify-center space-x-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-black/30" />
+            <span>PROTECTED BY SUPABASE ROW LEVEL SECURITY</span>
           </div>
         </div>
       </div>
