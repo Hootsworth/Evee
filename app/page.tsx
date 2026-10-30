@@ -219,11 +219,33 @@ export default function DashboardPage() {
               <div className="space-y-4 text-xs font-mono">
                 <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6] dark:border-white/[0.05]">
                   <span className="text-[#6b7280] dark:text-[#a1a1aa]">DISCOVERY PROVIDER</span>
-                  <span className="bg-[#f3f4f6] dark:bg-[#0c0d13] px-2.5 py-1 rounded-md font-normal text-[#111827] dark:text-white border border-transparent dark:border-white/[0.06]">{data?.systemStatus?.discoveryProvider || 'mock'}</span>
+                  <span className={`px-2.5 py-1 rounded-md font-normal uppercase text-[11px] border ${
+                    data?.systemStatus?.discoveryProvider && data?.systemStatus?.discoveryProvider !== 'mock'
+                      ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20'
+                      : 'bg-[#f3f4f6] dark:bg-[#0c0d13] text-[#111827] dark:text-white border-transparent dark:border-white/[0.06]'
+                  }`}>
+                    {data?.systemStatus?.discoveryProvider || 'mock'}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6] dark:border-white/[0.05]">
                   <span className="text-[#6b7280] dark:text-[#a1a1aa]">AI PROVIDER</span>
-                  <span className="bg-[#f3f4f6] dark:bg-[#0c0d13] px-2.5 py-1 rounded-md font-normal text-[#111827] dark:text-white border border-transparent dark:border-white/[0.06]">{data?.systemStatus?.aiProvider || 'mock'}</span>
+                  <span className={`px-2.5 py-1 rounded-md font-normal uppercase text-[11px] border ${
+                    data?.systemStatus?.aiProvider && data?.systemStatus?.aiProvider !== 'mock'
+                      ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20'
+                      : 'bg-[#f3f4f6] dark:bg-[#0c0d13] text-[#111827] dark:text-white border-transparent dark:border-white/[0.06]'
+                  }`}>
+                    {data?.systemStatus?.aiProvider || 'mock'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6] dark:border-white/[0.05]">
+                  <span className="text-[#6b7280] dark:text-[#a1a1aa]">OUTBOUND MAILER</span>
+                  <span className={`px-2.5 py-1 rounded-md font-normal uppercase text-[11px] border ${
+                    data?.systemStatus?.emailProvider && data?.systemStatus?.emailProvider !== 'mock'
+                      ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20'
+                      : 'bg-[#f3f4f6] dark:bg-[#0c0d13] text-[#111827] dark:text-white border-transparent dark:border-white/[0.06]'
+                  }`}>
+                    {data?.systemStatus?.emailProvider || 'mock'}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6] dark:border-white/[0.05]">
                   <span className="text-[#6b7280] dark:text-[#a1a1aa]">AUTO-SENDING ACTIVE</span>

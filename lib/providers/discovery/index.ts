@@ -23,7 +23,11 @@ export async function getDynamicDiscoveryProvider(): Promise<DiscoveryProvider> 
     }
   }
 
-  const envKey = process.env.DISCOVERY_API_KEY;
+  const envKey =
+    process.env.DISCOVERY_API_KEY ||
+    process.env.GOOGLE_PLACES_API_KEY ||
+    process.env.GOOGLE_MAPS_API_KEY ||
+    process.env.PLACES_API_KEY;
   if (envKey) {
     return new GooglePlacesDiscoveryProvider(envKey);
   }

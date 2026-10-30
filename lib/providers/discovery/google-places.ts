@@ -9,7 +9,13 @@ export class GooglePlacesDiscoveryProvider implements DiscoveryProvider {
   private apiKey: string;
 
   constructor(apiKey?: string) {
-    this.apiKey = apiKey || process.env.DISCOVERY_API_KEY || '';
+    this.apiKey =
+      apiKey ||
+      process.env.DISCOVERY_API_KEY ||
+      process.env.GOOGLE_PLACES_API_KEY ||
+      process.env.GOOGLE_MAPS_API_KEY ||
+      process.env.PLACES_API_KEY ||
+      '';
   }
 
   async search(query: DiscoveryQuery): Promise<BusinessCandidate[]> {

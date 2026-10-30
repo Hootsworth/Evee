@@ -29,12 +29,18 @@ export async function getDynamicAiProvider(): Promise<ResearchProvider & DraftPr
   }
 
   // Fallback to environment variable if present
-  const envKey = process.env.AI_API_KEY;
+  const envKey =
+    process.env.AI_API_KEY ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.OPENAI_API_KEY ||
+    process.env.ANTHROPIC_API_KEY;
+
   if (envKey) {
-    const prov = (process.env.AI_PROVIDER || 'gemini') as any;
+    const prov = (process.env.AI_PROVIDER || (process.env.OPENAI_API_KEY ? 'openai' : 'gemini')) as any;
     return new MultiLlmProvider({
       provider: prov === 'openai' || prov === 'meta' ? prov : 'gemini',
-      model: process.env.AI_MODEL || 'gemini-2.5-flash',
+      model: process.env.AI_MODEL || (prov === 'openai' ? 'gpt-4o-mini' : 'gemini-2.5-flash'),
       apiKey: envKey,
     });
   }
