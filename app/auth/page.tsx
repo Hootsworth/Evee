@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Logo from '@/components/Logo';
-import { Mail, KeyRound, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, Sparkles, Terminal, Check } from 'lucide-react';
+import { Mail, KeyRound, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -83,69 +83,87 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[#010120] text-white overflow-hidden select-none">
-      {/* LEFT COLUMN: Together AI Immersive Platform Showcase (Desktop) */}
-      <div className="hidden lg:flex lg:w-7/12 flex-col justify-between p-16 relative border-r border-white/10 bg-[#010120]">
-        {/* Glow ribbon effect */}
-        <div className="absolute top-1/4 -left-20 w-96 h-96 brand-gradient opacity-20 blur-[130px] rounded-full pointer-events-none"></div>
-        <div className="absolute bottom-10 right-10 w-80 h-80 bg-[#c8f6f9] opacity-10 blur-[140px] rounded-full pointer-events-none"></div>
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[#080915] text-white select-none">
+      {/* LEFT COLUMN: Artistic, Flat Geometric Palette (Pink, Cyan, Indigo, Cream) */}
+      <div className="hidden lg:flex lg:w-7/12 flex-col justify-between p-16 relative border-r border-white/[0.08] bg-[#0c0d1c] overflow-hidden">
+        {/* Flat Abstract Geometric Art Background */}
+        <div className="absolute inset-0 pointer-events-none opacity-40">
+          {/* Flat angled pastel block - Rose/Pink */}
+          <div className="absolute -top-24 -left-20 w-[420px] h-[420px] rounded-full bg-[#f43f5e] opacity-25 filter blur-[90px]"></div>
+          {/* Flat Cyan accent block */}
+          <div className="absolute top-1/2 -right-16 w-[360px] h-[360px] rounded-full bg-[#38bdf8] opacity-20 filter blur-[100px]"></div>
+          {/* Flat Violet/Indigo block */}
+          <div className="absolute -bottom-20 left-1/3 w-[380px] h-[380px] rounded-full bg-[#a855f7] opacity-20 filter blur-[90px]"></div>
+
+          {/* Clean Flat Graphic Lines & Bauhaus-style Accents */}
+          <svg className="absolute inset-0 w-full h-full opacity-15" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="art-grid" width="48" height="48" patternUnits="userSpaceOnUse">
+                <circle cx="2" cy="2" r="1" fill="#ffffff" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#art-grid)" />
+          </svg>
+        </div>
 
         {/* Brand Header */}
         <div className="relative z-10 flex items-center">
-          <Logo theme="dark" height={36} showSubtitle={true} />
+          <Logo theme="dark" height={38} showSubtitle={true} />
         </div>
 
-        {/* Narrative Hero */}
-        <div className="relative z-10 max-w-xl my-auto py-12">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-[4px] bg-white/5 border border-white/15 mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#c8f6f9]"></span>
-            <span className="mono-eyebrow text-[10px] text-white/90">ENTERPRISE AUDIT & RESEARCH PIPELINE</span>
+        {/* Narrative & Editorial Centerpiece */}
+        <div className="relative z-10 max-w-xl my-auto py-10">
+          {/* Flat Color Pill Pill */}
+          <div className="inline-flex items-center space-x-2.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 mb-8 backdrop-blur-sm">
+            <span className="w-2 h-2 rounded-full bg-[#f43f5e]"></span>
+            <span className="w-2 h-2 rounded-full bg-[#38bdf8]"></span>
+            <span className="w-2 h-2 rounded-full bg-[#c084fc]"></span>
+            <span className="text-[11px] font-mono tracking-wider text-white/80 pl-1 uppercase">
+              STUDIO EDITION
+            </span>
           </div>
 
-          <h2 className="text-4xl xl:text-5xl font-medium tracking-tight text-white leading-[1.15] mb-6">
-            High-intent prospecting, verified by empirical evidence.
+          <h2 className="text-4xl xl:text-5xl font-medium tracking-tight text-white leading-[1.2] mb-6 font-serif">
+            Outreach crafted like an editorial piece, grounded in observation.
           </h2>
 
-          <p className="text-white/60 text-base leading-relaxed mb-10">
-            Evee inspects public web infrastructure, extracts concrete operational gaps (broken booking widgets, missing digital menus, viewport bugs), and drafts grounded outreach with mandatory operator approval.
+          <p className="text-white/65 text-base leading-relaxed mb-10 font-normal">
+            Evee observes public business surfaces, notices missing customer workflows, and composes bespoke correspondence with human precision.
           </p>
 
-          {/* Architectural Pillars */}
-          <div className="space-y-4 font-mono text-xs text-white/80">
-            <div className="flex items-center space-x-3 bg-white/5 border border-white/10 p-3.5 rounded-[4px]">
-              <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                <Check className="w-3.5 h-3.5" />
-              </div>
-              <span>Deterministic 100-pt qualification scoring with hard evidence caps.</span>
+          {/* Flat Artistic Color Badges */}
+          <div className="grid grid-cols-3 gap-3.5 pt-2">
+            <div className="bg-[#15172b] border border-[#262842] rounded-lg p-4">
+              <div className="w-3 h-3 rounded-full bg-[#f43f5e] mb-2.5"></div>
+              <div className="text-xs font-semibold text-white">Observation</div>
+              <div className="text-[11px] text-white/50 mt-1 font-mono">Empirical facts</div>
             </div>
 
-            <div className="flex items-center space-x-3 bg-white/5 border border-white/10 p-3.5 rounded-[4px]">
-              <div className="w-6 h-6 rounded-full bg-[#ef2cc1]/20 text-[#ef2cc1] flex items-center justify-center shrink-0">
-                <Check className="w-3.5 h-3.5" />
-              </div>
-              <span>Strict fail-closed email sending: 0 automated emails without explicit approval.</span>
+            <div className="bg-[#15172b] border border-[#262842] rounded-lg p-4">
+              <div className="w-3 h-3 rounded-full bg-[#38bdf8] mb-2.5"></div>
+              <div className="text-xs font-semibold text-white">Qualification</div>
+              <div className="text-[11px] text-white/50 mt-1 font-mono">100-pt evidence</div>
             </div>
 
-            <div className="flex items-center space-x-3 bg-white/5 border border-white/10 p-3.5 rounded-[4px]">
-              <div className="w-6 h-6 rounded-full bg-[#c8f6f9]/20 text-[#c8f6f9] flex items-center justify-center shrink-0">
-                <Check className="w-3.5 h-3.5" />
-              </div>
-              <span>Anti-spam compliance: instant pre-send global suppression & opt-out checks.</span>
+            <div className="bg-[#15172b] border border-[#262842] rounded-lg p-4">
+              <div className="w-3 h-3 rounded-full bg-[#c084fc] mb-2.5"></div>
+              <div className="text-xs font-semibold text-white">Governance</div>
+              <div className="text-[11px] text-white/50 mt-1 font-mono">Fail-closed gate</div>
             </div>
           </div>
         </div>
 
-        {/* Footer Info */}
-        <div className="relative z-10 flex items-center justify-between text-xs font-mono text-white/40 pt-8 border-t border-white/10">
-          <span>SINGULR TECH • ARCHITECTURE V2.0</span>
-          <span>AES-256-GCM PROTECTED</span>
+        {/* Footer Signature */}
+        <div className="relative z-10 flex items-center justify-between text-xs font-mono text-white/40 pt-6 border-t border-white/[0.08]">
+          <span>EVEE PLATFORM • SINGULR TECH</span>
+          <span>EST. 2026</span>
         </div>
       </div>
 
-      {/* RIGHT COLUMN: The High-Contrast Authentication Card (White Surface on Mobile / High-Contrast Clean on Desktop) */}
+      {/* RIGHT COLUMN: The High-Contrast Authentication Form */}
       <div className="w-full lg:w-5/12 flex flex-col justify-center items-center px-6 sm:px-12 py-16 bg-white text-black min-h-screen">
         <div className="w-full max-w-sm">
-          {/* Mobile-only header */}
+          {/* Mobile-only brand logo */}
           <div className="lg:hidden text-center mb-8 flex justify-center">
             <Logo theme="light" height={32} showSubtitle={true} />
           </div>
@@ -314,12 +332,6 @@ export default function AuthPage() {
                 ← Return to sign in
               </button>
             )}
-          </div>
-
-          {/* Compliance & Security Tag */}
-          <div className="mt-12 text-center text-[10px] font-mono text-black/40 flex items-center justify-center space-x-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-black/30" />
-            <span>PROTECTED BY SUPABASE ROW LEVEL SECURITY</span>
           </div>
         </div>
       </div>
