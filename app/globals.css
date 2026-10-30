@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --canvas-dark: #010120;
+    --canvas-white: #ffffff;
+    --hairline: #ebebeb;
+    --hairline-dark: rgba(255, 255, 255, 0.12);
+  }
+
+  body {
+    background-color: #ffffff;
+    color: #000000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Together AI inspired Typography Utilities */
+.mono-eyebrow {
+  font-family: 'JetBrains Mono', ui-monospace, SF Mono, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mono-btn {
+  font-family: 'JetBrains Mono', ui-monospace, SF Mono, Menlo, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* Three-color Together AI Ribbon Gradient */
+.brand-gradient {
+  background: linear-gradient(90deg, #fc4c02 0%, #ef2cc1 50%, #bdbbff 100%);
+}
+
+.brand-gradient-text {
+  background: linear-gradient(90deg, #fc4c02 0%, #ef2cc1 50%, #bdbbff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
