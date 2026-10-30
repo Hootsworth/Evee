@@ -40,6 +40,16 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
+      if (error.message?.includes('schema cache') || error.code === 'PGRST205') {
+        return NextResponse.json(
+          {
+            error: "The Supabase database has not been initialized with the initial SQL migration yet. Table 'public.campaigns' does not exist.",
+            code: 'SCHEMA_NOT_INITIALIZED',
+            migrationUrl: 'https://supabase.com/dashboard/project/fflnixsmerahqnvwakrn/sql/new',
+          },
+          { status: 400 }
+        );
+      }
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
