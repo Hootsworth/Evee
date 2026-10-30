@@ -58,9 +58,9 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex flex-col bg-white dark:bg-[#09090b] min-h-screen transition-colors duration-150">
-      {/* Top Hero Band: Flat, Crisp, Clean Editorial Canvas */}
-      <section className="bg-[#f8fafc] dark:bg-[#121217] text-[#111827] dark:text-[#f4f4f5] pt-12 pb-14 px-6 border-b border-[#e5e7eb] dark:border-[#27272a]">
+    <div className="flex flex-col bg-white dark:bg-[#090a0f] min-h-screen transition-colors duration-150">
+      {/* Top Hero Band: Subtle Ambient Depth in Dark Mode */}
+      <section className="bg-[#f8fafc] dark:bg-gradient-to-b dark:from-[#0e1017] dark:via-[#0c0d14] dark:to-[#090a0f] text-[#111827] dark:text-[#f4f4f5] pt-12 pb-14 px-6 border-b border-[#e5e7eb] dark:border-white/[0.07]">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-10">
             <div className="max-w-2xl">
@@ -77,7 +77,7 @@ export default function DashboardPage() {
               <button
                 onClick={triggerJobProcessing}
                 disabled={cronRunning}
-                className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-5 py-2.5 rounded-full text-xs font-normal transition flex items-center space-x-2 shadow-sm active:scale-95"
+                className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-5 py-2.5 rounded-full text-xs font-normal transition flex items-center space-x-2 shadow-sm dark:shadow-[0_2px_14px_rgba(244,63,94,0.35),inset_0_1px_0_rgba(255,255,255,0.25)] active:scale-95"
               >
                 <Play className="w-3.5 h-3.5 fill-white" />
                 <span>{cronRunning ? 'PROCESSING...' : 'TRIGGER WORKER'}</span>
@@ -85,7 +85,7 @@ export default function DashboardPage() {
 
               <Link
                 href="/campaigns"
-                className="mono-btn bg-white dark:bg-[#18181b] hover:bg-[#f3f4f6] dark:hover:bg-[#27272a] text-[#374151] dark:text-[#e4e4e7] border border-[#e5e7eb] dark:border-[#27272a] px-5 py-2.5 rounded-full text-xs font-normal transition shadow-sm"
+                className="mono-btn bg-white dark:bg-white/[0.04] hover:bg-[#f3f4f6] dark:hover:bg-white/[0.08] text-[#374151] dark:text-[#e4e4e7] border border-[#e5e7eb] dark:border-white/[0.08] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] px-5 py-2.5 rounded-full text-xs font-normal transition shadow-sm"
               >
                 VIEW CAMPAIGNS
               </Link>
@@ -93,14 +93,14 @@ export default function DashboardPage() {
           </div>
 
           {cronStatus && (
-            <div className="mb-6 p-3.5 rounded-xl bg-white dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] text-xs font-mono text-[#111827] dark:text-[#e4e4e7] shadow-sm font-normal">
+            <div className="mb-6 p-3.5 rounded-xl bg-white dark:bg-[#0c0d13] border border-[#e5e7eb] dark:border-white/[0.07] text-xs font-mono text-[#111827] dark:text-[#e4e4e7] shadow-sm dark:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.4)] font-normal">
               {cronStatus}
             </div>
           )}
 
-          {/* Metric Cards: Flat Clean Solid Tiles */}
+          {/* Metric Cards: Rich Physical Elevation & Top Specular Highlight */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] p-6 rounded-xl shadow-sm flex flex-col justify-between">
+            <div className="bg-white dark:bg-[#13151c]/90 border border-[#e5e7eb] dark:border-white/[0.08] p-6 rounded-xl shadow-sm dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_8px_24px_-4px_rgba(0,0,0,0.5)] flex flex-col justify-between transition hover:border-[#cbd5e1] dark:hover:border-white/[0.16]">
               <div>
                 <span className="mono-eyebrow text-[#9ca3af] dark:text-[#71717a] font-normal block mb-1">MONTHLY QUALIFIED TARGET</span>
                 <div className="text-3xl font-light tracking-tight text-[#111827] dark:text-white">
@@ -112,13 +112,13 @@ export default function DashboardPage() {
                   <span>PROGRESS</span>
                   <span className="font-normal text-[#f43f5e]">{metrics.targetProgressPercentage}%</span>
                 </div>
-                <div className="w-full bg-[#f3f4f6] dark:bg-[#27272a] rounded-full h-1.5 overflow-hidden">
-                  <div className="bg-[#f43f5e] h-full rounded-full transition-all" style={{ width: `${metrics.targetProgressPercentage}%` }}></div>
+                <div className="w-full bg-[#f3f4f6] dark:bg-[#0c0d13] rounded-full h-1.5 overflow-hidden dark:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.5)]">
+                  <div className="bg-[#f43f5e] h-full rounded-full transition-all shadow-[0_0_8px_rgba(244,63,94,0.5)]" style={{ width: `${metrics.targetProgressPercentage}%` }}></div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] p-6 rounded-xl shadow-sm flex flex-col justify-between">
+            <div className="bg-white dark:bg-[#13151c]/90 border border-[#e5e7eb] dark:border-white/[0.08] p-6 rounded-xl shadow-sm dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_8px_24px_-4px_rgba(0,0,0,0.5)] flex flex-col justify-between transition hover:border-[#cbd5e1] dark:hover:border-white/[0.16]">
               <span className="mono-eyebrow text-[#9ca3af] dark:text-[#71717a] font-normal block mb-1">DISCOVERED BUSINESSES</span>
               <div className="text-3xl font-light tracking-tight text-[#111827] dark:text-white">
                 {metrics.totalDiscovered}
@@ -128,7 +128,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] p-6 rounded-xl shadow-sm flex flex-col justify-between">
+            <div className="bg-white dark:bg-[#13151c]/90 border border-[#e5e7eb] dark:border-white/[0.08] p-6 rounded-xl shadow-sm dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_8px_24px_-4px_rgba(0,0,0,0.5)] flex flex-col justify-between transition hover:border-[#cbd5e1] dark:hover:border-white/[0.16]">
               <span className="mono-eyebrow text-[#9ca3af] dark:text-[#71717a] font-normal block mb-1">DRAFTS AWAITING APPROVAL</span>
               <div className="text-3xl font-light tracking-tight text-[#f43f5e]">
                 {metrics.pendingDrafts}
@@ -141,7 +141,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] p-6 rounded-xl shadow-sm flex flex-col justify-between">
+            <div className="bg-white dark:bg-[#13151c]/90 border border-[#e5e7eb] dark:border-white/[0.08] p-6 rounded-xl shadow-sm dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_8px_24px_-4px_rgba(0,0,0,0.5)] flex flex-col justify-between transition hover:border-[#cbd5e1] dark:hover:border-white/[0.16]">
               <span className="mono-eyebrow text-[#9ca3af] dark:text-[#71717a] font-normal block mb-1">APPROVED / SENT OUTREACH</span>
               <div className="text-3xl font-light tracking-tight text-[#111827] dark:text-white">
                 {metrics.sentEmails} <span className="text-lg font-extralight text-[#9ca3af] dark:text-[#71717a]">sent</span>
@@ -159,11 +159,11 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Column 1: Pipeline Lifecycle */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="border border-[#e5e7eb] dark:border-[#27272a] rounded-xl p-6 bg-white dark:bg-[#121217] shadow-sm">
+            <div className="border border-[#e5e7eb] dark:border-white/[0.08] rounded-xl p-6 bg-white dark:bg-[#101218] shadow-sm dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_8px_24px_-4px_rgba(0,0,0,0.5)]">
               <h3 className="mono-eyebrow text-[#111827] dark:text-white font-normal mb-4">4-STAGE RIGID PIPELINE</h3>
 
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-4 bg-[#f8fafc] dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] rounded-xl">
+                <div className="flex items-center justify-between p-4 bg-[#f8fafc] dark:bg-[#0c0d13] border border-[#e5e7eb] dark:border-white/[0.06] rounded-xl dark:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.4)]">
                   <div className="flex items-center space-x-3.5">
                     <div className="w-7 h-7 rounded-full bg-[#111827] dark:bg-white text-white dark:text-[#111827] flex items-center justify-center font-mono text-xs font-normal">1</div>
                     <div>
@@ -174,7 +174,7 @@ export default function DashboardPage() {
                   <span className="mono-eyebrow text-xs text-[#6b7280] dark:text-[#a1a1aa] font-normal">AUTOMATIC</span>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-[#f8fafc] dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] rounded-xl">
+                <div className="flex items-center justify-between p-4 bg-[#f8fafc] dark:bg-[#0c0d13] border border-[#e5e7eb] dark:border-white/[0.06] rounded-xl dark:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.4)]">
                   <div className="flex items-center space-x-3.5">
                     <div className="w-7 h-7 rounded-full bg-[#111827] dark:bg-white text-white dark:text-[#111827] flex items-center justify-center font-mono text-xs font-normal">2</div>
                     <div>
@@ -185,7 +185,7 @@ export default function DashboardPage() {
                   <span className="mono-eyebrow text-xs text-emerald-600 dark:text-emerald-400 font-normal">AUTOMATIC</span>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-[#f8fafc] dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] rounded-xl">
+                <div className="flex items-center justify-between p-4 bg-[#f8fafc] dark:bg-[#0c0d13] border border-[#e5e7eb] dark:border-white/[0.06] rounded-xl dark:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.4)]">
                   <div className="flex items-center space-x-3.5">
                     <div className="w-7 h-7 rounded-full bg-[#111827] dark:bg-white text-white dark:text-[#111827] flex items-center justify-center font-mono text-xs font-normal">3</div>
                     <div>
@@ -196,9 +196,9 @@ export default function DashboardPage() {
                   <span className="mono-eyebrow text-xs text-[#6b7280] dark:text-[#a1a1aa] font-normal">{metrics.qualifiedLeadsMonth} QUALIFIED</span>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-[#f8fafc] dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] rounded-xl">
+                <div className="flex items-center justify-between p-4 bg-[#f8fafc] dark:bg-[#0c0d13] border border-[#e5e7eb] dark:border-white/[0.06] rounded-xl dark:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.4)]">
                   <div className="flex items-center space-x-3.5">
-                    <div className="w-7 h-7 rounded-full bg-[#f43f5e] text-white flex items-center justify-center font-mono text-xs font-normal">4</div>
+                    <div className="w-7 h-7 rounded-full bg-[#f43f5e] text-white flex items-center justify-center font-mono text-xs font-normal shadow-[0_0_10px_rgba(244,63,94,0.4)]">4</div>
                     <div>
                       <div className="text-sm font-normal text-[#111827] dark:text-white">Explicit Operator Approval Queue</div>
                       <div className="text-xs text-[#6b7280] dark:text-[#a1a1aa] font-light">Human-in-the-loop validation of recipient, claims, and subject</div>
@@ -214,24 +214,24 @@ export default function DashboardPage() {
 
           {/* Provider status sidebar */}
           <div className="space-y-6">
-            <div className="border border-[#e5e7eb] dark:border-[#27272a] rounded-xl p-6 bg-white dark:bg-[#121217] shadow-sm">
+            <div className="border border-[#e5e7eb] dark:border-white/[0.08] rounded-xl p-6 bg-white dark:bg-[#101218] shadow-sm dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_8px_24px_-4px_rgba(0,0,0,0.5)]">
               <h3 className="mono-eyebrow text-[#111827] dark:text-white font-normal mb-4">SYSTEM LEDGER</h3>
               <div className="space-y-4 text-xs font-mono">
-                <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6] dark:border-[#1f1f23]">
+                <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6] dark:border-white/[0.05]">
                   <span className="text-[#6b7280] dark:text-[#a1a1aa]">DISCOVERY PROVIDER</span>
-                  <span className="bg-[#f3f4f6] dark:bg-[#18181b] px-2.5 py-1 rounded-md font-normal text-[#111827] dark:text-white">{data?.systemStatus?.discoveryProvider || 'mock'}</span>
+                  <span className="bg-[#f3f4f6] dark:bg-[#0c0d13] px-2.5 py-1 rounded-md font-normal text-[#111827] dark:text-white border border-transparent dark:border-white/[0.06]">{data?.systemStatus?.discoveryProvider || 'mock'}</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6] dark:border-[#1f1f23]">
+                <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6] dark:border-white/[0.05]">
                   <span className="text-[#6b7280] dark:text-[#a1a1aa]">AI PROVIDER</span>
-                  <span className="bg-[#f3f4f6] dark:bg-[#18181b] px-2.5 py-1 rounded-md font-normal text-[#111827] dark:text-white">{data?.systemStatus?.aiProvider || 'mock'}</span>
+                  <span className="bg-[#f3f4f6] dark:bg-[#0c0d13] px-2.5 py-1 rounded-md font-normal text-[#111827] dark:text-white border border-transparent dark:border-white/[0.06]">{data?.systemStatus?.aiProvider || 'mock'}</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6] dark:border-[#1f1f23]">
+                <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6] dark:border-white/[0.05]">
                   <span className="text-[#6b7280] dark:text-[#a1a1aa]">AUTO-SENDING ACTIVE</span>
-                  <span className={`px-2.5 py-1 rounded-md font-normal ${data?.systemStatus?.automatedSending ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'}`}>
+                  <span className={`px-2.5 py-1 rounded-md font-normal ${data?.systemStatus?.automatedSending ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/20' : 'bg-amber-100 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-500/20'}`}>
                     {data?.systemStatus?.automatedSending ? 'ENABLED' : 'DISABLED (SAFE)'}
                   </span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6] dark:border-[#1f1f23]">
+                <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6] dark:border-white/[0.05]">
                   <span className="text-[#6b7280] dark:text-[#a1a1aa]">SPEND TO DATE</span>
                   <span className="font-normal text-[#111827] dark:text-white">₹{metrics.estimatedCostInr} / ₹{metrics.monthlySpendCapInr}</span>
                 </div>
@@ -241,10 +241,10 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-[#f3f4f6] dark:border-[#1f1f23]">
+              <div className="mt-6 pt-4 border-t border-[#f3f4f6] dark:border-white/[0.05]">
                 <Link
                   href="/settings"
-                  className="mono-btn w-full block text-center bg-[#f8fafc] dark:bg-[#18181b] hover:bg-[#f1f5f9] dark:hover:bg-[#27272a] text-[#374151] dark:text-[#e4e4e7] font-normal py-2.5 rounded-full text-xs border border-[#e5e7eb] dark:border-[#27272a] transition"
+                  className="mono-btn w-full block text-center bg-[#f8fafc] dark:bg-white/[0.04] hover:bg-[#f1f5f9] dark:hover:bg-white/[0.08] text-[#374151] dark:text-[#e4e4e7] font-normal py-2.5 rounded-full text-xs border border-[#e5e7eb] dark:border-white/[0.08] transition"
                 >
                   CONFIGURE PROVIDERS & KEYS
                 </Link>

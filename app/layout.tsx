@@ -37,7 +37,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen flex flex-col bg-white dark:bg-[#09090b] text-[#111827] dark:text-[#f4f4f5] antialiased transition-colors duration-150">
+      <body className="min-h-screen flex flex-col bg-white dark:bg-[#090a0f] text-[#111827] dark:text-[#f4f4f5] antialiased transition-colors duration-150">
         <ThemeProvider>
           {!isAuthPage && <NavBar />}
           <main className="flex-1 flex flex-col">{children}</main>

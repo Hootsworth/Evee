@@ -63,7 +63,7 @@ export default function NavBar() {
     (user?.email ? user.email.split('@')[0] : 'Operator');
 
   return (
-    <header className="sticky top-0 z-50 bg-white dark:bg-[#09090b] border-b border-[#e5e7eb] dark:border-[#27272a] px-6 py-3 transition-colors duration-150">
+    <header className="sticky top-0 z-50 bg-white/95 dark:bg-[#090a0f]/85 backdrop-blur-md border-b border-[#e5e7eb] dark:border-white/[0.08] px-6 py-3 transition-colors duration-150">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Brand Logo & Clean Flat Navigation */}
         <div className="flex items-center space-x-10">
@@ -79,8 +79,8 @@ export default function NavBar() {
                   href={item.href}
                   className={`mono-btn text-xs px-3.5 py-1.5 rounded-full transition-all flex items-center space-x-1.5 ${
                     isActive
-                      ? 'bg-[#f43f5e] text-white font-medium shadow-sm'
-                      : 'text-[#4b5563] dark:text-[#a1a1aa] hover:text-[#111827] dark:hover:text-white hover:bg-[#f3f4f6] dark:hover:bg-[#18181b]'
+                      ? 'bg-[#f43f5e] text-white font-medium shadow-sm dark:shadow-[0_2px_10px_rgba(244,63,94,0.35),inset_0_1px_0_rgba(255,255,255,0.25)]'
+                      : 'text-[#4b5563] dark:text-[#a1a1aa] hover:text-[#111827] dark:hover:text-white hover:bg-[#f3f4f6] dark:hover:bg-white/[0.06]'
                   }`}
                 >
                   <span>{item.label}</span>
@@ -107,7 +107,7 @@ export default function NavBar() {
           <button
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="p-1.5 rounded-full text-[#6b7280] dark:text-[#a1a1aa] hover:text-[#111827] dark:hover:text-white hover:bg-[#f3f4f6] dark:hover:bg-[#18181b] transition"
+            className="p-1.5 rounded-full text-[#6b7280] dark:text-[#a1a1aa] hover:text-[#111827] dark:hover:text-white hover:bg-[#f3f4f6] dark:hover:bg-white/[0.08] transition"
             aria-label="Toggle theme"
           >
             {theme === 'dark' ? (
@@ -126,9 +126,9 @@ export default function NavBar() {
           </Link>
 
           {user && (
-            <div className="flex items-center space-x-2.5 pl-3 border-l border-[#e5e7eb] dark:border-[#27272a]">
+            <div className="flex items-center space-x-2.5 pl-3 border-l border-[#e5e7eb] dark:border-white/[0.08]">
               {/* Initials circle */}
-              <div className="w-6 h-6 rounded-full bg-[#f43f5e]/10 dark:bg-[#f43f5e]/20 text-[#f43f5e] flex items-center justify-center text-[10px] font-mono font-medium">
+              <div className="w-6 h-6 rounded-full bg-[#f43f5e]/10 dark:bg-[#f43f5e]/20 border border-[#f43f5e]/20 dark:border-[#f43f5e]/40 text-[#f43f5e] flex items-center justify-center text-[10px] font-mono font-medium">
                 {displayName.charAt(0).toUpperCase()}
               </div>
 
@@ -140,7 +140,7 @@ export default function NavBar() {
               <button
                 onClick={handleSignOut}
                 title="Sign out"
-                className="p-1.5 rounded-full text-[#9ca3af] hover:text-[#111827] dark:hover:text-white hover:bg-[#f3f4f6] dark:hover:bg-[#18181b] transition"
+                className="p-1.5 rounded-full text-[#9ca3af] hover:text-[#111827] dark:hover:text-white hover:bg-[#f3f4f6] dark:hover:bg-white/[0.08] transition"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>

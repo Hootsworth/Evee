@@ -12,13 +12,16 @@ const config: Config = {
       colors: {
         canvas: {
           DEFAULT: "#ffffff",
-          dark: "#09090b",
+          dark: "#090a0f",
           soft: "#f8fafc",
+          "soft-dark": "#0f1016",
         },
         surface: {
           DEFAULT: "#ffffff",
-          dark: "#121217",
-          "dark-subtle": "#18181b",
+          dark: "#13151c",
+          "dark-subtle": "#171922",
+          "dark-card": "#13151c",
+          "dark-well": "#0c0d12",
         },
         brand: {
           rose: "#f43f5e",
@@ -36,7 +39,7 @@ const config: Config = {
         },
         hairline: {
           DEFAULT: "#e5e7eb",
-          dark: "#27272a",
+          dark: "rgba(255, 255, 255, 0.08)",
         },
       },
       fontFamily: {

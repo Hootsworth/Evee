@@ -31,7 +31,7 @@ export default function LeadsPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-[#09090b] transition-colors duration-150">
       {/* Top Banner: Flat & Clean */}
-      <section className="bg-[#f8fafc] dark:bg-[#121217] border-b border-[#e5e7eb] dark:border-[#27272a] px-6 py-10">
+      <section className="bg-[#f8fafc] dark:bg-gradient-to-b dark:from-[#0e1017] dark:via-[#0c0d14] dark:to-[#090a0f] border-b border-[#e5e7eb] dark:border-white/[0.08] px-6 py-10">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-3xl font-light tracking-tight text-[#111827] dark:text-white">Lead Explorer</h1>
           <p className="text-sm text-[#6b7280] dark:text-[#a1a1aa] mt-1 max-w-xl font-light">

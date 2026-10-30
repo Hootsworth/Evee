@@ -163,9 +163,9 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-white dark:bg-[#09090b] text-[#111827] dark:text-[#f4f4f5] select-none transition-colors duration-150">
-      {/* LEFT COLUMN: Clean, Flat Studio Panel */}
-      <div className="hidden lg:flex lg:w-7/12 flex-col justify-between p-16 relative border-r border-[#e5e7eb] dark:border-[#27272a] bg-[#f8fafc] dark:bg-[#121217]">
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-white dark:bg-[#090a0f] text-[#111827] dark:text-[#f4f4f5] select-none transition-colors duration-150">
+      {/* LEFT COLUMN: Clean, Flat Studio Panel with Atmospheric Ambient Depth in Dark Mode */}
+      <div className="hidden lg:flex lg:w-7/12 flex-col justify-between p-16 relative border-r border-[#e5e7eb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-gradient-to-b dark:from-[#0e1017] dark:via-[#0c0d14] dark:to-[#090a0f]">
         {/* Brand Header */}
         <div className="flex items-center">
           <Logo height={34} showSubtitle={false} />

@@ -215,7 +215,7 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
   return (
     <div className="min-h-screen bg-white dark:bg-[#09090b] transition-colors duration-150">
       {/* Top Banner: Flat & Clean */}
-      <section className="bg-[#f8fafc] dark:bg-[#121217] border-b border-[#e5e7eb] dark:border-[#27272a] px-6 py-8">
+      <section className="bg-[#f8fafc] dark:bg-gradient-to-b dark:from-[#0e1017] dark:via-[#0c0d14] dark:to-[#090a0f] border-b border-[#e5e7eb] dark:border-white/[0.08] px-6 py-8">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <Link
@@ -232,7 +232,7 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
           </div>
 
           {/* Stepper Pill Indicator */}
-          <div className="flex items-center space-x-2 bg-white dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] rounded-full p-1.5 self-start sm:self-auto text-xs font-mono">
+          <div className="flex items-center space-x-2 bg-white dark:bg-[#101218] border border-[#e5e7eb] dark:border-white/[0.08] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] rounded-full p-1.5 self-start sm:self-auto text-xs font-mono">
             {[
               { id: 'upload', label: '1. CSV' },
               { id: 'template', label: '2. Compose' },

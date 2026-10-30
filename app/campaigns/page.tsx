@@ -107,7 +107,7 @@ export default function CampaignsPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-[#09090b] transition-colors duration-150">
       {/* Top Banner: Flat & Clean */}
-      <section className="bg-[#f8fafc] dark:bg-[#121217] border-b border-[#e5e7eb] dark:border-[#27272a] px-6 py-10">
+      <section className="bg-[#f8fafc] dark:bg-gradient-to-b dark:from-[#0e1017] dark:via-[#0c0d14] dark:to-[#090a0f] border-b border-[#e5e7eb] dark:border-white/[0.08] px-6 py-10">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-light tracking-tight text-[#111827] dark:text-white">Campaign Manager</h1>
@@ -119,7 +119,7 @@ export default function CampaignsPage() {
           <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
             <Link
               href="/campaigns/csv"
-              className="mono-btn bg-white dark:bg-[#18181b] hover:bg-[#f3f4f6] dark:hover:bg-[#27272a] text-[#111827] dark:text-white border border-[#e5e7eb] dark:border-[#27272a] px-4 py-2.5 rounded-full text-xs font-normal transition flex items-center space-x-2 shadow-sm"
+              className="mono-btn bg-white dark:bg-white/[0.04] hover:bg-[#f3f4f6] dark:hover:bg-white/[0.08] text-[#111827] dark:text-white border border-[#e5e7eb] dark:border-white/[0.08] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] px-4 py-2.5 rounded-full text-xs font-normal transition flex items-center space-x-2 shadow-sm"
             >
               <FileSpreadsheet className="w-4 h-4 text-[#f43f5e]" />
               <span>IMPORT CSV & OUTREACH</span>
@@ -130,7 +130,7 @@ export default function CampaignsPage() {
                 setModalError(null);
                 setShowModal(true);
               }}
-              className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-5 py-2.5 rounded-full text-xs font-normal transition flex items-center space-x-2 shadow-sm active:scale-95"
+              className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-5 py-2.5 rounded-full text-xs font-normal transition flex items-center space-x-2 shadow-sm dark:shadow-[0_2px_14px_rgba(244,63,94,0.35),inset_0_1px_0_rgba(255,255,255,0.25)] active:scale-95"
             >
               <Plus className="w-4 h-4" />
               <span>CREATE CAMPAIGN</span>

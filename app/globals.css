@@ -48,3 +48,124 @@
 .brand-gradient {
   background: linear-gradient(90deg, #f43f5e 0%, #fb7185 100%);
 }
+
+/* ==========================================================================
+   Sophisticated Dark Mode Shading & Depth Engine
+   Replaces flat AI-generated black/gray boxes with realistic physical lighting,
+   elevated surfaces, and subtle atmospheric depth (Linear/macOS style).
+   ========================================================================== */
+
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: #090a0f !important;
+  background-image: 
+    radial-gradient(1200px circle at 50% -80px, rgba(244, 63, 94, 0.045), transparent 60%),
+    radial-gradient(900px circle at 90% 400px, rgba(189, 187, 255, 0.012), transparent 50%),
+    radial-gradient(700px circle at 10% 800px, rgba(244, 63, 94, 0.015), transparent 50%) !important;
+  background-attachment: fixed !important;
+}
+
+/* Base canvas replacement */
+.dark .dark\:bg-\[\#09090b\] {
+  background-color: #090a0f !important;
+}
+
+/* Level 1: Elevated Sections & Hero Panels */
+.dark .dark\:bg-\[\#121217\] {
+  background-color: #0f1017 !important;
+}
+
+/* Level 2: Interactive Cards & Modals */
+.dark .dark\:bg-\[\#18181b\] {
+  background-color: #14161f !important;
+}
+
+/* Hairline borders in dark mode: optical semi-transparent edge instead of flat gray */
+.dark .dark\:border-\[\#27272a\] {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark .dark\:border-\[\#1f1f23\] {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Dark mode hover borders */
+.dark .dark\:hover\:border-\[\#3f3f46\]:hover,
+.dark .hover\:border-\[\#cbd5e1\]:hover {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+/* Realistic specular top-edge illumination on dark surfaces */
+.dark .rounded-xl.border,
+.dark .rounded-2xl.border {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06), 0 8px 24px -4px rgba(0, 0, 0, 0.45);
+}
+
+/* Recessed wells (inputs, textareas, progress bars) */
+.dark input:not([type="checkbox"]):not([type="radio"]),
+.dark textarea,
+.dark select {
+  background-color: #0c0d13 !important;
+  border-color: rgba(255, 255, 255, 0.07) !important;
+  box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.45);
+  color: #f4f4f5 !important;
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: #f43f5e !important;
+  box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(244, 63, 94, 0.2) !important;
+}
+
+/* Sticky Header Glassmorphism & Depth */
+.dark header.sticky {
+  background-color: rgba(9, 10, 15, 0.82) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.07) !important;
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.03), 0 8px 32px -8px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Primary Button in Dark Mode: Refined contrast without harshness */
+.dark button.bg-\[\#f43f5e\],
+.dark a.bg-\[\#f43f5e\] {
+  box-shadow: 0 2px 14px rgba(244, 63, 94, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+}
+
+/* Subtle Invert Buttons in Dark Mode */
+.dark .dark\:bg-white {
+  background-color: #f4f4f5 !important;
+  color: #090a0f !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+.dark .dark\:bg-white:hover {
+  background-color: #ffffff !important;
+}
+
+/* Status Badges */
+.dark .bg-emerald-100,
+.dark .dark\:bg-emerald-950\/60 {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  color: #6ee7b7 !important;
+  border: 1px solid rgba(16, 185, 129, 0.22) !important;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.08) !important;
+}
+
+.dark .bg-amber-100,
+.dark .dark\:bg-amber-950\/60 {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+  color: #fcd34d !important;
+  border: 1px solid rgba(245, 158, 11, 0.22) !important;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.08) !important;
+}
+
+/* Footer depth */
+.dark footer {
+  background-color: #08090d !important;
+  border-top-color: rgba(255, 255, 255, 0.06) !important;
+}
