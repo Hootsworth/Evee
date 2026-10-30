@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Target, Plus, Play, CheckCircle, RefreshCw, Layers, AlertCircle, Copy, Check, ExternalLink } from 'lucide-react';
+import { Target, Plus, Play, CheckCircle, RefreshCw, Layers, AlertCircle, Copy, Check, ExternalLink, FileSpreadsheet } from 'lucide-react';
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -116,16 +116,26 @@ export default function CampaignsPage() {
             </p>
           </div>
 
-          <button
-            onClick={() => {
-              setModalError(null);
-              setShowModal(true);
-            }}
-            className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-5 py-2.5 rounded-full text-xs font-normal transition flex items-center space-x-2 shadow-sm active:scale-95 self-start sm:self-auto"
-          >
-            <Plus className="w-4 h-4" />
-            <span>CREATE CAMPAIGN</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+            <Link
+              href="/campaigns/csv"
+              className="mono-btn bg-white dark:bg-[#18181b] hover:bg-[#f3f4f6] dark:hover:bg-[#27272a] text-[#111827] dark:text-white border border-[#e5e7eb] dark:border-[#27272a] px-4 py-2.5 rounded-full text-xs font-normal transition flex items-center space-x-2 shadow-sm"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-[#f43f5e]" />
+              <span>IMPORT CSV & OUTREACH</span>
+            </Link>
+
+            <button
+              onClick={() => {
+                setModalError(null);
+                setShowModal(true);
+              }}
+              className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-5 py-2.5 rounded-full text-xs font-normal transition flex items-center space-x-2 shadow-sm active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>CREATE CAMPAIGN</span>
+            </button>
+          </div>
         </div>
       </section>
 
