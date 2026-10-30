@@ -17,8 +17,10 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  // 6 Individual digit inputs for the OTP box design
-  const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
+  // Dynamic digit inputs (supports 6, 8, or variable length OTP)
+  // Defaulting to 8 digit boxes to match your Supabase OTP template
+  const OTP_LENGTH = 8;
+  const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Auto-focus first digit input when transitioning to OTP step
@@ -30,7 +32,7 @@ export default function AuthPage() {
     }
   }, [step]);
 
-  // 1. Send OTP (Strictly sends 6-digit passcode without confirmation links)
+  // 1. Send OTP
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!email) return;
@@ -42,7 +44,7 @@ export default function AuthPage() {
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
         options: {
-          shouldCreateUser: true, // Seamless sign up & sign in with OTP
+          shouldCreateUser: true,
           data: displayName ? { display_name: displayName.trim() } : undefined,
         },
       });
@@ -51,9 +53,9 @@ export default function AuthPage() {
         setMessage({ text: error.message, type: 'error' });
       } else {
         setStep('otp');
-        setDigits(['', '', '', '', '', '']);
+        setDigits(Array(OTP_LENGTH).fill(''));
         setMessage({
-          text: `A 6-digit verification code was sent to ${email}`,
+          text: `Verification code was sent to ${email}`,
           type: 'success',
         });
       }
@@ -66,19 +68,19 @@ export default function AuthPage() {
 
   // 2. Handle OTP digit input changes, auto-advance, and paste
   const handleDigitChange = (index: number, value: string) => {
-    // If pasted full string (e.g. 123456)
+    // If pasted full string (e.g. 8 digits or 6 digits)
     if (value.length > 1) {
-      const pasted = value.replace(/\D/g, '').slice(0, 6);
+      const pasted = value.replace(/\D/g, '').slice(0, OTP_LENGTH);
       if (pasted.length > 0) {
-        const newDigits = [...digits];
-        for (let i = 0; i < 6; i++) {
+        const newDigits = Array(OTP_LENGTH).fill('');
+        for (let i = 0; i < pasted.length; i++) {
           newDigits[i] = pasted[i] || '';
         }
         setDigits(newDigits);
-        const focusIdx = Math.min(pasted.length, 5);
+        const focusIdx = Math.min(pasted.length, OTP_LENGTH - 1);
         inputRefs.current[focusIdx]?.focus();
 
-        if (pasted.length === 6) {
+        if (pasted.length === OTP_LENGTH) {
           verifyCode(pasted);
         }
       }
@@ -91,13 +93,13 @@ export default function AuthPage() {
     setDigits(newDigits);
 
     // Auto-advance to next box if filled
-    if (cleaned && index < 5) {
+    if (cleaned && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
     }
 
-    // Auto-submit if all 6 digits are filled
+    // Auto-submit if all digits are filled
     const fullCode = newDigits.join('');
-    if (fullCode.length === 6 && !newDigits.includes('')) {
+    if (fullCode.length === OTP_LENGTH && !newDigits.includes('')) {
       verifyCode(fullCode);
     }
   };
@@ -110,7 +112,8 @@ export default function AuthPage() {
 
   // 3. Verify OTP
   const verifyCode = async (codeToVerify: string) => {
-    if (codeToVerify.length !== 6) return;
+    const trimmed = codeToVerify.trim();
+    if (!trimmed) return;
 
     setLoading(true);
     setMessage(null);
@@ -118,7 +121,7 @@ export default function AuthPage() {
     try {
       const { data, error } = await supabase.auth.verifyOtp({
         email: email.trim().toLowerCase(),
-        token: codeToVerify.trim(),
+        token: trimmed,
         type: 'email',
       });
 
@@ -140,7 +143,8 @@ export default function AuthPage() {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    verifyCode(digits.join(''));
+    const code = digits.join('');
+    verifyCode(code);
   };
 
   return (
@@ -215,9 +219,9 @@ export default function AuthPage() {
         </div>
       </div>
 
-      {/* RIGHT COLUMN: The High-Contrast Authentication Form with 6-Digit Box Design */}
-      <div className="w-full lg:w-5/12 flex flex-col justify-center items-center px-6 sm:px-12 py-16 bg-white text-black min-h-screen">
-        <div className="w-full max-w-sm">
+      {/* RIGHT COLUMN: The High-Contrast Authentication Form with 8-Digit Box Design */}
+      <div className="w-full lg:w-5/12 flex flex-col justify-center items-center px-4 sm:px-10 py-16 bg-white text-black min-h-screen">
+        <div className="w-full max-w-md">
           {/* Mobile-only brand logo */}
           <div className="lg:hidden text-center mb-8 flex justify-center">
             <Logo theme="light" height={32} showSubtitle={true} />
@@ -235,7 +239,7 @@ export default function AuthPage() {
             </h3>
             <p className="text-xs text-black/60 mt-1 font-mono">
               {step === 'otp'
-                ? `Enter the 6-digit code sent to ${email}`
+                ? `Enter the 8-digit code sent to ${email}`
                 : 'Enter your email to receive an instant verification passcode.'}
             </p>
           </div>
@@ -303,7 +307,7 @@ export default function AuthPage() {
             <form onSubmit={handleFormSubmit} className="space-y-6">
               <div>
                 <div className="flex justify-between items-center mb-3">
-                  <label className="mono-eyebrow text-black/60">6-DIGIT PASSCODE</label>
+                  <label className="mono-eyebrow text-black/60">8-DIGIT PASSCODE</label>
                   <button
                     type="button"
                     onClick={() => {
@@ -316,8 +320,8 @@ export default function AuthPage() {
                   </button>
                 </div>
 
-                {/* 6 Individual Digit Boxes */}
-                <div className="flex items-center justify-between gap-2 sm:gap-2.5">
+                {/* 8 Individual Digit Boxes */}
+                <div className="grid grid-cols-8 gap-1.5 sm:gap-2">
                   {digits.map((digit, index) => (
                     <input
                       key={index}
@@ -327,11 +331,11 @@ export default function AuthPage() {
                       type="text"
                       inputMode="numeric"
                       pattern="[0-9]*"
-                      maxLength={6} // allows paste of full string on any box
+                      maxLength={OTP_LENGTH}
                       value={digit}
                       onChange={(e) => handleDigitChange(index, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(index, e)}
-                      className={`w-11 sm:w-12 h-14 text-center text-xl font-mono font-bold border rounded-lg focus:outline-none transition-all ${
+                      className={`h-12 text-center text-lg font-mono font-bold border rounded-md focus:outline-none transition-all ${
                         digit
                           ? 'border-black bg-black/[0.02] text-black shadow-sm'
                           : 'border-black/20 bg-white text-black/90 focus:border-black focus:ring-2 focus:ring-black/10'
@@ -343,7 +347,7 @@ export default function AuthPage() {
 
               <button
                 type="submit"
-                disabled={loading || digits.join('').length !== 6}
+                disabled={loading || digits.join('').length !== OTP_LENGTH}
                 className="mono-btn w-full bg-black text-white hover:bg-black/85 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-[4px] text-xs flex items-center justify-center space-x-2 transition tracking-wider"
               >
                 <ShieldCheck className="w-4 h-4 text-[#c8f6f9]" />
