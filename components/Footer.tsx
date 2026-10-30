@@ -2,7 +2,7 @@
 
 export default function Footer() {
   return (
-    <footer className="bg-white border-t border-[#e5e7eb] pt-12 pb-8 overflow-hidden select-none">
+    <footer className="bg-white border-t border-[#e5e7eb] pt-12 pb-6 overflow-hidden select-none">
       <div className="max-w-7xl mx-auto px-6">
         {/* Simple top row with Privacy Policy link */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-8 text-xs font-mono text-[#6b7280]">
@@ -22,11 +22,11 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Substantially bigger EVEE AI spanning the screen */}
-        <div className="pt-4 border-t border-[#f3f4f6] text-center overflow-hidden">
-          <h2 className="text-[13vw] sm:text-[14vw] font-light tracking-tighter text-[#111827] leading-none uppercase select-none pointer-events-none whitespace-nowrap">
+        {/* Substantially bigger EVEE AI with the original font-extrabold tracking-tighter style fitting the screen */}
+        <div className="pt-6 border-t border-[#f3f4f6] text-center overflow-hidden">
+          <div className="text-[17vw] sm:text-[18vw] font-extrabold tracking-tighter text-[#111827]/[0.08] leading-none uppercase select-none pointer-events-none whitespace-nowrap">
             EVEE AI
-          </h2>
+          </div>
         </div>
       </div>
     </footer>
