@@ -75,17 +75,13 @@ export default function WorkflowsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#ffffff]">
-      {/* Top Banner: Flat & Clean (Zero Gradients, Thinner Typography) */}
-      <section className="bg-[#f8fafc] border-b border-[#e5e7eb] px-6 py-10">
+    <div className="min-h-screen bg-white dark:bg-[#09090b] transition-colors duration-150">
+      {/* Top Banner: Flat & Clean */}
+      <section className="bg-[#f8fafc] dark:bg-[#121217] border-b border-[#e5e7eb] dark:border-[#27272a] px-6 py-10">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white border border-[#e5e7eb] text-[#374151] shadow-sm mb-3">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#f43f5e]"></span>
-              <span className="mono-eyebrow text-xs font-normal">GOVERNANCE & SAFETY GATE</span>
-            </div>
-            <h1 className="text-3xl font-light tracking-tight text-[#111827]">Workflow Governance</h1>
-            <p className="text-sm text-[#6b7280] mt-1 max-w-xl font-light">
+            <h1 className="text-3xl font-light tracking-tight text-[#111827] dark:text-white">Workflow Governance</h1>
+            <p className="text-sm text-[#6b7280] dark:text-[#a1a1aa] mt-1 max-w-xl font-light">
               Strict governance rules and pause controls for outbound prospecting pipelines.
             </p>
           </div>
@@ -102,12 +98,12 @@ export default function WorkflowsPage() {
 
       <main className="max-w-7xl mx-auto px-6 py-10">
         {loading ? (
-          <div className="py-20 text-center font-mono text-sm text-[#9ca3af]">Loading workflows...</div>
+          <div className="py-20 text-center font-mono text-sm text-[#9ca3af] dark:text-[#71717a]">Loading workflows...</div>
         ) : workflows.length === 0 ? (
-          <div className="border border-[#e5e7eb] rounded-xl p-16 text-center bg-[#f8fafc]">
-            <ShieldCheck className="w-12 h-12 text-[#9ca3af] mx-auto mb-4" />
-            <h3 className="text-lg font-light text-[#111827] mb-2">No active outreach workflows</h3>
-            <p className="text-sm text-[#6b7280] max-w-md mx-auto mb-6 font-light">
+          <div className="border border-[#e5e7eb] dark:border-[#27272a] rounded-xl p-16 text-center bg-[#f8fafc] dark:bg-[#121217]">
+            <ShieldCheck className="w-12 h-12 text-[#9ca3af] dark:text-[#52525b] mx-auto mb-4" />
+            <h3 className="text-lg font-light text-[#111827] dark:text-white mb-2">No active outreach workflows</h3>
+            <p className="text-sm text-[#6b7280] dark:text-[#a1a1aa] max-w-md mx-auto mb-6 font-light">
               Create and approve a governance policy to enable draft queues and outbound dispatch gates.
             </p>
             <button
@@ -126,25 +122,25 @@ export default function WorkflowsPage() {
               return (
                 <div
                   key={wf.id}
-                  className="border border-[#e5e7eb] rounded-xl p-6 bg-white shadow-sm transition"
+                  className="border border-[#e5e7eb] dark:border-[#27272a] rounded-xl p-6 bg-white dark:bg-[#121217] shadow-sm transition"
                 >
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
                     <div>
                       <div className="flex items-center space-x-2.5 mb-1">
-                        <h3 className="text-lg font-normal text-[#111827]">{wf.name}</h3>
+                        <h3 className="text-lg font-normal text-[#111827] dark:text-white">{wf.name}</h3>
                         <span
                           className={`mono-eyebrow text-xs px-3 py-0.5 rounded-full font-normal ${
                             isApproved
-                              ? 'bg-emerald-100 text-emerald-800'
+                              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
                               : isPaused
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-[#f8fafc] text-[#111827] border border-[#e5e7eb]'
+                              ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
+                              : 'bg-[#f8fafc] dark:bg-[#18181b] text-[#111827] dark:text-white border border-[#e5e7eb] dark:border-[#27272a]'
                           }`}
                         >
                           {wf.status.toUpperCase()}
                         </span>
                       </div>
-                      <p className="text-xs text-[#6b7280] font-mono font-light">
+                      <p className="text-xs text-[#6b7280] dark:text-[#a1a1aa] font-mono font-light">
                         Workflow ID: {wf.id}
                       </p>
                     </div>
@@ -183,24 +179,24 @@ export default function WorkflowsPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-[#f8fafc] rounded-xl text-xs font-mono text-[#374151]">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-[#f8fafc] dark:bg-[#18181b] rounded-xl text-xs font-mono text-[#374151] dark:text-[#d4d4d8]">
                     <div>
-                      <span className="text-[#9ca3af] block font-light">DAILY CAP</span>
-                      <span className="font-normal text-[#111827]">{wf.configuration?.daily_limit || 5} sends/day</span>
+                      <span className="text-[#9ca3af] dark:text-[#71717a] block font-light">DAILY CAP</span>
+                      <span className="font-normal text-[#111827] dark:text-white">{wf.configuration?.daily_limit || 5} sends/day</span>
                     </div>
                     <div>
-                      <span className="text-[#9ca3af] block font-light">MONTHLY TARGET</span>
-                      <span className="font-normal text-[#111827]">{wf.configuration?.monthly_limit || 100} qualified</span>
+                      <span className="text-[#9ca3af] dark:text-[#71717a] block font-light">MONTHLY TARGET</span>
+                      <span className="font-normal text-[#111827] dark:text-white">{wf.configuration?.monthly_limit || 100} qualified</span>
                     </div>
                     <div>
-                      <span className="text-[#9ca3af] block font-light">FOLLOWUP CADENCE</span>
-                      <span className="font-normal text-[#111827]">
+                      <span className="text-[#9ca3af] dark:text-[#71717a] block font-light">FOLLOWUP CADENCE</span>
+                      <span className="font-normal text-[#111827] dark:text-white">
                         {wf.configuration?.followup_intervals_days ? wf.configuration.followup_intervals_days.join(', ') + ' days' : 'None'}
                       </span>
                     </div>
                     <div>
-                      <span className="text-[#9ca3af] block font-light">AUTO-DISPATCH</span>
-                      <span className={`font-normal ${wf.configuration?.auto_send_enabled ? 'text-emerald-700' : 'text-amber-700'}`}>
+                      <span className="text-[#9ca3af] dark:text-[#71717a] block font-light">AUTO-DISPATCH</span>
+                      <span className={`font-normal ${wf.configuration?.auto_send_enabled ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
                         {wf.configuration?.auto_send_enabled ? 'ENABLED' : 'MANUAL APPROVAL ONLY'}
                       </span>
                     </div>

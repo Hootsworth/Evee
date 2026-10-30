@@ -1,5 +1,8 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
+import { useTheme } from '@/components/ThemeProvider';
 
 interface LogoProps {
   className?: string;
@@ -10,10 +13,13 @@ interface LogoProps {
 
 export default function Logo({
   className = '',
-  theme = 'dark',
+  theme,
   height = 28,
   showSubtitle = true,
 }: LogoProps) {
+  const { theme: currentTheme } = useTheme();
+  const activeTheme = theme || currentTheme || 'light';
+
   // Width calculated based on 1024x445 aspect ratio (~2.3x)
   const width = Math.round(height * 2.3);
 
@@ -27,7 +33,7 @@ export default function Logo({
           height={height}
           priority
           className={`h-auto object-contain transition ${
-            theme === 'light' ? 'invert brightness-0 [filter:invert(1)_brightness(0)]' : ''
+            activeTheme === 'light' ? 'invert brightness-0 [filter:invert(1)_brightness(0)]' : ''
           }`}
           style={{ maxHeight: `${height}px`, width: 'auto' }}
         />
@@ -35,7 +41,7 @@ export default function Logo({
       {showSubtitle && (
         <span
           className={`mono-eyebrow text-[10px] tracking-widest pl-1.5 border-l ${
-            theme === 'dark' ? 'text-white/40 border-white/20' : 'text-black/40 border-black/15'
+            activeTheme === 'dark' ? 'text-white/40 border-white/20' : 'text-black/40 border-black/15'
           }`}
         >
           PROSPECTING

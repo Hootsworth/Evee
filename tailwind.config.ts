@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -11,29 +12,31 @@ const config: Config = {
       colors: {
         canvas: {
           DEFAULT: "#ffffff",
-          dark: "#010120",
-          soft: "#f9f9fa",
+          dark: "#09090b",
+          soft: "#f8fafc",
         },
         surface: {
-          dark: "#010120",
-          "dark-soft": "#191932",
-          "dark-card": "#0c0c28",
+          DEFAULT: "#ffffff",
+          dark: "#121217",
+          "dark-subtle": "#18181b",
         },
         brand: {
+          rose: "#f43f5e",
+          "rose-hover": "#e11d48",
           orange: "#fc4c02",
           magenta: "#ef2cc1",
           periwinkle: "#bdbbff",
           mint: "#c8f6f9",
         },
         ink: {
-          DEFAULT: "#000000",
-          muted: "#999999",
-          soft: "#666666",
+          DEFAULT: "#111827",
+          dark: "#f4f4f5",
+          muted: "#9ca3af",
+          soft: "#6b7280",
         },
         hairline: {
-          DEFAULT: "#ebebeb",
-          dark: "rgba(255, 255, 255, 0.12)",
-          subtle: "rgba(0, 0, 0, 0.08)",
+          DEFAULT: "#e5e7eb",
+          dark: "#27272a",
         },
       },
       fontFamily: {
@@ -44,10 +47,6 @@ const config: Config = {
         xs: "3.25px",
         sm: "4px",
         md: "8px",
-      },
-      backgroundImage: {
-        "together-gradient": "linear-gradient(90deg, #fc4c02 0%, #ef2cc1 50%, #bdbbff 100%)",
-        "together-gradient-vertical": "linear-gradient(180deg, #fc4c02 0%, #ef2cc1 50%, #bdbbff 100%)",
       },
     },
   },

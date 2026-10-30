@@ -90,16 +90,12 @@ export default function DraftsApprovalPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#ffffff]">
-      {/* Top Banner: Flat & Clean (Zero Gradients, Thinner Typography) */}
-      <section className="bg-[#f8fafc] border-b border-[#e5e7eb] px-6 py-10">
+    <div className="min-h-screen bg-white dark:bg-[#09090b] transition-colors duration-150">
+      {/* Top Banner: Flat & Clean */}
+      <section className="bg-[#f8fafc] dark:bg-[#121217] border-b border-[#e5e7eb] dark:border-[#27272a] px-6 py-10">
         <div className="max-w-7xl mx-auto">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white border border-[#e5e7eb] text-[#374151] shadow-sm mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#f43f5e]"></span>
-            <span className="mono-eyebrow text-xs font-normal">HUMAN-IN-THE-LOOP SAFETY GATE</span>
-          </div>
-          <h1 className="text-3xl font-light tracking-tight text-[#111827]">Draft Approval Queue</h1>
-          <p className="text-sm text-[#6b7280] mt-1 max-w-xl font-light">
+          <h1 className="text-3xl font-light tracking-tight text-[#111827] dark:text-white">Draft Approval Queue</h1>
+          <p className="text-sm text-[#6b7280] dark:text-[#a1a1aa] mt-1 max-w-xl font-light">
             Review personalized outreach drafts. Automated dispatch remains strictly blocked until explicit operator approval.
           </p>
         </div>
@@ -107,11 +103,11 @@ export default function DraftsApprovalPage() {
 
       <main className="max-w-7xl mx-auto px-6 py-10">
         {loading ? (
-          <div className="py-20 text-center font-mono text-sm text-[#9ca3af]">Loading drafts...</div>
+          <div className="py-20 text-center font-mono text-sm text-[#9ca3af] dark:text-[#71717a]">Loading drafts...</div>
         ) : drafts.length === 0 ? (
-          <div className="border border-[#e5e7eb] rounded-xl p-16 text-center bg-[#f8fafc]">
-            <ShieldCheck className="w-12 h-12 text-[#9ca3af] mx-auto mb-3" />
-            <p className="text-sm text-[#6b7280] font-mono font-light">No drafts generated yet. Trigger a discovery run in Campaigns.</p>
+          <div className="border border-[#e5e7eb] dark:border-[#27272a] rounded-xl p-16 text-center bg-[#f8fafc] dark:bg-[#121217]">
+            <ShieldCheck className="w-12 h-12 text-[#9ca3af] dark:text-[#52525b] mx-auto mb-3" />
+            <p className="text-sm text-[#6b7280] dark:text-[#a1a1aa] font-mono font-light">No drafts generated yet. Trigger a discovery run in Campaigns.</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -122,25 +118,25 @@ export default function DraftsApprovalPage() {
               return (
                 <div
                   key={draft.id}
-                  className={`border rounded-xl p-6 bg-white shadow-sm transition ${
+                  className={`border rounded-xl p-6 bg-white dark:bg-[#121217] shadow-sm transition ${
                     isApproved
-                      ? 'border-emerald-300 bg-emerald-50/10'
+                      ? 'border-emerald-300 dark:border-emerald-800 bg-emerald-50/10 dark:bg-emerald-950/20'
                       : isRejected
-                      ? 'border-rose-200 bg-rose-50/10 opacity-60'
-                      : 'border-[#e5e7eb]'
+                      ? 'border-rose-200 dark:border-rose-800 bg-rose-50/10 dark:bg-rose-950/20 opacity-60'
+                      : 'border-[#e5e7eb] dark:border-[#27272a]'
                   }`}
                 >
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
                     <div>
                       <div className="flex items-center space-x-2 mb-1">
-                        <span className="font-normal text-base text-[#111827]">
+                        <span className="font-normal text-base text-[#111827] dark:text-white">
                           {draft.business?.display_name || 'Prospect Business'}
                         </span>
-                        <span className="text-xs text-[#9ca3af] font-mono">
+                        <span className="text-xs text-[#9ca3af] dark:text-[#71717a] font-mono">
                           ({draft.business?.city || 'India'})
                         </span>
                       </div>
-                      <div className="text-xs text-[#6b7280] font-mono">
+                      <div className="text-xs text-[#6b7280] dark:text-[#a1a1aa] font-mono">
                         To: {draft.contact?.email_address || draft.business?.general_business_email || 'No email discovered'}
                       </div>
                     </div>
@@ -149,10 +145,10 @@ export default function DraftsApprovalPage() {
                       <span
                         className={`mono-eyebrow text-xs px-3 py-1 rounded-full font-normal ${
                           isApproved
-                            ? 'bg-emerald-100 text-emerald-800'
+                            ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
                             : isRejected
-                            ? 'bg-rose-100 text-rose-800'
-                            : 'bg-amber-100 text-amber-800'
+                            ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300'
+                            : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
                         }`}
                       >
                         {draft.approval_status.toUpperCase()}
@@ -161,12 +157,12 @@ export default function DraftsApprovalPage() {
                   </div>
 
                   {/* Email Subject & Body Preview */}
-                  <div className="bg-[#f8fafc] border border-[#e5e7eb] rounded-xl p-4 mb-4">
-                    <div className="text-xs font-mono text-[#9ca3af] mb-1 font-normal">SUBJECT:</div>
-                    <div className="text-sm font-normal text-[#111827] mb-3">{draft.subject}</div>
+                  <div className="bg-[#f8fafc] dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] rounded-xl p-4 mb-4">
+                    <div className="text-xs font-mono text-[#9ca3af] dark:text-[#71717a] mb-1 font-normal">SUBJECT:</div>
+                    <div className="text-sm font-normal text-[#111827] dark:text-white mb-3">{draft.subject}</div>
 
-                    <div className="text-xs font-mono text-[#4b5563] mb-1 font-normal">BODY TEXT:</div>
-                    <div className="text-xs font-mono text-[#374151] whitespace-pre-line leading-relaxed bg-white p-4 border border-[#e5e7eb] rounded-xl font-light">
+                    <div className="text-xs font-mono text-[#4b5563] dark:text-[#a1a1aa] mb-1 font-normal">BODY TEXT:</div>
+                    <div className="text-xs font-mono text-[#374151] dark:text-[#d4d4d8] whitespace-pre-line leading-relaxed bg-white dark:bg-[#121217] p-4 border border-[#e5e7eb] dark:border-[#27272a] rounded-xl font-light">
                       {draft.body_text}
                     </div>
                   </div>
@@ -174,10 +170,10 @@ export default function DraftsApprovalPage() {
                   {/* Grounded Evidence Reference */}
                   {draft.evidence_used && draft.evidence_used.length > 0 && (
                     <div className="mb-4 text-xs font-mono">
-                      <span className="text-[#9ca3af] block mb-1">FACTUAL CITATIONS:</span>
+                      <span className="text-[#9ca3af] dark:text-[#71717a] block mb-1">FACTUAL CITATIONS:</span>
                       <div className="flex flex-wrap gap-2">
                         {draft.evidence_used.map((ev: string, idx: number) => (
-                          <span key={idx} className="bg-[#f8fafc] text-[#374151] px-2.5 py-1 rounded-full text-[11px] font-normal border border-[#e5e7eb]">
+                          <span key={idx} className="bg-[#f8fafc] dark:bg-[#18181b] text-[#374151] dark:text-[#d4d4d8] px-2.5 py-1 rounded-full text-[11px] font-normal border border-[#e5e7eb] dark:border-[#27272a]">
                             {ev}
                           </span>
                         ))}
@@ -186,7 +182,7 @@ export default function DraftsApprovalPage() {
                   )}
 
                   {/* Action Bar */}
-                  <div className="pt-4 border-t border-[#f3f4f6] flex flex-wrap items-center justify-between gap-3">
+                  <div className="pt-4 border-t border-[#f3f4f6] dark:border-[#1f1f23] flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center space-x-2">
                       {!isApproved && (
                         <button
@@ -203,7 +199,7 @@ export default function DraftsApprovalPage() {
                         <button
                           onClick={() => handleReject(draft.id)}
                           disabled={actionLoading === draft.id}
-                          className="mono-btn bg-[#f8fafc] hover:bg-[#f1f5f9] text-[#374151] border border-[#e5e7eb] px-4 py-2 rounded-full text-xs font-normal flex items-center space-x-1.5 transition active:scale-95"
+                          className="mono-btn bg-[#f8fafc] dark:bg-[#18181b] hover:bg-[#f1f5f9] dark:hover:bg-[#27272a] text-[#374151] dark:text-[#e4e4e7] border border-[#e5e7eb] dark:border-[#27272a] px-4 py-2 rounded-full text-xs font-normal flex items-center space-x-1.5 transition active:scale-95"
                         >
                           <X className="w-3.5 h-3.5" />
                           <span>REJECT</span>
