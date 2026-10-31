@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Mail, Sparkles, Key, ShieldCheck, Check, AlertCircle, Save, Plus, Trash2, Eye, EyeOff, Search } from 'lucide-react';
+import { Mail, Sparkles, Key, ShieldCheck, Check, AlertCircle, Save, Plus, Trash2, Eye, EyeOff, Search, ChevronDown } from 'lucide-react';
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -562,16 +562,19 @@ export default function SettingsPage() {
                     onChange={(e) => setNewSuppressionEmail(e.target.value)}
                     className="flex-1 text-xs font-mono border border-[#e5e7eb] dark:border-[#27272a] bg-white dark:bg-[#18181b] rounded-full px-4 py-2.5 focus:outline-none focus:border-[#f43f5e] text-[#111827] dark:text-white font-light"
                   />
-                  <select
-                    value={newSuppressionReason}
-                    onChange={(e) => setNewSuppressionReason(e.target.value)}
-                    className="text-xs font-mono border border-[#e5e7eb] dark:border-[#27272a] bg-white dark:bg-[#18181b] rounded-full px-3 py-2.5 focus:outline-none focus:border-[#f43f5e] text-[#111827] dark:text-white font-light"
-                  >
-                    <option value="manual_block">Manual Operator Block</option>
-                    <option value="user_optout">Recipient Unsubscribed</option>
-                    <option value="competitor">Competitor Exclude</option>
-                    <option value="bounce">Hard Bounced</option>
-                  </select>
+                  <div className="relative inline-flex items-center">
+                    <select
+                      value={newSuppressionReason}
+                      onChange={(e) => setNewSuppressionReason(e.target.value)}
+                      className="appearance-none text-xs font-mono border border-[#e5e7eb] dark:border-[#27272a] bg-white dark:bg-[#18181b] rounded-full pl-4 pr-8 py-2.5 focus:outline-none focus:border-[#f43f5e] text-[#111827] dark:text-white font-light cursor-pointer"
+                    >
+                      <option value="manual_block">Manual Operator Block</option>
+                      <option value="user_optout">Recipient Unsubscribed</option>
+                      <option value="competitor">Competitor Exclude</option>
+                      <option value="bounce">Hard Bounced</option>
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 absolute right-3 text-[#9ca3af] pointer-events-none" />
+                  </div>
                   <button
                     type="submit"
                     className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-5 py-2.5 rounded-full text-xs font-normal flex items-center justify-center space-x-1.5 shadow-sm active:scale-95"

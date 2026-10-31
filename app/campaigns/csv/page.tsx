@@ -22,6 +22,7 @@ import {
   Table,
   Columns,
   Info,
+  ChevronDown,
 } from 'lucide-react';
 import {
   parseAndAnalyzeCsv,
@@ -453,18 +454,21 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                           <label className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal block mb-1">
                             {field.label}
                           </label>
-                          <select
-                            value={(mapping as any)[field.key] || ''}
-                            onChange={(e) => setMapping({ ...mapping, [field.key]: e.target.value || null })}
-                            className="w-full text-xs font-mono bg-white dark:bg-[#121217] border border-[#e5e7eb] dark:border-[#27272a] rounded-lg p-2 focus:outline-none focus:border-[#f43f5e] text-[#111827] dark:text-white"
-                          >
-                            <option value="">(None / Skip)</option>
-                            {csvResult.headers.map((h) => (
-                              <option key={h} value={h}>
-                                {h}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="relative">
+                            <select
+                              value={(mapping as any)[field.key] || ''}
+                              onChange={(e) => setMapping({ ...mapping, [field.key]: e.target.value || null })}
+                              className="appearance-none w-full text-xs font-mono bg-white dark:bg-[#121217] border border-[#e5e7eb] dark:border-[#27272a] rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-[#f43f5e] text-[#111827] dark:text-white cursor-pointer"
+                            >
+                              <option value="">(None / Skip)</option>
+                              {csvResult.headers.map((h) => (
+                                <option key={h} value={h}>
+                                  {h}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none" />
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -699,17 +703,20 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
 
                   {/* Prospect Selector */}
                   {csvResult && csvResult.rows.length > 0 && (
-                    <select
-                      value={previewContactIdx}
-                      onChange={(e) => setPreviewContactIdx(Number(e.target.value))}
-                      className="text-[11px] font-mono border border-[#e5e7eb] dark:border-[#27272a] bg-white dark:bg-[#18181b] rounded-lg px-2 py-1 text-[#111827] dark:text-white"
-                    >
-                      {csvResult.rows.slice(0, 10).map((r, i) => (
-                        <option key={i} value={i}>
-                          Contact #{i + 1} ({r[mapping.companyName || ''] || r[mapping.email || ''] || 'Prospect'})
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative inline-flex items-center">
+                      <select
+                        value={previewContactIdx}
+                        onChange={(e) => setPreviewContactIdx(Number(e.target.value))}
+                        className="appearance-none text-[11px] font-mono border border-[#e5e7eb] dark:border-white/[0.08] bg-white dark:bg-[#101218] rounded-full pl-3.5 pr-8 py-1.5 text-[#111827] dark:text-white focus:outline-none focus:border-[#f43f5e] cursor-pointer shadow-sm hover:border-[#cbd5e1] dark:hover:border-white/[0.16] transition"
+                      >
+                        {csvResult.rows.slice(0, 20).map((r, i) => (
+                          <option key={i} value={i}>
+                            Contact #{i + 1} ({r[mapping.companyName || ''] || r[mapping.email || ''] || 'Prospect'})
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 absolute right-3 text-[#9ca3af] pointer-events-none" />
+                    </div>
                   )}
                 </div>
 
