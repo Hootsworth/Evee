@@ -469,16 +469,19 @@ export default function DraftsApprovalPage() {
                     </div>
                   </div>
 
-                  {/* AI Rationalization */}
-                  <div className="pt-2 border-t border-[#ebebeb] dark:border-white/[0.06] space-y-1.5">
-                    <div className="flex items-center space-x-1.5 text-[10px] font-mono uppercase text-[#ef2cc1] font-semibold">
-                      <Sparkles className="w-3 h-3" />
-                      <span>AI RESEARCH ANGLE</span>
+                  {/* AI Rationalization with iOS Swish & Distinct Glass Card */}
+                  <div className="ai-glass-card overflow-hidden animate-ios-swish">
+                    <div className="ai-laser-top w-full" />
+                    <div className="p-3 space-y-1.5">
+                      <div className="flex items-center space-x-1.5 text-[10px] font-mono uppercase text-black dark:text-white font-semibold">
+                        <Sparkles className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                        <span>AI RESEARCH ANGLE</span>
+                      </div>
+                      <p className="text-[11px] text-[#6b7280] dark:text-[#959494] leading-relaxed">
+                        {selectedDraft.rationale ||
+                          'Synthesized from website metadata and verified deliverability records. Tailored offer focusing on digital workflows and conversion improvements.'}
+                      </p>
                     </div>
-                    <p className="text-[11px] text-[#6b7280] dark:text-[#959494] leading-relaxed">
-                      {selectedDraft.rationale ||
-                        'Synthesized from website metadata and verified deliverability records. Tailored offer focusing on digital workflows and conversion improvements.'}
-                    </p>
                   </div>
 
                   {/* Pre-Flight Health Checklist */}

@@ -241,3 +241,20 @@ export function replaceTemplateVariables(
     return match; // preserve if unmatched custom variable
   });
 }
+
+// Aliases and client helpers for backward compatibility
+export type CsvParseResult = ParsedCsvResult;
+export const autoDetectMapping = detectColumnMapping;
+export const parseCsvString = parseAndAnalyzeCsv;
+
+export async function parseCsvFile(file: File): Promise<ParsedCsvResult> {
+  const text = await file.text();
+  return parseAndAnalyzeCsv(text);
+}
+
+export const SAMPLE_PROSPECTS_CSV = `email,company_name,first_name,website,city
+sunita@artisanbakes.in,Artisan Bakes,Sunita,artisanbakes.in,Bengaluru
+rahul@urbanroast.in,Urban Roast Cafe,Rahul,urbanroast.in,Mumbai
+contact@blueheroncoffee.com,Blue Heron Coffee,Marcus,blueheroncoffee.com,London
+dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
+

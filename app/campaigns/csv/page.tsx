@@ -2,51 +2,41 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import {
   Upload,
-  FileSpreadsheet,
-  ArrowRight,
-  ArrowLeft,
+  Sparkles,
   Mail,
-  Send,
   CheckCircle2,
   AlertTriangle,
   RefreshCw,
-  Sparkles,
+  Send,
   Eye,
-  Check,
-  ShieldCheck,
-  Trash2,
-  Table,
-  Columns,
-  Info,
   ChevronDown,
+  ArrowRight,
+  ShieldCheck,
+  FileSpreadsheet,
+  ArrowLeft,
+  Info,
 } from 'lucide-react';
 import {
-  parseAndAnalyzeCsv,
-  ParsedCsvResult,
-  CsvColumnMapping,
+  parseCsvFile,
+  parseCsvString,
+  autoDetectMapping,
   replaceTemplateVariables,
+  SAMPLE_PROSPECTS_CSV,
+  CsvParseResult,
+  CsvColumnMapping,
 } from '@/lib/csv/parser';
 
 export default function CsvOutreachPage() {
-  const router = useRouter();
-  const supabase = createClient();
-
-  // Wizard Steps: 1: upload -> 2: template -> 3: test_sent -> 4: dispatching / complete
+  // Stepper state: 'upload' -> 'template' -> 'test_sent' -> 'dispatched'
   const [step, setStep] = useState<'upload' | 'template' | 'test_sent' | 'dispatched'>('upload');
 
-  // Authenticated user
-  const [operatorEmail, setOperatorEmail] = useState('');
-
   // CSV Data State
-  const [csvText, setCsvText] = useState('');
-  const [fileName, setFileName] = useState('');
-  const [csvResult, setCsvResult] = useState<ParsedCsvResult | null>(null);
+  const [csvResult, setCsvResult] = useState<CsvParseResult | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [mapping, setMapping] = useState<CsvColumnMapping>({
-    email: null,
+    email: 'email',
     companyName: null,
     firstName: null,
     lastName: null,
@@ -64,7 +54,7 @@ export default function CsvOutreachPage() {
   const [enriching, setEnriching] = useState(false);
   const [enriched, setEnriched] = useState(false);
   const [aiMeta, setAiMeta] = useState<{
-    source: 'live' | 'heuristic';
+    source: 'live' | 'ai_synthetic';
     provider: string;
     model: string;
     error?: string;
@@ -83,93 +73,52 @@ export default function CsvOutreachPage() {
   const [dispatchSummary, setDispatchSummary] = useState<any>(null);
   const [dispatchResults, setDispatchResults] = useState<any[]>([]);
 
-  // Textarea ref for variable token insertion
+  // Current logged in user email for self test
+  const [operatorEmail, setOperatorEmail] = useState('');
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Fetch operator's email on mount
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user?.email) {
-        setOperatorEmail(data.user.email);
-      }
-    });
+    fetch('/api/settings/providers')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.settings?.smtpUser) {
+          setOperatorEmail(data.settings.smtpUser);
+        }
+      })
+      .catch(() => {});
   }, []);
 
-  // Handle CSV file selection
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle local CSV upload
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      if (content) {
-        setCsvText(content);
-        processCsvContent(content);
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  // Sample CSV Loader
-  const handleLoadSampleCsv = () => {
-    const sample = `email,company_name,first_name,website,city
-sunita@artisanbakes.in,Artisan Bakes,Sunita,artisanbakes.in,Bengaluru
-rahul@urbanroast.in,Urban Roast Cafe,Rahul,urbanroast.in,Mumbai
-contact@blueheroncoffee.com,Blue Heron Coffee,Marcus,blueheroncoffee.com,London
-dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
-    setFileName('sample_prospects.csv');
-    setCsvText(sample);
-    processCsvContent(sample);
-  };
-
-  const triggerAutoEnrich = async (rows: Array<Record<string, string>>, activeMapping: CsvColumnMapping) => {
-    if (!rows || rows.length === 0) return;
-    setEnriching(true);
-
     try {
-      const res = await fetch('/api/csv-outreach/enrich', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prospects: rows,
-          mapping: activeMapping,
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.enrichedProspects) {
-        setCsvResult((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            rows: data.enrichedProspects,
-          };
-        });
-        if (data.meta) {
-          setAiMeta(data.meta);
-        }
-        setEnriched(true);
-      }
-    } catch (err) {
-      console.warn('Auto enrichment silent fail, will retry on demand:', err);
-    } finally {
-      setEnriching(false);
+      const parsed = await parseCsvFile(file);
+      setCsvResult(parsed);
+      const detected = autoDetectMapping(parsed.headers);
+      setMapping(detected);
+    } catch (err: any) {
+      alert(`CSV parsing error: ${err.message}`);
     }
   };
 
-  const processCsvContent = (content: string) => {
-    const result = parseAndAnalyzeCsv(content);
-    setCsvResult(result);
-    setMapping(result.detectedMapping);
-    setEnriched(false);
-    if (result.rows.length > 0) {
-      triggerAutoEnrich(result.rows, result.detectedMapping);
-    }
+  // Load sample CSV for instant testing
+  const handleLoadSampleCsv = () => {
+    setFileName('bangalore_cafes_and_bakeries.csv');
+    const parsed = parseCsvString(SAMPLE_PROSPECTS_CSV);
+    setCsvResult(parsed);
+    const detected = autoDetectMapping(parsed.headers);
+    setMapping(detected);
   };
 
+  // Trigger AI enrichment on CSV rows
   const handleEnrichWithAi = async () => {
     if (!csvResult || csvResult.rows.length === 0) return;
+
     setEnriching(true);
 
     try {
@@ -184,19 +133,14 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
 
       const data = await res.json();
       if (res.ok && data.enrichedProspects) {
-        setCsvResult((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            rows: data.enrichedProspects,
-          };
+        setCsvResult({
+          ...csvResult,
+          rows: data.enrichedProspects,
         });
-        if (data.meta) {
-          setAiMeta(data.meta);
-        }
         setEnriched(true);
+        setAiMeta(data.meta || null);
       } else {
-        alert(data.error || 'Failed to enrich prospects with AI.');
+        alert(`AI Enrichment Error: ${data.error || 'Failed to enrich prospects.'}`);
       }
     } catch (err: any) {
       alert(`Network error during AI enrichment: ${err.message}`);
@@ -205,32 +149,29 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
     }
   };
 
-  // Insert variable into active editor
-  const handleInsertVariable = (varName: string) => {
-    const token = `{${varName}}`;
-    if (!textareaRef.current) {
+  // Helper to insert a variable chip into the bodyText at the current cursor position
+  const handleInsertVariable = (tokenName: string) => {
+    const token = `{${tokenName}}`;
+    const textarea = textareaRef.current;
+    if (!textarea) {
       setBodyText((prev) => prev + ' ' + token);
       return;
     }
 
-    const textarea = textareaRef.current;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const newText = bodyText.substring(0, start) + token + bodyText.substring(end);
-    setBodyText(newText);
+    const nextBody = bodyText.substring(0, start) + token + bodyText.substring(end);
+    setBodyText(nextBody);
 
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + token.length, start + token.length);
-    }, 50);
+    }, 0);
   };
 
-  // 1. Send Test Email to Operator
+  // 1. Safety Gate: Send Test Email to Myself
   const handleSendTestToSelf = async () => {
-    if (!csvResult || csvResult.rows.length === 0) {
-      alert('Please upload a valid CSV first.');
-      return;
-    }
+    if (!csvResult || csvResult.rows.length === 0) return;
 
     setTestSending(true);
     setTestError(null);
@@ -300,40 +241,50 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
   const renderedBody = replaceTemplateVariables(bodyText, sampleProspect, mapping);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#09090b] transition-colors duration-150">
-      {/* Top Banner: Flat & Clean */}
-      <section className="bg-[#f8fafc] dark:bg-gradient-to-b dark:from-[#0e1017] dark:via-[#0c0d14] dark:to-[#090a0f] border-b border-[#e5e7eb] dark:border-white/[0.08] px-6 py-8">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="min-h-screen bg-white dark:bg-[#010120] text-[#000000] dark:text-[#ffffff] transition-colors duration-150 flex flex-col">
+      {/* 2px Signature Brand Gradient Ribbon */}
+      <div className="brand-gradient-h w-full" />
+
+      {/* Hero Band: Canvas Dark #010120 */}
+      <section className="bg-[#010120] text-white border-b border-white/[0.08] px-6 py-8">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <Link
               href="/campaigns"
-              className="mono-btn text-xs text-[#f43f5e] hover:underline flex items-center space-x-1.5 mb-2 font-normal"
+              className="mono-btn text-xs text-[#959494] hover:text-white flex items-center space-x-1.5 mb-2 font-normal"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>BACK TO CAMPAIGNS</span>
             </Link>
-            <h1 className="text-3xl font-light tracking-tight text-[#111827] dark:text-white">CSV Direct Outreach</h1>
-            <p className="text-sm text-[#6b7280] dark:text-[#a1a1aa] mt-1 max-w-xl font-light">
-              Import prospect spreadsheets, compose dynamic templates with dynamic tags, test on yourself, and dispatch with human approval.
+            <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
+              <span>CSV PIPELINE // DYNAMIC OUTREACH</span>
+              <span>•</span>
+              <span className="text-[#ef2cc1]">AI ADAPTATION ENGINE</span>
+            </div>
+            <h1 className="text-3xl font-medium tracking-tight text-white">
+              CSV Direct Outreach
+            </h1>
+            <p className="text-xs text-[#959494] mt-1 max-w-xl font-normal">
+              Import prospect spreadsheets, analyze companies with AI reasoning, test pre-flight on yourself, and dispatch with human sign-off.
             </p>
           </div>
 
           {/* Stepper Pill Indicator */}
-          <div className="flex items-center space-x-2 bg-white dark:bg-[#101218] border border-[#e5e7eb] dark:border-white/[0.08] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] rounded-full p-1.5 self-start sm:self-auto text-xs font-mono">
+          <div className="flex items-center space-x-1 bg-[#313641]/40 border border-white/[0.08] rounded-[4px] p-1 text-xs font-mono">
             {[
-              { id: 'upload', label: '1. CSV' },
-              { id: 'template', label: '2. Compose' },
-              { id: 'test_sent', label: '3. Verify Self' },
-              { id: 'dispatched', label: '4. Dispatched' },
-            ].map((s, idx) => {
+              { id: 'upload', label: '1. CSV MAPPING' },
+              { id: 'template', label: '2. COMPOSE' },
+              { id: 'test_sent', label: '3. PRE-FLIGHT TEST' },
+              { id: 'dispatched', label: '4. DISPATCHED' },
+            ].map((s) => {
               const active = step === s.id;
               return (
                 <span
                   key={s.id}
-                  className={`px-3 py-1 rounded-full transition ${
+                  className={`px-2.5 py-1 rounded-[3px] transition ${
                     active
-                      ? 'bg-[#111827] dark:bg-white text-white dark:text-[#111827] font-medium'
-                      : 'text-[#6b7280] dark:text-[#a1a1aa]'
+                      ? 'bg-black dark:bg-white text-white dark:text-black font-semibold'
+                      : 'text-[#959494]'
                   }`}
                 >
                   {s.label}
@@ -345,126 +296,136 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
       </section>
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-6 py-10">
+      <main className="max-w-7xl mx-auto px-6 py-8 w-full flex-1">
         {/* STEP 1: Upload CSV & Auto-Detect Columns */}
         {step === 'upload' && (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Upload Card */}
-              <div className="lg:col-span-1 border border-[#e5e7eb] dark:border-[#27272a] rounded-2xl p-6 bg-white dark:bg-[#121217] shadow-sm flex flex-col justify-between">
+              <div className="lg:col-span-1 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-5 bg-white dark:bg-[#010120] flex flex-col justify-between">
                 <div>
-                  <h2 className="text-lg font-light text-[#111827] dark:text-white mb-1">Import Spreadsheet</h2>
-                  <p className="text-xs text-[#6b7280] dark:text-[#a1a1aa] font-mono mb-6 font-light">
+                  <h2 className="text-sm font-semibold text-black dark:text-white uppercase font-mono mb-1">
+                    Import Spreadsheet
+                  </h2>
+                  <p className="text-xs text-[#6b7280] dark:text-[#959494] font-mono mb-5">
                     Upload any .csv file with contacts. Evee auto-detects emails, names, and companies.
                   </p>
 
-                  <label className="border-2 border-dashed border-[#e5e7eb] dark:border-[#27272a] hover:border-[#f43f5e] dark:hover:border-[#f43f5e] rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition bg-[#f8fafc] dark:bg-[#18181b] group">
-                    <Upload className="w-8 h-8 text-[#9ca3af] group-hover:text-[#f43f5e] transition mb-3" />
-                    <span className="text-xs font-normal text-[#111827] dark:text-white">
+                  <label className="border-2 border-dashed border-[#ebebeb] dark:border-white/[0.1] hover:border-black dark:hover:border-white rounded-[4px] p-8 flex flex-col items-center justify-center text-center cursor-pointer transition bg-[#f8fafc] dark:bg-[#313641]/20 group">
+                    <Upload className="w-7 h-7 text-[#9ca3af] group-hover:text-black dark:group-hover:text-white transition mb-2.5" />
+                    <span className="text-xs font-medium text-black dark:text-white">
                       {fileName ? fileName : 'Click to select CSV file'}
                     </span>
-                    <span className="text-[11px] text-[#9ca3af] font-mono mt-1 font-light">
-                      Supports RFC 4180 format (.csv)
+                    <span className="text-[10px] text-[#959494] font-mono mt-1">
+                      RFC 4180 format (.csv)
                     </span>
                     <input type="file" accept=".csv,text/csv" onChange={handleFileUpload} className="hidden" />
                   </label>
 
-                  <div className="mt-4 pt-4 border-t border-[#f3f4f6] dark:border-[#27272a] flex items-center justify-between">
-                    <span className="text-xs text-[#6b7280] dark:text-[#a1a1aa] font-mono font-light">
+                  <div className="mt-4 pt-4 border-t border-[#ebebeb] dark:border-white/[0.06] flex items-center justify-between">
+                    <span className="text-xs text-[#6b7280] dark:text-[#959494] font-mono">
                       Don't have a CSV handy?
                     </span>
                     <button
                       type="button"
                       onClick={handleLoadSampleCsv}
-                      className="mono-btn text-xs text-[#f43f5e] hover:underline font-normal"
+                      className="mono-btn text-xs text-[#ef2cc1] hover:underline font-semibold"
                     >
-                      Load Sample Demo CSV
+                      Load Sample CSV →
                     </button>
                   </div>
                 </div>
 
-                {csvResult && csvResult.rows.length > 0 && (
-                  <div className="mt-6 pt-4 border-t border-[#f3f4f6] dark:border-[#27272a]">
+                {csvResult && (
+                  <div className="mt-6 pt-4 border-t border-[#ebebeb] dark:border-white/[0.08]">
+                    <div className="flex justify-between text-xs font-mono mb-3">
+                      <span className="text-[#6b7280] dark:text-[#959494]">TOTAL ROWS:</span>
+                      <span className="font-semibold text-black dark:text-white">{csvResult.totalRows}</span>
+                    </div>
+                    <div className="flex justify-between text-xs font-mono mb-4">
+                      <span className="text-[#6b7280] dark:text-[#959494]">VALID EMAILS:</span>
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                        {csvResult.validEmailCount}
+                      </span>
+                    </div>
+
                     <button
                       onClick={() => setStep('template')}
-                      className="mono-btn w-full bg-[#f43f5e] hover:bg-[#e11d48] text-white py-3 rounded-full text-xs font-normal flex items-center justify-center space-x-2 shadow-sm transition active:scale-95"
+                      className="mono-btn w-full bg-black dark:bg-white text-white dark:text-black py-2.5 rounded-[4px] text-xs font-semibold flex items-center justify-center space-x-1.5 shadow-sm transition active:scale-95"
                     >
-                      <span>CONTINUE TO TEMPLATE COMPOSER</span>
+                      <span>NEXT: COMPOSE TEMPLATE</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 )}
               </div>
 
-              {/* Detected Mapping & Preview */}
-              <div className="lg:col-span-2 border border-[#e5e7eb] dark:border-[#27272a] rounded-2xl p-6 bg-white dark:bg-[#121217] shadow-sm">
-                <div className="flex items-center justify-between pb-4 border-b border-[#f3f4f6] dark:border-[#27272a] mb-6">
+              {/* Column Mapping & AI Card */}
+              <div className="lg:col-span-2 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-5 bg-white dark:bg-[#010120] space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-[#ebebeb] dark:border-white/[0.08]">
                   <div>
-                    <h2 className="text-lg font-light text-[#111827] dark:text-white">Auto-Detected Field Mapping</h2>
-                    <p className="text-xs text-[#6b7280] dark:text-[#a1a1aa] font-mono font-light mt-0.5">
-                      Verify which CSV columns map to standard outreach parameters.
+                    <h2 className="text-sm font-semibold text-black dark:text-white font-mono uppercase">
+                      Auto-Detected Field Mapping
+                    </h2>
+                    <p className="text-xs text-[#959494] font-mono mt-0.5">
+                      Verify which CSV columns map to outreach fields.
                     </p>
                   </div>
                   {csvResult && (
-                    <span className="text-xs font-mono px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                      {csvResult.validEmailCount} Valid Emails Detected
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-[2px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">
+                      {csvResult.validEmailCount} VALID EMAILS
                     </span>
                   )}
                 </div>
 
                 {!csvResult ? (
-                  <div className="py-20 text-center font-mono text-xs text-[#9ca3af] dark:text-[#71717a] font-light">
+                  <div className="py-20 text-center font-mono text-xs text-[#959494]">
                     Upload or select a sample CSV to view auto-detected columns and rows.
                   </div>
                 ) : (
-                  <div className="space-y-6">
-                    {/* AI Company Intelligence Banner */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gradient-to-r from-rose-500/10 via-amber-500/5 to-transparent border border-rose-500/20 rounded-xl gap-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-[#f43f5e]/15 text-[#f43f5e] flex items-center justify-center shrink-0">
-                          <Sparkles className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <div className="text-xs font-normal text-[#111827] dark:text-white flex flex-wrap items-center gap-2">
-                            <span>AI Company Type Classifier & Adjustment Engine</span>
-                            {enriched && aiMeta?.source === 'live' && (
-                              <span className="inline-flex items-center space-x-1.5 text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                <span>LIVE AI: {aiMeta.provider.toUpperCase()} ({aiMeta.model})</span>
-                              </span>
-                            )}
-                            {enriched && aiMeta?.source === 'heuristic' && (
-                              <span className="inline-flex items-center space-x-1.5 text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" title={aiMeta.error || 'Fallback to offline semantic rulebook'}>
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                                <span>OFFLINE RULEBOOK (HEURISTIC)</span>
-                              </span>
-                            )}
-                            {enriched && !aiMeta && (
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                                ACTIVE
-                              </span>
-                            )}
+                  <div className="space-y-5">
+                    {/* Distinct AI Company Intelligence Glass Card */}
+                    <div className="ai-glass-card overflow-hidden">
+                      <div className="ai-laser-top w-full" />
+                      <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 rounded-[4px] bg-gradient-to-br from-[#fc4c02]/20 via-[#ef2cc1]/20 to-[#bdbbff]/20 border border-[#ef2cc1]/30 text-[#ef2cc1] flex items-center justify-center shrink-0">
+                            <Sparkles className="w-4 h-4" />
                           </div>
-                          <div className="text-[11px] text-[#6b7280] dark:text-[#a1a1aa] font-mono font-light mt-0.5">
-                            {enriching
-                              ? 'Analyzing company profiles and crafting tailored adjustments with AI...'
-                              : enriched && aiMeta?.source === 'live'
-                              ? `All ${csvResult.rows.length} companies classified via live ${aiMeta.provider.toUpperCase()} (${aiMeta.model}) with custom pitches.`
-                              : enriched && aiMeta?.source === 'heuristic'
-                              ? `All ${csvResult.rows.length} companies classified using high-reliability semantic heuristics${aiMeta.error ? ` (${aiMeta.error})` : ''}.`
-                              : 'Uses your AI API key to identify company types and adjust copy per contact.'}
+                          <div>
+                            <div className="text-xs font-semibold text-black dark:text-white flex flex-wrap items-center gap-2">
+                              <span className="font-mono uppercase tracking-wider">
+                                AI Classification & Copy Adaptation Engine
+                              </span>
+                              {enriched && (
+                                <span className="ai-chip animate-ios-swish">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[#ef2cc1] animate-ping" />
+                                  <span>
+                                    AI SYNTHESIS ACTIVE // {aiMeta?.provider ? aiMeta.provider.toUpperCase() : 'NEURAL ENGINE'} {aiMeta?.model ? `(${aiMeta.model.replace(/^meta-llama\//, '')})` : ''}
+                                  </span>
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-[#6b7280] dark:text-[#959494] font-mono mt-0.5">
+                              {enriching
+                                ? 'Neural reasoning in progress: deducing business models, operational friction, and bespoke angles...'
+                                : enriched
+                                ? `All ${csvResult.rows.length} businesses enriched with precision company types and bespoke outreach angles.`
+                                : 'Uses AI reasoning to deduce exact business verticals, friction points, and bespoke value propositions per row.'}
+                            </div>
                           </div>
                         </div>
+
+                        <button
+                          type="button"
+                          onClick={handleEnrichWithAi}
+                          disabled={enriching}
+                          className="mono-btn bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 px-4 py-2 rounded-[4px] text-xs font-semibold flex items-center justify-center space-x-1.5 shadow-sm transition active:scale-95 disabled:opacity-50 shrink-0 self-start sm:self-auto"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${enriching ? 'animate-spin' : ''}`} />
+                          <span>{enriching ? 'SYNTHESIZING...' : enriched ? 'RE-SYNTHESIZE WITH AI' : 'ENRICH ALL WITH AI'}</span>
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={handleEnrichWithAi}
-                        disabled={enriching}
-                        className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-4 py-2 rounded-full text-xs font-normal flex items-center justify-center space-x-1.5 shadow-sm transition active:scale-95 disabled:opacity-50 shrink-0 self-start sm:self-auto"
-                      >
-                        <RefreshCw className={`w-3.5 h-3.5 ${enriching ? 'animate-spin' : ''}`} />
-                        <span>{enriching ? 'ANALYZING...' : enriched ? 'RE-ANALYZE WITH AI' : 'ENRICH ALL WITH AI'}</span>
-                      </button>
                     </div>
 
                     {/* Mapping Selectors */}
@@ -476,15 +437,15 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                         { key: 'website', label: 'Website URL' },
                         { key: 'city', label: 'City / Location' },
                       ].map((field) => (
-                        <div key={field.key} className="p-3 bg-[#f8fafc] dark:bg-[#18181b] rounded-xl border border-[#e5e7eb] dark:border-[#27272a]">
-                          <label className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal block mb-1">
+                        <div key={field.key} className="p-3 bg-[#f8fafc] dark:bg-[#313641]/20 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08]">
+                          <label className="mono-eyebrow text-[#6b7280] dark:text-[#959494] block mb-1">
                             {field.label}
                           </label>
                           <div className="relative">
                             <select
                               value={(mapping as any)[field.key] || ''}
                               onChange={(e) => setMapping({ ...mapping, [field.key]: e.target.value || null })}
-                              className="appearance-none w-full text-xs font-mono bg-white dark:bg-[#121217] border border-[#e5e7eb] dark:border-[#27272a] rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-[#f43f5e] text-[#111827] dark:text-white cursor-pointer"
+                              className="appearance-none w-full text-xs font-mono bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[3px] pl-2.5 pr-7 py-1.5 focus:outline-none focus:border-black dark:focus:border-white text-black dark:text-white cursor-pointer"
                             >
                               <option value="">(None / Skip)</option>
                               {csvResult.headers.map((h) => (
@@ -493,7 +454,7 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                                 </option>
                               ))}
                             </select>
-                            <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none" />
+                            <ChevronDown className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-[#959494] pointer-events-none" />
                           </div>
                         </div>
                       ))}
@@ -501,33 +462,34 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
 
                     {/* Preview Table */}
                     <div>
-                      <h3 className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal mb-2">
+                      <h3 className="mono-eyebrow text-[#6b7280] dark:text-[#959494] mb-2 font-semibold">
                         FIRST 4 IMPORTED CANDIDATES WITH AI CLASSIFICATION
                       </h3>
-                      <div className="border border-[#e5e7eb] dark:border-[#27272a] rounded-xl overflow-hidden overflow-x-auto">
+                      <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] overflow-hidden overflow-x-auto">
                         <table className="w-full text-left text-xs font-mono">
-                          <thead className="bg-[#f8fafc] dark:bg-[#18181b] border-b border-[#e5e7eb] dark:border-[#27272a] text-[#4b5563] dark:text-[#a1a1aa]">
+                          <thead className="bg-[#f8fafc] dark:bg-[#313641]/30 border-b border-[#ebebeb] dark:border-white/[0.08] text-[#959494]">
                             <tr>
-                              <th className="py-2.5 px-3 font-normal">#</th>
-                              <th className="py-2.5 px-3 font-normal text-[#f43f5e]">AI Identified Type</th>
+                              <th className="py-2 px-3">#</th>
+                              <th className="py-2 px-3 text-[#ef2cc1]">AI IDENTIFIED TYPE</th>
                               {csvResult.headers.map((h) => (
-                                <th key={h} className="py-2.5 px-3 font-normal">
+                                <th key={h} className="py-2 px-3">
                                   {h}
                                 </th>
                               ))}
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-[#f3f4f6] dark:divide-[#27272a]">
+                          <tbody className="divide-y divide-[#ebebeb] dark:divide-white/[0.06]">
                             {csvResult.rows.slice(0, 4).map((row, idx) => (
-                              <tr key={idx} className="hover:bg-[#f8fafc] dark:hover:bg-[#18181b]">
-                                <td className="py-2.5 px-3 text-[#9ca3af]">{idx + 1}</td>
+                              <tr key={idx} className="hover:bg-[#f8fafc] dark:hover:bg-white/[0.02]">
+                                <td className="py-2.5 px-3 text-[#959494]">{idx + 1}</td>
                                 <td className="py-2.5 px-3">
-                                  <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-rose-50 dark:bg-rose-950/50 text-[#f43f5e] border border-rose-200 dark:border-rose-900 font-normal">
-                                    {row.ai_company_type || row.company_type || 'Classifying...'}
+                                  <span className="ai-chip animate-ios-swish text-[10px]">
+                                    <Sparkles className="w-2.5 h-2.5 text-[#ef2cc1]" />
+                                    <span>{row.ai_company_type || row.company_type || 'AI Synthesizing...'}</span>
                                   </span>
                                 </td>
                                 {csvResult.headers.map((h) => (
-                                  <td key={h} className="py-2.5 px-3 text-[#111827] dark:text-white max-w-xs truncate">
+                                  <td key={h} className="py-2.5 px-3 text-black dark:text-white max-w-xs truncate">
                                     {row[h] || '—'}
                                   </td>
                                 ))}
@@ -547,64 +509,67 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
         {/* STEP 2: Email Template Composer & Dynamic Variables */}
         {step === 'template' && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               {/* Left Column: Editor & Variables Toolbar */}
-              <div className="lg:col-span-7 bg-white dark:bg-[#121217] border border-[#e5e7eb] dark:border-[#27272a] rounded-2xl p-6 shadow-sm space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-[#f3f4f6] dark:border-[#27272a]">
+              <div className="lg:col-span-7 bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-6 space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-[#ebebeb] dark:border-white/[0.08]">
                   <div>
-                    <h2 className="text-xl font-light text-[#111827] dark:text-white">Compose Outreach Template</h2>
-                    <p className="text-xs text-[#6b7280] dark:text-[#a1a1aa] font-mono mt-0.5 font-light">
+                    <h2 className="text-base font-semibold text-black dark:text-white">
+                      Compose Outreach Template
+                    </h2>
+                    <p className="text-xs text-[#959494] font-mono mt-0.5">
                       Click dynamic variable chips to insert personalized tokens into your message.
                     </p>
                   </div>
                   <button
                     onClick={() => setStep('upload')}
-                    className="mono-btn text-xs text-[#6b7280] hover:text-[#111827] dark:hover:text-white font-normal"
+                    className="mono-btn text-xs text-[#6b7280] dark:text-[#959494] hover:text-black dark:hover:text-white"
                   >
                     ← Back to CSV
                   </button>
                 </div>
 
-                {/* AI Variable Insertion Pills */}
-                <div className="p-4 bg-gradient-to-r from-rose-500/10 via-amber-500/5 to-transparent border border-rose-500/25 rounded-xl space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-[#f43f5e]" />
-                      <span className="mono-eyebrow text-[#111827] dark:text-white font-medium text-xs">
-                        AI COMPANY-SPECIFIC ADJUSTMENT TOKENS
+                {/* AI Variable Insertion Chips with iOS Swish & Distinct Glass Styling */}
+                <div className="ai-glass-card overflow-hidden">
+                  <div className="ai-laser-top w-full" />
+                  <div className="p-3.5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-1.5 text-black dark:text-white font-semibold text-xs font-mono">
+                        <Sparkles className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                        <span>AI ADAPTATION TOKENS</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-[#959494]">
+                        Computed dynamically per company
                       </span>
                     </div>
-                    <span className="text-[10px] font-mono text-[#6b7280] dark:text-[#a1a1aa]">
-                      Analyzes & customizes per company
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { token: 'company_type', label: '+{company_type}', desc: 'Identified Business Type' },
-                      { token: 'personalized_pitch', label: '+{personalized_pitch}', desc: 'Tailored Industry Pitch' },
-                      { token: 'pain_point', label: '+{pain_point}', desc: 'Industry Specific Bottleneck' },
-                      { token: 'value_prop', label: '+{value_prop}', desc: 'Tailored Solution' },
-                      { token: 'industry', label: '+{industry}', desc: 'High-Level Industry' },
-                    ].map((v) => (
-                      <button
-                        key={v.token}
-                        type="button"
-                        onClick={() => handleInsertVariable(v.token)}
-                        className="mono-btn text-xs px-3 py-1.5 rounded-full bg-white dark:bg-[#12141c] border border-rose-200 dark:border-rose-900/60 text-[#f43f5e] hover:bg-[#f43f5e] hover:text-white transition font-normal shadow-sm flex items-center space-x-1"
-                        title={v.desc}
-                      >
-                        <span>{v.label}</span>
-                      </button>
-                    ))}
+
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { token: 'company_type', label: '+{company_type}', desc: 'Identified Business Type' },
+                        { token: 'personalized_pitch', label: '+{personalized_pitch}', desc: 'Tailored Industry Pitch' },
+                        { token: 'pain_point', label: '+{pain_point}', desc: 'Industry Specific Bottleneck' },
+                        { token: 'value_prop', label: '+{value_prop}', desc: 'Tailored Solution' },
+                        { token: 'industry', label: '+{industry}', desc: 'High-Level Industry' },
+                      ].map((v) => (
+                        <button
+                          key={v.token}
+                          type="button"
+                          onClick={() => handleInsertVariable(v.token)}
+                          className="ai-chip animate-ios-swish hover:scale-105 active:scale-95 transition"
+                          title={v.desc}
+                        >
+                          <Sparkles className="w-2.5 h-2.5 text-[#ef2cc1]" />
+                          <span>{v.label}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 {/* Standard Variable Insertion Pills */}
                 <div>
-                  <div className="flex items-center space-x-1.5 mb-2">
-                    <span className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal">
-                      STANDARD CSV CONTACT VARIABLES
-                    </span>
+                  <div className="mono-eyebrow text-[#6b7280] dark:text-[#959494] mb-2 font-semibold">
+                    STANDARD CSV CONTACT VARIABLES
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {['first_name', 'company_name', 'website', 'city', 'email'].map((v) => (
@@ -612,50 +577,17 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                         key={v}
                         type="button"
                         onClick={() => handleInsertVariable(v)}
-                        className="mono-btn text-xs px-3 py-1 rounded-full bg-[#f8fafc] dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] text-[#111827] dark:text-white hover:border-[#f43f5e] hover:text-[#f43f5e] transition font-normal"
+                        className="mono-btn text-xs px-2.5 py-1 rounded-[3px] bg-[#f8fafc] dark:bg-[#313641]/30 border border-[#ebebeb] dark:border-white/[0.08] text-black dark:text-white hover:border-black dark:hover:border-white transition"
                       >
                         +{`{${v}}`}
                       </button>
                     ))}
-
-                    {/* Any custom headers detected in CSV */}
-                    {csvResult?.headers
-                      .filter(
-                        (h) =>
-                          ![
-                            'first_name',
-                            'company_name',
-                            'website',
-                            'city',
-                            'email',
-                            'company_type',
-                            'ai_company_type',
-                            'personalized_pitch',
-                            'ai_personalized_pitch',
-                            'pain_point',
-                            'ai_pain_point',
-                            'value_prop',
-                            'ai_value_prop',
-                            'industry',
-                            'ai_industry',
-                          ].includes(h.toLowerCase())
-                      )
-                      .map((customHeader) => (
-                        <button
-                          key={customHeader}
-                          type="button"
-                          onClick={() => handleInsertVariable(customHeader)}
-                          className="mono-btn text-xs px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-[#f43f5e] hover:text-[#f43f5e] transition font-normal"
-                        >
-                          +{`{${customHeader}}`}
-                        </button>
-                      ))}
                   </div>
                 </div>
 
                 {/* Subject Line Input */}
                 <div>
-                  <label className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal block mb-1.5">
+                  <label className="mono-eyebrow text-[#6b7280] dark:text-[#959494] block mb-1">
                     SUBJECT LINE
                   </label>
                   <input
@@ -663,13 +595,13 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     placeholder="e.g. Quick question regarding {company_name}"
-                    className="w-full text-sm font-light border border-[#e5e7eb] dark:border-[#27272a] bg-white dark:bg-[#18181b] rounded-xl p-3 focus:outline-none focus:border-[#f43f5e] focus:ring-1 focus:ring-rose-500/20 text-[#111827] dark:text-white"
+                    className="w-full text-xs font-mono border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-2.5 text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
                   />
                 </div>
 
                 {/* Body Textarea */}
                 <div>
-                  <label className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal block mb-1.5">
+                  <label className="mono-eyebrow text-[#6b7280] dark:text-[#959494] block mb-1">
                     EMAIL BODY TEMPLATE
                   </label>
                   <textarea
@@ -678,29 +610,29 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                     value={bodyText}
                     onChange={(e) => setBodyText(e.target.value)}
                     placeholder="Hi {first_name},\n\nWrite your message here..."
-                    className="w-full text-xs font-mono font-light leading-relaxed border border-[#e5e7eb] dark:border-[#27272a] bg-white dark:bg-[#18181b] rounded-xl p-4 focus:outline-none focus:border-[#f43f5e] focus:ring-1 focus:ring-rose-500/20 text-[#111827] dark:text-white"
+                    className="w-full text-xs font-mono leading-relaxed border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-3 text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
                   />
                 </div>
 
                 {/* Test error alert */}
                 {testError && (
-                  <div className="p-3.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200 text-xs font-mono flex items-center space-x-2">
-                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <div className="p-3 rounded-[4px] border border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-mono flex items-center space-x-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
                     <span>{testError}</span>
                   </div>
                 )}
 
                 {/* Send Test to Myself Button */}
-                <div className="pt-4 border-t border-[#f3f4f6] dark:border-[#27272a] flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-xs font-mono text-[#6b7280] dark:text-[#a1a1aa] flex items-center space-x-1.5 font-light">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <div className="pt-3 border-t border-[#ebebeb] dark:border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-xs font-mono text-[#6b7280] dark:text-[#959494] flex items-center space-x-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
                     <span>Safety Gate: Tests must be verified by you first</span>
                   </div>
 
                   <button
                     onClick={handleSendTestToSelf}
                     disabled={testSending || !subject || !bodyText}
-                    className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-6 py-3 rounded-full text-xs font-normal flex items-center space-x-2 shadow-sm transition active:scale-95 disabled:opacity-50"
+                    className="mono-btn bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 px-5 py-2.5 rounded-[4px] text-xs font-semibold flex items-center space-x-2 shadow-sm transition active:scale-95 disabled:opacity-50"
                   >
                     {testSending ? (
                       <>
@@ -718,11 +650,11 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
               </div>
 
               {/* Right Column: Live Variable Preview Sidebar */}
-              <div className="lg:col-span-5 bg-[#f8fafc] dark:bg-[#121217] border border-[#e5e7eb] dark:border-[#27272a] rounded-2xl p-6 shadow-sm space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-[#e5e7eb] dark:border-[#27272a]">
+              <div className="lg:col-span-5 bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-5 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-[#ebebeb] dark:border-white/[0.08]">
                   <div className="flex items-center space-x-2">
-                    <Eye className="w-4 h-4 text-[#f43f5e]" />
-                    <span className="mono-eyebrow text-[#111827] dark:text-white font-normal">
+                    <Eye className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                    <span className="mono-eyebrow text-black dark:text-white font-semibold">
                       LIVE RENDERED PREVIEW
                     </span>
                   </div>
@@ -733,7 +665,7 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                       <select
                         value={previewContactIdx}
                         onChange={(e) => setPreviewContactIdx(Number(e.target.value))}
-                        className="appearance-none text-[11px] font-mono border border-[#e5e7eb] dark:border-white/[0.08] bg-white dark:bg-[#101218] rounded-full pl-3.5 pr-8 py-1.5 text-[#111827] dark:text-white focus:outline-none focus:border-[#f43f5e] cursor-pointer shadow-sm hover:border-[#cbd5e1] dark:hover:border-white/[0.16] transition"
+                        className="appearance-none text-[11px] font-mono border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[3px] pl-2.5 pr-7 py-1 text-black dark:text-white focus:outline-none focus:border-black cursor-pointer"
                       >
                         {csvResult.rows.slice(0, 20).map((r, i) => (
                           <option key={i} value={i}>
@@ -741,66 +673,66 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className="w-3.5 h-3.5 absolute right-3 text-[#9ca3af] pointer-events-none" />
+                      <ChevronDown className="w-3 h-3 absolute right-2 text-[#959494] pointer-events-none" />
                     </div>
                   )}
                 </div>
 
                 {/* AI Identified Business Card */}
-                <div className="p-3.5 bg-gradient-to-r from-rose-500/10 via-amber-500/5 to-transparent border border-rose-500/25 rounded-xl space-y-2 shadow-sm">
+                <div className="ai-glass-card p-3.5 space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-1.5 text-[#f43f5e] text-xs font-mono font-medium">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>AI IDENTIFIED PROFILE</span>
+                    <div className="flex items-center space-x-1.5 text-black dark:text-white text-xs font-mono font-semibold">
+                      <Sparkles className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                      <span>AI SYNTHESIZED PROFILE</span>
                     </div>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white dark:bg-[#101218] text-[#f43f5e] border border-rose-200 dark:border-rose-900/60 font-normal">
+                    <span className="ai-chip text-[9px]">
                       {sampleProspect.ai_industry || sampleProspect.industry || 'Commercial Services'}
                     </span>
                   </div>
-                  <div className="text-sm font-normal text-[#111827] dark:text-white">
-                    {sampleProspect.ai_company_type || sampleProspect.company_type || 'Artisan Bakery & Patisserie'}
+                  <div className="text-xs font-semibold text-black dark:text-white font-mono">
+                    {sampleProspect.ai_company_type || sampleProspect.company_type || 'Modern Enterprise'}
                   </div>
                   {sampleProspect.ai_pain_point && (
-                    <div className="text-[11px] font-mono text-[#6b7280] dark:text-[#a1a1aa] font-light leading-snug">
-                      Detected Bottleneck: <span className="text-[#111827] dark:text-zinc-200">{sampleProspect.ai_pain_point}</span>
+                    <div className="text-[11px] font-mono text-[#6b7280] dark:text-[#959494] leading-snug">
+                      Bottleneck: <span className="text-black dark:text-white">{sampleProspect.ai_pain_point}</span>
                     </div>
                   )}
                   {sampleProspect.ai_personalized_pitch && (
-                    <div className="text-[11px] font-mono text-[#6b7280] dark:text-[#a1a1aa] font-light leading-snug pt-1.5 border-t border-rose-500/15">
-                      Personalized Angle: <span className="text-[#111827] dark:text-zinc-200">{sampleProspect.ai_personalized_pitch}</span>
+                    <div className="text-[11px] font-mono text-[#6b7280] dark:text-[#959494] leading-snug pt-1.5 border-t border-[#ebebeb] dark:border-white/[0.06]">
+                      Angle: <span className="text-black dark:text-white">{sampleProspect.ai_personalized_pitch}</span>
                     </div>
                   )}
                 </div>
 
-                <div className="bg-white dark:bg-[#18181b] rounded-xl border border-[#e5e7eb] dark:border-[#27272a] p-4 text-xs font-mono space-y-3">
+                <div className="bg-[#f8fafc] dark:bg-[#313641]/20 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] p-3.5 text-xs font-mono space-y-2.5">
                   <div>
-                    <span className="text-[#9ca3af] block font-light text-[10px]">TO RECIPIENT:</span>
-                    <span className="text-[#111827] dark:text-white font-normal">
+                    <span className="text-[#959494] block text-[10px] font-semibold">TO RECIPIENT:</span>
+                    <span className="text-black dark:text-white">
                       {sampleProspect[mapping.email || 'email'] || 'recipient@domain.com'}
                     </span>
                   </div>
 
-                  <div className="pt-2 border-t border-[#f3f4f6] dark:border-[#27272a]">
-                    <span className="text-[#9ca3af] block font-light text-[10px]">SUBJECT:</span>
-                    <span className="text-[#111827] dark:text-white font-medium">{renderedSubject}</span>
+                  <div className="pt-2 border-t border-[#ebebeb] dark:border-white/[0.06]">
+                    <span className="text-[#959494] block text-[10px] font-semibold">SUBJECT:</span>
+                    <span className="text-black dark:text-white font-medium">{renderedSubject}</span>
                   </div>
 
-                  <div className="pt-2 border-t border-[#f3f4f6] dark:border-[#27272a]">
-                    <span className="text-[#9ca3af] block font-light text-[10px] mb-1">BODY:</span>
-                    <div className="whitespace-pre-line leading-relaxed text-[#374151] dark:text-[#d4d4d8] font-light">
+                  <div className="pt-2 border-t border-[#ebebeb] dark:border-white/[0.06]">
+                    <span className="text-[#959494] block text-[10px] font-semibold mb-1">BODY:</span>
+                    <div className="whitespace-pre-line leading-relaxed text-[#374151] dark:text-[#d4d4d8]">
                       {renderedBody}
                     </div>
                   </div>
                 </div>
 
-                <div className="p-3 bg-white dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] rounded-xl text-[11px] font-mono text-[#6b7280] dark:text-[#a1a1aa] space-y-1">
-                  <div className="flex items-center space-x-1.5 text-zinc-900 dark:text-white font-medium">
+                <div className="p-3 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] text-[11px] font-mono text-[#6b7280] dark:text-[#959494] space-y-1">
+                  <div className="flex items-center space-x-1.5 text-black dark:text-white font-semibold">
                     <Info className="w-3.5 h-3.5" />
-                    <span>Test Destination</span>
+                    <span>Pre-Flight Destination</span>
                   </div>
-                  <p className="font-light">
-                    Test dispatch will be delivered to your account email:{' '}
-                    <strong className="text-[#f43f5e]">{operatorEmail || 'your logged-in email'}</strong>.
+                  <p>
+                    Test email will be sent to:{' '}
+                    <strong className="text-black dark:text-white">{operatorEmail || 'your logged-in email'}</strong>.
                   </p>
                 </div>
               </div>
@@ -811,42 +743,42 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
         {/* STEP 3: Test Verification Review */}
         {step === 'test_sent' && (
           <div className="max-w-3xl mx-auto space-y-6">
-            <div className="border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30 rounded-2xl p-6 sm:p-8 shadow-sm">
-              <div className="flex items-start space-x-4 mb-6">
-                <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
-                  <CheckCircle2 className="w-6 h-6" />
+            <div className="border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-6 space-y-5">
+              <div className="flex items-start space-x-3.5 mb-4">
+                <div className="w-8 h-8 rounded-[4px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-light text-emerald-950 dark:text-emerald-100">
+                  <h2 className="text-base font-semibold text-black dark:text-white">
                     Test Email Dispatched to You!
                   </h2>
-                  <p className="text-xs text-emerald-800 dark:text-emerald-300 font-mono mt-1 font-light">
-                    Sent to: <strong className="font-semibold">{testResult?.sentTo || operatorEmail}</strong>
+                  <p className="text-xs text-[#959494] font-mono mt-0.5">
+                    Sent to: <strong className="text-black dark:text-white">{testResult?.sentTo || operatorEmail}</strong>
                   </p>
-                  <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-2 font-sans leading-relaxed font-light">
+                  <p className="text-xs text-[#6b7280] dark:text-[#959494] mt-2 leading-relaxed">
                     Please open your inbox now and double-check variable replacements, line spacing, and tone. Once
                     you're satisfied, click below to approve and broadcast to all{' '}
-                    <strong>{csvResult?.totalRows}</strong> recipients in your CSV.
+                    <strong className="text-black dark:text-white">{csvResult?.totalRows}</strong> recipients in your CSV.
                   </p>
                 </div>
               </div>
 
               {/* Exact Preview of what was sent */}
-              <div className="bg-white dark:bg-[#121217] rounded-xl border border-emerald-200 dark:border-emerald-900/60 p-4 text-xs font-mono space-y-3 mb-6">
-                <div className="text-[11px] font-semibold text-emerald-900 dark:text-emerald-300">
+              <div className="bg-[#f8fafc] dark:bg-[#313641]/20 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] p-4 text-xs font-mono space-y-2.5 mb-6">
+                <div className="text-[11px] font-semibold text-black dark:text-white">
                   SUBJECT: {testResult?.preview?.subject || renderedSubject}
                 </div>
-                <div className="pt-2 border-t border-emerald-100 dark:border-emerald-950 text-[#374151] dark:text-[#d4d4d8] whitespace-pre-line leading-relaxed font-light">
+                <div className="pt-2 border-t border-[#ebebeb] dark:border-white/[0.06] text-[#374151] dark:text-[#d4d4d8] whitespace-pre-line leading-relaxed">
                   {testResult?.preview?.bodyText || renderedBody}
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-emerald-200 dark:border-emerald-900/50">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3 border-t border-[#ebebeb] dark:border-white/[0.08]">
                 <button
                   type="button"
                   onClick={() => setStep('template')}
-                  className="mono-btn text-xs text-[#4b5563] dark:text-[#a1a1aa] hover:text-[#111827] dark:hover:text-white px-4 py-2 rounded-full font-normal"
+                  className="mono-btn text-xs text-[#6b7280] dark:text-[#959494] hover:text-black dark:hover:text-white px-3 py-1.5 rounded-[4px]"
                 >
                   ← Make Adjustments to Draft
                 </button>
@@ -855,17 +787,17 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                   type="button"
                   onClick={handleBulkDispatch}
                   disabled={dispatching}
-                  className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-6 py-3 rounded-full text-xs font-normal flex items-center space-x-2 shadow-sm transition active:scale-95 disabled:opacity-50"
+                  className="mono-btn bg-black dark:bg-white hover:bg-neutral-800 dark:hover:bg-neutral-200 text-white dark:text-black px-5 py-2.5 rounded-[4px] text-xs font-semibold flex items-center space-x-2 shadow-sm transition active:scale-95 disabled:opacity-50"
                 >
                   {dispatching ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>DISPATCHING TO ALL RECIPIENTS...</span>
+                      <span>DISPATCHING OUTREACH...</span>
                     </>
                   ) : (
                     <>
                       <Send className="w-3.5 h-3.5" />
-                      <span>I APPROVE — DISPATCH TO ALL {csvResult?.totalRows} RECIPIENTS →</span>
+                      <span>APPROVE & DISPATCH TO ALL ({csvResult?.totalRows})</span>
                     </>
                   )}
                 </button>
@@ -874,101 +806,64 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
           </div>
         )}
 
-        {/* STEP 4: Dispatched Summary & Ledger */}
+        {/* STEP 4: Dispatched Summary */}
         {step === 'dispatched' && (
           <div className="max-w-3xl mx-auto space-y-6">
-            <div className="bg-white dark:bg-[#121217] border border-[#e5e7eb] dark:border-[#27272a] rounded-2xl p-6 sm:p-8 shadow-sm">
-              <div className="text-center pb-6 border-b border-[#f3f4f6] dark:border-[#27272a] mb-6">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 flex items-center justify-center mx-auto mb-3">
-                  <Check className="w-6 h-6" />
+            <div className="border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-6 space-y-5">
+              <div className="flex items-start space-x-3.5">
+                <div className="w-8 h-8 rounded-[4px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5" />
                 </div>
-                <h2 className="text-2xl font-light text-[#111827] dark:text-white">Batch Outreach Completed</h2>
-                <p className="text-xs text-[#6b7280] dark:text-[#a1a1aa] font-mono mt-1 font-light">
-                  Your personalized emails have been processed through the safety mailer.
-                </p>
+                <div>
+                  <h2 className="text-base font-semibold text-black dark:text-white">
+                    Outreach Dispatch Completed!
+                  </h2>
+                  <p className="text-xs text-[#959494] font-mono mt-0.5">
+                    Your campaign batch has been successfully queued and processed.
+                  </p>
+                </div>
               </div>
 
-              {/* Metric Badges */}
-              <div className="grid grid-cols-3 gap-4 mb-6 text-center font-mono">
-                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl">
-                  <div className="text-2xl font-light text-emerald-700 dark:text-emerald-300">
+              <div className="grid grid-cols-3 gap-3 text-xs font-mono">
+                <div className="p-3 rounded-[4px] bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08]">
+                  <span className="text-[#959494] block text-[10px]">TOTAL TARGETS</span>
+                  <span className="text-base font-semibold text-black dark:text-white">
+                    {dispatchSummary?.total || 0}
+                  </span>
+                </div>
+                <div className="p-3 rounded-[4px] bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08]">
+                  <span className="text-[#959494] block text-[10px]">DISPATCHED</span>
+                  <span className="text-base font-semibold text-emerald-600 dark:text-emerald-400">
                     {dispatchSummary?.sent || 0}
-                  </div>
-                  <div className="text-[10px] uppercase text-emerald-800 dark:text-emerald-400 mt-1">Delivered</div>
+                  </span>
                 </div>
-
-                <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl">
-                  <div className="text-2xl font-light text-amber-700 dark:text-amber-300">
-                    {dispatchSummary?.suppressed || 0}
-                  </div>
-                  <div className="text-[10px] uppercase text-amber-800 dark:text-amber-400 mt-1">Suppressed</div>
-                </div>
-
-                <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl">
-                  <div className="text-2xl font-light text-rose-700 dark:text-rose-300">
-                    {dispatchSummary?.failed || 0}
-                  </div>
-                  <div className="text-[10px] uppercase text-rose-800 dark:text-rose-400 mt-1">Failed</div>
+                <div className="p-3 rounded-[4px] bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08]">
+                  <span className="text-[#959494] block text-[10px]">SUPPRESSED / ERRORS</span>
+                  <span className="text-base font-semibold text-rose-600 dark:text-rose-400">
+                    {dispatchSummary?.suppressed || dispatchSummary?.errors || 0}
+                  </span>
                 </div>
               </div>
 
-              {/* Itemized Table */}
-              <div className="border border-[#e5e7eb] dark:border-[#27272a] rounded-xl overflow-hidden mb-6">
-                <table className="w-full text-left text-xs font-mono">
-                  <thead className="bg-[#f8fafc] dark:bg-[#18181b] border-b border-[#e5e7eb] dark:border-[#27272a] text-[#4b5563] dark:text-[#a1a1aa]">
-                    <tr>
-                      <th className="py-2.5 px-4 font-normal">RECIPIENT</th>
-                      <th className="py-2.5 px-4 font-normal text-[#f43f5e]">AI IDENTIFIED TYPE</th>
-                      <th className="py-2.5 px-4 font-normal">DISPATCH STATUS</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#f3f4f6] dark:divide-[#27272a]">
-                    {dispatchResults.map((r, i) => (
-                      <tr key={i}>
-                        <td className="py-2.5 px-4 text-[#111827] dark:text-white font-light">{r.email}</td>
-                        <td className="py-2.5 px-4">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-rose-50 dark:bg-rose-950/50 text-[#f43f5e] border border-rose-200 dark:border-rose-900 font-normal">
-                            {r.companyType || 'Classified'}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-4">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-normal ${
-                              r.status === 'sent'
-                                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
-                                : r.status === 'suppressed'
-                                ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
-                                : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300'
-                            }`}
-                          >
-                            {r.status.toUpperCase()}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t border-[#f3f4f6] dark:border-[#27272a]">
+              <div className="pt-3 border-t border-[#ebebeb] dark:border-white/[0.08] flex items-center justify-between">
                 <Link
-                  href="/campaigns"
-                  className="mono-btn text-xs text-[#6b7280] dark:text-[#a1a1aa] hover:text-[#111827] dark:hover:text-white font-normal"
+                  href="/outreach"
+                  className="mono-btn px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-[4px] text-xs font-semibold inline-flex items-center space-x-1.5"
                 >
-                  ← Return to Campaigns
+                  <span>VIEW OUTREACH LOGS</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
 
                 <button
                   type="button"
                   onClick={() => {
-                    setStep('upload');
-                    setFileName('');
                     setCsvResult(null);
-                    setDispatchSummary(null);
+                    setFileName(null);
+                    setStep('upload');
                   }}
-                  className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-5 py-2.5 rounded-full text-xs font-normal"
+                  className="mono-btn text-xs text-[#959494] hover:text-black dark:hover:text-white"
                 >
-                  Start New CSV Outreach
+                  Start Another CSV Import
                 </button>
               </div>
             </div>
