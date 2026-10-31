@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Logo from '@/components/Logo';
-import { LogOut, Plus, Moon, Sun } from 'lucide-react';
+import { LogOut, Plus, Moon, Sun, Activity } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 
 export default function NavBar() {
@@ -63,33 +63,36 @@ export default function NavBar() {
     (user?.email ? user.email.split('@')[0] : 'Operator');
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 dark:bg-[#090a0f]/85 backdrop-blur-md border-b border-[#e5e7eb] dark:border-white/[0.08] px-6 py-3 transition-colors duration-150">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Brand Logo & Clean Flat Navigation */}
-        <div className="flex items-center space-x-10">
-          <Logo height={28} showSubtitle={false} />
+    <header className="sticky top-0 z-50 bg-white/95 dark:bg-[#010120]/95 backdrop-blur-md border-b border-[#ebebeb] dark:border-white/[0.08] transition-colors duration-150">
+      {/* 2px Signature Together AI Brand Gradient Ribbon */}
+      <div className="brand-gradient-h w-full" />
 
-          {/* Clean Flat Navigation Links */}
-          <nav className="hidden md:flex items-center space-x-1.5">
+      <div className="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between">
+        {/* Brand Logo & Clean Monospace Navigation */}
+        <div className="flex items-center space-x-8">
+          <Logo height={26} showSubtitle={false} />
+
+          {/* Navigation Links with 4px border radius and mono caps */}
+          <nav className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`mono-btn text-xs px-3.5 py-1.5 rounded-full transition-all flex items-center space-x-1.5 ${
+                  className={`mono-btn text-[11px] px-3 py-1.5 rounded-[4px] transition-all flex items-center space-x-1.5 ${
                     isActive
-                      ? 'bg-[#f43f5e] text-white font-medium shadow-sm dark:shadow-[0_2px_10px_rgba(244,63,94,0.35),inset_0_1px_0_rgba(255,255,255,0.25)]'
-                      : 'text-[#4b5563] dark:text-[#a1a1aa] hover:text-[#111827] dark:hover:text-white hover:bg-[#f3f4f6] dark:hover:bg-white/[0.06]'
+                      ? 'bg-black dark:bg-white text-white dark:text-black font-semibold'
+                      : 'text-[#6b7280] dark:text-[#959494] hover:text-[#000000] dark:hover:text-white hover:bg-[#f3f4f6] dark:hover:bg-white/[0.06]'
                   }`}
                 >
                   <span>{item.label}</span>
                   {item.badge !== undefined && (
                     <span
-                      className={`ml-1 px-1.5 py-0.2 text-[10px] font-medium rounded-full ${
+                      className={`ml-1 px-1.5 py-0.5 text-[9px] font-mono font-bold rounded-[3px] ${
                         isActive
-                          ? 'bg-white text-[#f43f5e]'
-                          : 'bg-[#f43f5e] text-white'
+                          ? 'bg-[#ef2cc1] text-white'
+                          : 'bg-black dark:bg-white text-white dark:text-black'
                       }`}
                     >
                       {item.badge}
@@ -101,46 +104,53 @@ export default function NavBar() {
           </nav>
         </div>
 
-        {/* Right Actions: Dark Mode Toggle, User Name, New Campaign */}
+        {/* Right Actions: Live Status, Dark Mode Toggle, User Name, New Campaign */}
         <div className="flex items-center space-x-3">
+          {/* Engine Status Indicator */}
+          <div className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/40 text-[10px] font-mono text-[#6b7280] dark:text-[#959494]">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="uppercase tracking-wider">ENGINE LIVE</span>
+          </div>
+
           {/* Dark / Light Mode Toggle Button */}
           <button
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="p-1.5 rounded-full text-[#6b7280] dark:text-[#a1a1aa] hover:text-[#111827] dark:hover:text-white hover:bg-[#f3f4f6] dark:hover:bg-white/[0.08] transition"
+            className="p-1.5 rounded-[4px] text-[#6b7280] dark:text-[#959494] hover:text-[#000000] dark:hover:text-white hover:bg-[#f3f4f6] dark:hover:bg-white/[0.08] transition border border-transparent hover:border-[#ebebeb] dark:hover:border-white/[0.08]"
             aria-label="Toggle theme"
           >
             {theme === 'dark' ? (
-              <Sun className="w-4 h-4 text-amber-400" />
+              <Sun className="w-3.5 h-3.5 text-amber-400" />
             ) : (
-              <Moon className="w-4 h-4" />
+              <Moon className="w-3.5 h-3.5 text-[#374151]" />
             )}
           </button>
 
+          {/* Primary CTA: Solid black pill in 4px radius as per DESIGN.md */}
           <Link
             href="/campaigns"
-            className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-4 py-1.5 rounded-full text-xs font-medium flex items-center space-x-1.5 shadow-sm transition active:scale-95"
+            className="mono-btn bg-black dark:bg-white hover:bg-neutral-800 dark:hover:bg-neutral-200 text-white dark:text-black px-3.5 py-1.5 rounded-[4px] text-[11px] font-semibold flex items-center space-x-1.5 transition active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>NEW CAMPAIGN</span>
           </Link>
 
           {user && (
-            <div className="flex items-center space-x-2.5 pl-3 border-l border-[#e5e7eb] dark:border-white/[0.08]">
-              {/* Initials circle */}
-              <div className="w-6 h-6 rounded-full bg-[#f43f5e]/10 dark:bg-[#f43f5e]/20 border border-[#f43f5e]/20 dark:border-[#f43f5e]/40 text-[#f43f5e] flex items-center justify-center text-[10px] font-mono font-medium">
+            <div className="flex items-center space-x-2 pl-3 border-l border-[#ebebeb] dark:border-white/[0.08]">
+              {/* User Avatar with 4px radius */}
+              <div className="w-6 h-6 rounded-[4px] bg-[#313641] text-white flex items-center justify-center text-[10px] font-mono font-medium">
                 {displayName.charAt(0).toUpperCase()}
               </div>
 
               {/* User Name */}
-              <span className="mono-eyebrow text-[11px] text-[#374151] dark:text-[#e4e4e7] max-w-[130px] truncate hidden lg:inline font-normal capitalize">
+              <span className="mono-eyebrow text-[11px] text-[#374151] dark:text-[#e4e4e7] max-w-[120px] truncate hidden lg:inline font-normal capitalize">
                 {displayName}
               </span>
 
               <button
                 onClick={handleSignOut}
                 title="Sign out"
-                className="p-1.5 rounded-full text-[#9ca3af] hover:text-[#111827] dark:hover:text-white hover:bg-[#f3f4f6] dark:hover:bg-white/[0.08] transition"
+                className="p-1.5 rounded-[4px] text-[#9ca3af] hover:text-[#000000] dark:hover:text-white hover:bg-[#f3f4f6] dark:hover:bg-white/[0.08] transition"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>

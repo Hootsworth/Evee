@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Target, Search, CheckCircle, Mail, AlertTriangle, ArrowRight, ShieldCheck, Play, Sparkles } from 'lucide-react';
+import { Target, Search, CheckCircle, Mail, AlertTriangle, ArrowRight, ShieldCheck, Play, Sparkles, RefreshCw } from 'lucide-react';
 
 export default function DashboardPage() {
   const [data, setData] = useState<any>(null);
@@ -28,7 +28,7 @@ export default function DashboardPage() {
 
   const triggerJobProcessing = async () => {
     setCronRunning(true);
-    setCronStatus('Processing queue...');
+    setCronStatus('Processing background queue...');
     try {
       const res = await fetch('/api/cron/process-jobs', { method: 'POST' });
       const json = await res.json();
@@ -58,34 +58,46 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex flex-col bg-white dark:bg-[#090a0f] min-h-screen transition-colors duration-150">
-      {/* Top Hero Band: Subtle Ambient Depth in Dark Mode */}
-      <section className="bg-[#f8fafc] dark:bg-gradient-to-b dark:from-[#0e1017] dark:via-[#0c0d14] dark:to-[#090a0f] text-[#111827] dark:text-[#f4f4f5] pt-12 pb-14 px-6 border-b border-[#e5e7eb] dark:border-white/[0.07]">
+    <div className="flex flex-col bg-white dark:bg-[#010120] text-[#000000] dark:text-[#ffffff] min-h-screen transition-colors duration-150">
+      {/* 2px Signature Together AI Brand Gradient Ribbon */}
+      <div className="brand-gradient-h w-full" />
+
+      {/* Hero Band: Canvas Dark #010120 */}
+      <section className="bg-[#010120] text-white pt-10 pb-12 px-6 border-b border-white/[0.08]">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
             <div className="max-w-2xl">
-              <h1 className="text-3xl md:text-5xl font-light tracking-tight text-[#111827] dark:text-white mb-3 leading-[1.15]">
+              <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
+                <span>SYSTEM OVERVIEW // LIVE PIPELINE</span>
+                <span>•</span>
+                <span className="text-[#ef2cc1]">AUTONOMOUS ENGINE</span>
+              </div>
+              <h1 className="text-3xl md:text-5xl font-medium tracking-tight text-white mb-2 leading-[1.12]">
                 Evidence-backed outreach for modern small businesses.
               </h1>
-              <p className="text-[#6b7280] dark:text-[#a1a1aa] text-base leading-relaxed font-light">
+              <p className="text-[#959494] text-xs md:text-sm leading-relaxed font-normal">
                 Evee inspects public business websites, discovers concrete automation opportunities, scores qualification deterministically, and prepares personalized drafts requiring explicit operator approval.
               </p>
             </div>
 
-            {/* Quick Action Buttons */}
-            <div className="flex flex-wrap items-center gap-3">
+            {/* Quick Action Buttons: Canonical 4px Radius */}
+            <div className="flex flex-wrap items-center gap-2.5">
               <button
                 onClick={triggerJobProcessing}
                 disabled={cronRunning}
-                className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-5 py-2.5 rounded-full text-xs font-normal transition flex items-center space-x-2 shadow-sm dark:shadow-[0_2px_14px_rgba(244,63,94,0.35),inset_0_1px_0_rgba(255,255,255,0.25)] active:scale-95"
+                className="mono-btn bg-white hover:bg-neutral-200 text-black px-4 py-2 rounded-[4px] text-xs font-semibold transition flex items-center space-x-2 active:scale-95"
               >
-                <Play className="w-3.5 h-3.5 fill-white" />
+                {cronRunning ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Play className="w-3.5 h-3.5 fill-black" />
+                )}
                 <span>{cronRunning ? 'PROCESSING...' : 'TRIGGER WORKER'}</span>
               </button>
 
               <Link
                 href="/campaigns"
-                className="mono-btn bg-white dark:bg-white/[0.04] hover:bg-[#f3f4f6] dark:hover:bg-white/[0.08] text-[#374151] dark:text-[#e4e4e7] border border-[#e5e7eb] dark:border-white/[0.08] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] px-5 py-2.5 rounded-full text-xs font-normal transition shadow-sm"
+                className="mono-btn bg-[#313641] hover:bg-[#313641]/80 text-white border border-white/[0.08] px-4 py-2 rounded-[4px] text-xs font-semibold transition"
               >
                 VIEW CAMPAIGNS
               </Link>
@@ -93,118 +105,137 @@ export default function DashboardPage() {
           </div>
 
           {cronStatus && (
-            <div className="mb-6 p-3.5 rounded-xl bg-white dark:bg-[#0c0d13] border border-[#e5e7eb] dark:border-white/[0.07] text-xs font-mono text-[#111827] dark:text-[#e4e4e7] shadow-sm dark:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.4)] font-normal">
-              {cronStatus}
+            <div className="mb-6 p-3 rounded-[4px] bg-[#313641]/60 border border-white/[0.08] text-xs font-mono text-white flex items-center justify-between">
+              <span>{cronStatus}</span>
+              <button onClick={() => setCronStatus(null)} className="text-[#959494] hover:text-white">✕</button>
             </div>
           )}
 
-          {/* Metric Cards: Rich Physical Elevation & Top Specular Highlight */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-[#13151c]/90 border border-[#e5e7eb] dark:border-white/[0.08] p-6 rounded-xl shadow-sm dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_8px_24px_-4px_rgba(0,0,0,0.5)] flex flex-col justify-between transition hover:border-[#cbd5e1] dark:hover:border-white/[0.16]">
+          {/* Metric Cards: Hairline Grid with Canonical 4px Radius */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3.5">
+            <div className="bg-[#313641]/30 border border-white/[0.08] p-5 rounded-[4px] flex flex-col justify-between">
               <div>
-                <span className="mono-eyebrow text-[#9ca3af] dark:text-[#71717a] font-normal block mb-1">MONTHLY QUALIFIED TARGET</span>
-                <div className="text-3xl font-light tracking-tight text-[#111827] dark:text-white">
-                  {metrics.qualifiedLeadsMonth} <span className="text-xl font-extralight text-[#9ca3af] dark:text-[#71717a]">/ {metrics.monthlyTarget}</span>
+                <span className="mono-eyebrow text-[#959494] text-[10px] block mb-1">
+                  MONTHLY QUALIFIED TARGET
+                </span>
+                <div className="text-3xl font-medium tracking-tight text-white">
+                  {metrics.qualifiedLeadsMonth} <span className="text-lg font-normal text-[#959494]">/ {metrics.monthlyTarget}</span>
                 </div>
               </div>
-              <div className="mt-5">
-                <div className="flex justify-between text-xs font-mono mb-1.5 text-[#6b7280] dark:text-[#a1a1aa]">
+              <div className="mt-4">
+                <div className="flex justify-between text-[11px] font-mono mb-1 text-[#959494]">
                   <span>PROGRESS</span>
-                  <span className="font-normal text-[#f43f5e]">{metrics.targetProgressPercentage}%</span>
+                  <span className="font-semibold text-white">{metrics.targetProgressPercentage}%</span>
                 </div>
-                <div className="w-full bg-[#f3f4f6] dark:bg-[#0c0d13] rounded-full h-1.5 overflow-hidden dark:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.5)]">
-                  <div className="bg-[#f43f5e] h-full rounded-full transition-all shadow-[0_0_8px_rgba(244,63,94,0.5)]" style={{ width: `${metrics.targetProgressPercentage}%` }}></div>
+                <div className="w-full bg-white/[0.08] rounded-[2px] h-1.5 overflow-hidden">
+                  <div
+                    className="bg-[#ef2cc1] h-full rounded-[2px] transition-all"
+                    style={{ width: `${Math.min(metrics.targetProgressPercentage, 100)}%` }}
+                  />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-[#13151c]/90 border border-[#e5e7eb] dark:border-white/[0.08] p-6 rounded-xl shadow-sm dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_8px_24px_-4px_rgba(0,0,0,0.5)] flex flex-col justify-between transition hover:border-[#cbd5e1] dark:hover:border-white/[0.16]">
-              <span className="mono-eyebrow text-[#9ca3af] dark:text-[#71717a] font-normal block mb-1">DISCOVERED BUSINESSES</span>
-              <div className="text-3xl font-light tracking-tight text-[#111827] dark:text-white">
+            <div className="bg-[#313641]/30 border border-white/[0.08] p-5 rounded-[4px] flex flex-col justify-between">
+              <span className="mono-eyebrow text-[#959494] text-[10px] block mb-1">
+                DISCOVERED BUSINESSES
+              </span>
+              <div className="text-3xl font-medium tracking-tight text-white">
                 {metrics.totalDiscovered}
               </div>
-              <div className="mt-4 text-xs text-[#9ca3af] dark:text-[#71717a] font-mono">
-                Across enabled discovery queries
+              <div className="mt-4 text-[11px] text-[#959494] font-mono">
+                Across active campaigns
               </div>
             </div>
 
-            <div className="bg-white dark:bg-[#13151c]/90 border border-[#e5e7eb] dark:border-white/[0.08] p-6 rounded-xl shadow-sm dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_8px_24px_-4px_rgba(0,0,0,0.5)] flex flex-col justify-between transition hover:border-[#cbd5e1] dark:hover:border-white/[0.16]">
-              <span className="mono-eyebrow text-[#9ca3af] dark:text-[#71717a] font-normal block mb-1">DRAFTS AWAITING APPROVAL</span>
-              <div className="text-3xl font-light tracking-tight text-[#f43f5e]">
+            <div className="bg-[#313641]/30 border border-white/[0.08] p-5 rounded-[4px] flex flex-col justify-between">
+              <span className="mono-eyebrow text-[#959494] text-[10px] block mb-1">
+                DRAFTS AWAITING APPROVAL
+              </span>
+              <div className="text-3xl font-medium tracking-tight text-[#ef2cc1]">
                 {metrics.pendingDrafts}
               </div>
-              <div className="mt-4 text-xs font-mono">
-                <Link href="/drafts" className="text-[#f43f5e] hover:underline flex items-center space-x-1 font-normal">
-                  <span>Open queue</span>
+              <div className="mt-4 text-[11px] font-mono">
+                <Link href="/drafts" className="text-white hover:text-[#ef2cc1] flex items-center space-x-1 font-semibold">
+                  <span>OPEN REVIEWER</span>
                   <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-[#13151c]/90 border border-[#e5e7eb] dark:border-white/[0.08] p-6 rounded-xl shadow-sm dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_8px_24px_-4px_rgba(0,0,0,0.5)] flex flex-col justify-between transition hover:border-[#cbd5e1] dark:hover:border-white/[0.16]">
-              <span className="mono-eyebrow text-[#9ca3af] dark:text-[#71717a] font-normal block mb-1">APPROVED / SENT OUTREACH</span>
-              <div className="text-3xl font-light tracking-tight text-[#111827] dark:text-white">
-                {metrics.sentEmails} <span className="text-lg font-extralight text-[#9ca3af] dark:text-[#71717a]">sent</span>
+            <div className="bg-[#313641]/30 border border-white/[0.08] p-5 rounded-[4px] flex flex-col justify-between">
+              <span className="mono-eyebrow text-[#959494] text-[10px] block mb-1">
+                APPROVED / SENT OUTREACH
+              </span>
+              <div className="text-3xl font-medium tracking-tight text-white">
+                {metrics.sentEmails} <span className="text-sm font-normal text-[#959494]">sent</span>
               </div>
-              <div className="mt-4 text-xs text-[#9ca3af] dark:text-[#71717a] font-mono">
-                {metrics.queuedEmails} queued in database
+              <div className="mt-4 text-[11px] text-[#959494] font-mono">
+                {metrics.queuedEmails} queued in queue
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Main Operating Surface */}
-      <section className="max-w-7xl mx-auto px-6 py-12 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Column 1: Pipeline Lifecycle */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="border border-[#e5e7eb] dark:border-white/[0.08] rounded-xl p-6 bg-white dark:bg-[#101218] shadow-sm dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_8px_24px_-4px_rgba(0,0,0,0.5)]">
-              <h3 className="mono-eyebrow text-[#111827] dark:text-white font-normal mb-4">4-STAGE RIGID PIPELINE</h3>
+      {/* Main Operating Surface: Clean White / Dark Contrast */}
+      <section className="max-w-7xl mx-auto px-6 py-10 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Column 1 & 2: Pipeline Lifecycle */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-6 bg-white dark:bg-[#010120]">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="mono-eyebrow text-black dark:text-white text-xs font-semibold">
+                  4-STAGE OUTBOUND PIPELINE
+                </h3>
+                <span className="text-[10px] font-mono text-[#959494] uppercase">
+                  DETERMINISTIC VERIFICATION
+                </span>
+              </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-4 bg-[#f8fafc] dark:bg-[#0c0d13] border border-[#e5e7eb] dark:border-white/[0.06] rounded-xl dark:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.4)]">
-                  <div className="flex items-center space-x-3.5">
-                    <div className="w-7 h-7 rounded-full bg-[#111827] dark:bg-white text-white dark:text-[#111827] flex items-center justify-center font-mono text-xs font-normal">1</div>
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between p-3.5 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.06] rounded-[4px]">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 rounded-[3px] bg-black dark:bg-white text-white dark:text-black flex items-center justify-center font-mono text-xs font-bold">1</div>
                     <div>
-                      <div className="text-sm font-normal text-[#111827] dark:text-white">Google Places Discovery Adapter</div>
-                      <div className="text-xs text-[#6b7280] dark:text-[#a1a1aa] font-light">Targeting cafe, bakery, and retail small businesses in designated cities</div>
+                      <div className="text-xs font-medium text-black dark:text-white">Discovery Adapter</div>
+                      <div className="text-[11px] text-[#6b7280] dark:text-[#959494]">Targeting local businesses across designated cities</div>
                     </div>
                   </div>
-                  <span className="mono-eyebrow text-xs text-[#6b7280] dark:text-[#a1a1aa] font-normal">AUTOMATIC</span>
+                  <span className="mono-eyebrow text-[10px] text-[#6b7280] dark:text-[#959494]">AUTOMATIC</span>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-[#f8fafc] dark:bg-[#0c0d13] border border-[#e5e7eb] dark:border-white/[0.06] rounded-xl dark:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.4)]">
-                  <div className="flex items-center space-x-3.5">
-                    <div className="w-7 h-7 rounded-full bg-[#111827] dark:bg-white text-white dark:text-[#111827] flex items-center justify-center font-mono text-xs font-normal">2</div>
+                <div className="flex items-center justify-between p-3.5 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.06] rounded-[4px]">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 rounded-[3px] bg-black dark:bg-white text-white dark:text-black flex items-center justify-center font-mono text-xs font-bold">2</div>
                     <div>
-                      <div className="text-sm font-normal text-[#111827] dark:text-white">Safe Webpage Inspection & Evidence</div>
-                      <div className="text-xs text-[#6b7280] dark:text-[#a1a1aa] font-light">SSRF-protected fetching, parsing menu, booking & responsive elements</div>
+                      <div className="text-xs font-medium text-black dark:text-white">Safe Webpage Inspection & Evidence</div>
+                      <div className="text-[11px] text-[#6b7280] dark:text-[#959494]">Safe crawling probing contact, booking & responsive elements</div>
                     </div>
                   </div>
-                  <span className="mono-eyebrow text-xs text-emerald-600 dark:text-emerald-400 font-normal">AUTOMATIC</span>
+                  <span className="mono-eyebrow text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">AUTOMATIC</span>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-[#f8fafc] dark:bg-[#0c0d13] border border-[#e5e7eb] dark:border-white/[0.06] rounded-xl dark:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.4)]">
-                  <div className="flex items-center space-x-3.5">
-                    <div className="w-7 h-7 rounded-full bg-[#111827] dark:bg-white text-white dark:text-[#111827] flex items-center justify-center font-mono text-xs font-normal">3</div>
+                <div className="flex items-center justify-between p-3.5 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.06] rounded-[4px]">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 rounded-[3px] bg-black dark:bg-white text-white dark:text-black flex items-center justify-center font-mono text-xs font-bold">3</div>
                     <div>
-                      <div className="text-sm font-normal text-[#111827] dark:text-white">Explainable Qualification & AI Drafting</div>
-                      <div className="text-xs text-[#6b7280] dark:text-[#a1a1aa] font-light">4-component deterministic score + grounded email draft generation</div>
+                      <div className="text-xs font-medium text-black dark:text-white">Explainable Qualification & AI Drafting</div>
+                      <div className="text-[11px] text-[#6b7280] dark:text-[#959494]">Deterministic qualification score + research-backed draft</div>
                     </div>
                   </div>
-                  <span className="mono-eyebrow text-xs text-[#6b7280] dark:text-[#a1a1aa] font-normal">{metrics.qualifiedLeadsMonth} QUALIFIED</span>
+                  <span className="mono-eyebrow text-[10px] text-black dark:text-white font-semibold">{metrics.qualifiedLeadsMonth} QUALIFIED</span>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-[#f8fafc] dark:bg-[#0c0d13] border border-[#e5e7eb] dark:border-white/[0.06] rounded-xl dark:shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.4)]">
-                  <div className="flex items-center space-x-3.5">
-                    <div className="w-7 h-7 rounded-full bg-[#f43f5e] text-white flex items-center justify-center font-mono text-xs font-normal shadow-[0_0_10px_rgba(244,63,94,0.4)]">4</div>
+                <div className="flex items-center justify-between p-3.5 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.06] rounded-[4px]">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 rounded-[3px] bg-[#ef2cc1] text-white flex items-center justify-center font-mono text-xs font-bold">4</div>
                     <div>
-                      <div className="text-sm font-normal text-[#111827] dark:text-white">Explicit Operator Approval Queue</div>
-                      <div className="text-xs text-[#6b7280] dark:text-[#a1a1aa] font-light">Human-in-the-loop validation of recipient, claims, and subject</div>
+                      <div className="text-xs font-medium text-black dark:text-white">Explicit Operator Approval Queue</div>
+                      <div className="text-[11px] text-[#6b7280] dark:text-[#959494]">Human-in-the-loop validation of recipient, claims, and subject</div>
                     </div>
                   </div>
-                  <Link href="/drafts" className="mono-btn text-xs text-[#f43f5e] hover:underline font-normal">
+                  <Link href="/drafts" className="mono-btn text-xs text-[#ef2cc1] hover:underline font-semibold">
                     {metrics.pendingDrafts} TO APPROVE →
                   </Link>
                 </div>
@@ -212,63 +243,41 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Provider status sidebar */}
-          <div className="space-y-6">
-            <div className="border border-[#e5e7eb] dark:border-white/[0.08] rounded-xl p-6 bg-white dark:bg-[#101218] shadow-sm dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_8px_24px_-4px_rgba(0,0,0,0.5)]">
-              <h3 className="mono-eyebrow text-[#111827] dark:text-white font-normal mb-4">SYSTEM LEDGER</h3>
-              <div className="space-y-4 text-xs font-mono">
-                <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6] dark:border-white/[0.05]">
-                  <span className="text-[#6b7280] dark:text-[#a1a1aa]">DISCOVERY PROVIDER</span>
-                  <span className={`px-2.5 py-1 rounded-md font-normal uppercase text-[11px] border ${
-                    data?.systemStatus?.discoveryProvider && data?.systemStatus?.discoveryProvider !== 'mock'
-                      ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20'
-                      : 'bg-[#f3f4f6] dark:bg-[#0c0d13] text-[#111827] dark:text-white border-transparent dark:border-white/[0.06]'
-                  }`}>
-                    {data?.systemStatus?.discoveryProvider || 'mock'}
-                  </span>
+          {/* Column 3: System Ledger */}
+          <div className="space-y-4">
+            <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-6 bg-white dark:bg-[#010120]">
+              <h3 className="mono-eyebrow text-black dark:text-white text-xs font-semibold mb-4">
+                SYSTEM LEDGER
+              </h3>
+              <div className="space-y-3 text-xs font-mono">
+                <div className="flex justify-between items-center py-1.5 border-b border-[#ebebeb] dark:border-white/[0.06]">
+                  <span className="text-[#6b7280] dark:text-[#959494]">AI INFERENCE</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold">GEMINI 1.5 FLASH</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6] dark:border-white/[0.05]">
-                  <span className="text-[#6b7280] dark:text-[#a1a1aa]">AI PROVIDER</span>
-                  <span className={`px-2.5 py-1 rounded-md font-normal uppercase text-[11px] border ${
-                    data?.systemStatus?.aiProvider && data?.systemStatus?.aiProvider !== 'mock'
-                      ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20'
-                      : 'bg-[#f3f4f6] dark:bg-[#0c0d13] text-[#111827] dark:text-white border-transparent dark:border-white/[0.06]'
-                  }`}>
-                    {data?.systemStatus?.aiProvider || 'mock'}
-                  </span>
+                <div className="flex justify-between items-center py-1.5 border-b border-[#ebebeb] dark:border-white/[0.06]">
+                  <span className="text-[#6b7280] dark:text-[#959494]">EMAIL DISPATCH</span>
+                  <span className="text-black dark:text-white font-semibold">RESEND SMTP</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6] dark:border-white/[0.05]">
-                  <span className="text-[#6b7280] dark:text-[#a1a1aa]">OUTBOUND MAILER</span>
-                  <span className={`px-2.5 py-1 rounded-md font-normal uppercase text-[11px] border ${
-                    data?.systemStatus?.emailProvider && data?.systemStatus?.emailProvider !== 'mock'
-                      ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20'
-                      : 'bg-[#f3f4f6] dark:bg-[#0c0d13] text-[#111827] dark:text-white border-transparent dark:border-white/[0.06]'
-                  }`}>
-                    {data?.systemStatus?.emailProvider || 'mock'}
-                  </span>
+                <div className="flex justify-between items-center py-1.5 border-b border-[#ebebeb] dark:border-white/[0.06]">
+                  <span className="text-[#6b7280] dark:text-[#959494]">DATA PERSISTENCE</span>
+                  <span className="text-black dark:text-white font-semibold">SUPABASE POSTGRES</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6] dark:border-white/[0.05]">
-                  <span className="text-[#6b7280] dark:text-[#a1a1aa]">AUTO-SENDING ACTIVE</span>
-                  <span className={`px-2.5 py-1 rounded-md font-normal ${data?.systemStatus?.automatedSending ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/20' : 'bg-amber-100 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-500/20'}`}>
-                    {data?.systemStatus?.automatedSending ? 'ENABLED' : 'DISABLED (SAFE)'}
-                  </span>
+                <div className="flex justify-between items-center py-1.5 border-b border-[#ebebeb] dark:border-white/[0.06]">
+                  <span className="text-[#6b7280] dark:text-[#959494]">DAILY SEND CAP</span>
+                  <span className="text-black dark:text-white font-semibold">50 / DAY</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6] dark:border-white/[0.05]">
-                  <span className="text-[#6b7280] dark:text-[#a1a1aa]">SPEND TO DATE</span>
-                  <span className="font-normal text-[#111827] dark:text-white">₹{metrics.estimatedCostInr} / ₹{metrics.monthlySpendCapInr}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-[#6b7280] dark:text-[#a1a1aa]">DURABLE QUEUE</span>
-                  <span className="font-normal text-[#111827] dark:text-white">{metrics.activeJobs} jobs active</span>
+                <div className="flex justify-between items-center py-1.5">
+                  <span className="text-[#6b7280] dark:text-[#959494]">SUPPRESSION LIST</span>
+                  <span className="text-black dark:text-white font-semibold">{metrics.suppressionCount} BLOCKED</span>
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-[#f3f4f6] dark:border-white/[0.05]">
+              <div className="mt-5 pt-4 border-t border-[#ebebeb] dark:border-white/[0.08]">
                 <Link
                   href="/settings"
-                  className="mono-btn w-full block text-center bg-[#f8fafc] dark:bg-white/[0.04] hover:bg-[#f1f5f9] dark:hover:bg-white/[0.08] text-[#374151] dark:text-[#e4e4e7] font-normal py-2.5 rounded-full text-xs border border-[#e5e7eb] dark:border-white/[0.08] transition"
+                  className="mono-btn w-full block text-center py-2 bg-black dark:bg-white text-white dark:text-black rounded-[4px] text-xs font-semibold hover:bg-neutral-800 dark:hover:bg-neutral-200 transition"
                 >
-                  CONFIGURE PROVIDERS & KEYS
+                  CONFIGURE SETTINGS
                 </Link>
               </div>
             </div>

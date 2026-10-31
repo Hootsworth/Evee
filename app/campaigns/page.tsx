@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Target, Plus, Play, CheckCircle, RefreshCw, Layers, AlertCircle, Copy, Check, ExternalLink, FileSpreadsheet } from 'lucide-react';
+import { Target, Plus, Play, CheckCircle, RefreshCw, Layers, AlertCircle, Copy, Check, ExternalLink, FileSpreadsheet, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -80,9 +80,9 @@ export default function CampaignsPage() {
       const sqlText = await res.text();
       await navigator.clipboard.writeText(sqlText);
       setCopiedSql(true);
-      setTimeout(() => setCopiedSql(false), 2500);
+      setTimeout(() => setCopiedSql(false), 3000);
     } catch (err) {
-      alert('Failed to copy SQL: ' + err);
+      console.error(err);
     }
   };
 
@@ -90,118 +90,135 @@ export default function CampaignsPage() {
     setTriggering(campaignId);
     try {
       const res = await fetch(`/api/campaigns/${campaignId}/discover`, { method: 'POST' });
-      if (!res.ok) {
-        const errJson = await res.json();
-        throw new Error(errJson.error || 'Discovery failed');
+      const data = await res.json();
+      if (res.ok) {
+        alert(`Discovery completed: ${data.message || 'Leads queued for qualification'}`);
+        fetchCampaigns();
+      } else {
+        alert(`Error: ${data.error || 'Discovery failed'}`);
       }
-      await fetch('/api/cron/process-jobs', { method: 'POST' });
-      alert('Discovery triggered and background worker processed candidates!');
-      fetchCampaigns();
     } catch (err: any) {
-      alert(`Discovery Error: ${err.message}`);
+      alert(`Error triggering discovery: ${err.message}`);
     } finally {
       setTriggering(null);
     }
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#09090b] transition-colors duration-150">
-      {/* Top Banner: Flat & Clean */}
-      <section className="bg-[#f8fafc] dark:bg-gradient-to-b dark:from-[#0e1017] dark:via-[#0c0d14] dark:to-[#090a0f] border-b border-[#e5e7eb] dark:border-white/[0.08] px-6 py-10">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="flex flex-col bg-white dark:bg-[#010120] text-[#000000] dark:text-[#ffffff] min-h-screen transition-colors duration-150">
+      {/* 2px Signature Brand Gradient Ribbon */}
+      <div className="brand-gradient-h w-full" />
+
+      {/* Hero Band: Canvas Dark #010120 */}
+      <section className="bg-[#010120] text-white pt-8 pb-10 px-6 border-b border-white/[0.08]">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-light tracking-tight text-[#111827] dark:text-white">Campaign Manager</h1>
-            <p className="text-sm text-[#6b7280] dark:text-[#a1a1aa] mt-1 max-w-xl font-light">
-              Configure geographic and vertical target criteria for continuous lead discovery and empirical qualification.
+            <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
+              <span>TARGETING // CAMPAIGN MANAGER</span>
+              <span>•</span>
+              <span className="text-[#ef2cc1]">AUTONOMOUS TARGETING</span>
+            </div>
+            <h1 className="text-3xl font-medium tracking-tight text-white mb-1">
+              Campaigns Hub
+            </h1>
+            <p className="text-xs text-[#959494] max-w-xl font-normal">
+              Manage discrete outbound target segments. Discovery adapters pull fresh leads, perform automated web inspections, and draft personalized outreach.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+          <div className="flex items-center space-x-2.5">
             <Link
               href="/campaigns/csv"
-              className="mono-btn bg-white dark:bg-white/[0.04] hover:bg-[#f3f4f6] dark:hover:bg-white/[0.08] text-[#111827] dark:text-white border border-[#e5e7eb] dark:border-white/[0.08] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] px-4 py-2.5 rounded-full text-xs font-normal transition flex items-center space-x-2 shadow-sm"
+              className="mono-btn bg-[#313641] hover:bg-[#313641]/80 text-white border border-white/[0.08] px-3.5 py-2 rounded-[4px] text-xs font-semibold flex items-center space-x-1.5 transition"
             >
-              <FileSpreadsheet className="w-4 h-4 text-[#f43f5e]" />
-              <span>IMPORT CSV & OUTREACH</span>
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>IMPORT CSV OUTREACH</span>
             </Link>
 
             <button
-              onClick={() => {
-                setModalError(null);
-                setShowModal(true);
-              }}
-              className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-5 py-2.5 rounded-full text-xs font-normal transition flex items-center space-x-2 shadow-sm dark:shadow-[0_2px_14px_rgba(244,63,94,0.35),inset_0_1px_0_rgba(255,255,255,0.25)] active:scale-95"
+              onClick={() => setShowModal(true)}
+              className="mono-btn bg-white hover:bg-neutral-200 text-black px-4 py-2 rounded-[4px] text-xs font-semibold flex items-center space-x-1.5 transition active:scale-95"
             >
-              <Plus className="w-4 h-4" />
-              <span>CREATE CAMPAIGN</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>NEW CAMPAIGN</span>
             </button>
           </div>
         </div>
       </section>
 
-      {/* Campaigns Grid */}
-      <main className="max-w-7xl mx-auto px-6 py-10">
+      {/* Main Campaign Grid */}
+      <main className="max-w-7xl mx-auto px-6 py-8 w-full flex-1">
         {loading ? (
-          <div className="py-20 text-center font-mono text-sm text-[#9ca3af] dark:text-[#71717a]">Loading campaigns...</div>
+          <div className="py-24 text-center font-mono text-xs text-[#959494] flex items-center justify-center space-x-2">
+            <RefreshCw className="w-4 h-4 animate-spin text-[#ef2cc1]" />
+            <span>LOADING CAMPAIGNS...</span>
+          </div>
         ) : campaigns.length === 0 ? (
-          <div className="border border-[#e5e7eb] dark:border-[#27272a] rounded-xl p-16 text-center bg-[#f8fafc] dark:bg-[#121217]">
-            <Layers className="w-12 h-12 text-[#9ca3af] dark:text-[#52525b] mx-auto mb-4" />
-            <h3 className="text-lg font-light text-[#111827] dark:text-white mb-2">No campaigns yet</h3>
-            <p className="text-sm text-[#6b7280] dark:text-[#a1a1aa] max-w-md mx-auto mb-6 font-light">
-              Create your first prospecting campaign to configure geography, industry, and automated research criteria.
+          <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-16 text-center bg-[#f8fafc] dark:bg-[#313641]/20">
+            <Target className="w-10 h-10 text-[#959494] mx-auto mb-3" />
+            <h3 className="text-sm font-mono uppercase tracking-wider font-semibold text-black dark:text-white mb-1">
+              No Campaigns Configured
+            </h3>
+            <p className="text-xs text-[#6b7280] dark:text-[#959494] mb-4 max-w-md mx-auto">
+              Create an automated discovery campaign by target city and industry, or import an existing CSV file.
             </p>
             <button
-              onClick={() => {
-                setModalError(null);
-                setShowModal(true);
-              }}
-              className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-5 py-2.5 rounded-full text-xs font-normal shadow-sm"
+              onClick={() => setShowModal(true)}
+              className="mono-btn px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-[4px] text-xs font-semibold inline-flex items-center space-x-1.5"
             >
-              CREATE FIRST CAMPAIGN
+              <Plus className="w-3.5 h-3.5" />
+              <span>CREATE FIRST CAMPAIGN</span>
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {campaigns.map((camp) => (
               <div
                 key={camp.id}
-                className="border border-[#e5e7eb] dark:border-[#27272a] hover:border-[#cbd5e1] dark:hover:border-[#3f3f46] rounded-xl p-6 bg-white dark:bg-[#121217] shadow-sm flex flex-col justify-between transition"
+                className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-5 bg-white dark:bg-[#010120] flex flex-col justify-between transition hover:border-black dark:hover:border-white/[0.2]"
               >
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="mono-eyebrow text-xs px-3 py-1 rounded-full bg-[#f8fafc] dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] text-[#111827] dark:text-white font-normal">
-                      {camp.status.toUpperCase()}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="px-2 py-0.5 rounded-[2px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[9px] font-mono font-semibold uppercase">
+                      {camp.status || 'ACTIVE'}
                     </span>
-                    <span className="mono-eyebrow text-xs text-[#6b7280] dark:text-[#a1a1aa] font-mono">
-                      TARGET: {camp.monthly_target}/MO
+                    <span className="text-[10px] font-mono text-[#959494]">
+                      TARGET: {camp.monthly_target || 100} / MO
                     </span>
                   </div>
 
-                  <h3 className="text-xl font-light text-[#111827] dark:text-white mb-3">{camp.name}</h3>
+                  <h3 className="text-base font-semibold text-black dark:text-white mb-1.5">
+                    {camp.name}
+                  </h3>
 
-                  <div className="space-y-2 text-xs font-mono text-[#4b5563] dark:text-[#a1a1aa] mb-6 font-light">
-                    <div><span className="text-[#9ca3af] dark:text-[#71717a]">GEO:</span> {camp.target_geographies?.join(', ') || 'Global'}</div>
-                    <div><span className="text-[#9ca3af] dark:text-[#71717a]">INDUSTRY:</span> {camp.target_industries?.join(', ') || 'All'}</div>
-                    <div><span className="text-[#9ca3af] dark:text-[#71717a]">MIN SCORE:</span> <span className="text-[#111827] dark:text-white font-normal">{camp.qualification_threshold} pts</span></div>
+                  <div className="space-y-1.5 text-xs text-[#6b7280] dark:text-[#959494] font-mono mb-4">
+                    <div>City: {camp.target_geographies?.join(', ') || 'All Cities'}</div>
+                    <div>Industry: {camp.target_industries?.join(', ') || 'General SMB'}</div>
+                    <div>Threshold: {camp.qualification_threshold || 65}% Lead Score</div>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-[#f3f4f6] dark:border-[#1f1f23] flex items-center justify-between">
+                <div className="pt-4 border-t border-[#ebebeb] dark:border-white/[0.08] flex items-center justify-between">
+                  <Link
+                    href={`/leads`}
+                    className="text-xs font-mono text-black dark:text-white hover:text-[#ef2cc1] flex items-center space-x-1"
+                  >
+                    <span>VIEW LEADS</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </Link>
+
                   <button
                     onClick={() => handleTriggerDiscovery(camp.id)}
                     disabled={triggering === camp.id}
-                    className="mono-btn text-xs bg-[#f8fafc] dark:bg-[#18181b] hover:bg-[#f1f5f9] dark:hover:bg-[#27272a] border border-[#e5e7eb] dark:border-[#27272a] text-[#111827] dark:text-white px-4 py-2 rounded-full flex items-center space-x-1.5 transition font-normal"
+                    className="mono-btn px-3 py-1.5 bg-black dark:bg-white text-white dark:text-black rounded-[4px] text-[11px] font-semibold flex items-center space-x-1 hover:bg-neutral-800 transition"
                   >
-                    <RefreshCw className={`w-3.5 h-3.5 ${triggering === camp.id ? 'animate-spin' : ''}`} />
-                    <span>{triggering === camp.id ? 'RUNNING...' : 'RUN DISCOVERY'}</span>
+                    {triggering === camp.id ? (
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Play className="w-3 h-3 fill-current" />
+                    )}
+                    <span>{triggering === camp.id ? 'RUNNING...' : 'DISCOVER NOW'}</span>
                   </button>
-
-                  <Link
-                    href={`/leads?campaign=${camp.id}`}
-                    className="mono-btn text-xs text-[#f43f5e] hover:underline font-normal flex items-center space-x-1"
-                  >
-                    <span>VIEW LEADS →</span>
-                  </Link>
                 </div>
               </div>
             ))}
@@ -209,140 +226,120 @@ export default function CampaignsPage() {
         )}
       </main>
 
-      {/* Modal Dialog */}
+      {/* New Campaign Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#121217] rounded-2xl max-w-lg w-full p-8 border border-[#e5e7eb] dark:border-[#27272a] shadow-2xl">
-            <h2 className="text-2xl font-light text-[#111827] dark:text-white mb-1">New Prospecting Campaign</h2>
-            <p className="text-xs text-[#6b7280] dark:text-[#a1a1aa] mb-6 font-mono font-light">
-              Define the vertical segment and location target for the discovery crawler.
-            </p>
-
-            {modalError && (
-              <div className="mb-6 p-4 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200 text-xs font-mono space-y-3">
-                <div className="flex items-start space-x-2">
-                  <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-                  <div className="flex-1 font-sans leading-relaxed">
-                    <div className="font-semibold text-rose-900 dark:text-rose-100 mb-1">
-                      {modalError.includes('schema') || modalError.includes('campaigns')
-                        ? 'Supabase Database Schema Not Initialized'
-                        : 'Campaign Creation Failed'}
-                    </div>
-                    <p className="text-xs text-rose-800 dark:text-rose-300">
-                      {modalError}
-                    </p>
-                  </div>
-                </div>
-
-                {(modalError.includes('schema') || modalError.includes('campaigns') || modalError.includes('cache')) && (
-                  <div className="pt-2 border-t border-rose-200 dark:border-rose-900/50 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={handleCopySchemaSql}
-                      className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white dark:bg-[#18181b] border border-rose-300 dark:border-rose-800 rounded-lg text-xs font-mono text-rose-900 dark:text-rose-200 hover:bg-rose-100 transition"
-                    >
-                      {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedSql ? 'SQL Copied!' : 'Copy SQL Schema Migration'}</span>
-                    </button>
-
-                    <a
-                      href="https://supabase.com/dashboard/project/fflnixsmerahqnvwakrn/sql/new"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-[#f43f5e] text-white rounded-lg text-xs font-mono font-medium hover:bg-[#e11d48] transition"
-                    >
-                      <span>Open Supabase SQL Editor</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <form onSubmit={handleCreateCampaign} className="space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] overflow-hidden shadow-2xl">
+            <div className="brand-gradient-h w-full" />
+            <div className="p-5 border-b border-[#ebebeb] dark:border-white/[0.08] flex items-center justify-between">
               <div>
-                <label className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal block mb-1">CAMPAIGN NAME</label>
+                <h3 className="text-base font-semibold text-black dark:text-white">
+                  Create Autonomous Campaign
+                </h3>
+                <p className="text-xs text-[#959494] font-mono">
+                  Set target geography, industry keywords, and qualification thresholds.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-[#959494] hover:text-black dark:hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCampaign} className="p-5 space-y-4 text-xs font-mono">
+              {modalError && (
+                <div className="p-2.5 rounded-[4px] bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs">
+                  {modalError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[#959494] uppercase mb-1">Campaign Name</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Bengaluru Specialty Cafes"
+                  placeholder="e.g. Bangalore Cafes & Bistros"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full text-sm border border-[#e5e7eb] dark:border-[#27272a] bg-white dark:bg-[#18181b] rounded-xl p-2.5 focus:outline-none focus:border-[#f43f5e] focus:ring-1 focus:ring-rose-500/20 text-[#111827] dark:text-white font-light"
+                  className="w-full p-2.5 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal block mb-1">GEOGRAPHY (CITY)</label>
+                  <label className="block text-[#959494] uppercase mb-1">Target City</label>
                   <input
                     type="text"
                     required
                     value={geography}
                     onChange={(e) => setGeography(e.target.value)}
-                    className="w-full text-sm border border-[#e5e7eb] dark:border-[#27272a] bg-white dark:bg-[#18181b] rounded-xl p-2.5 focus:outline-none focus:border-[#f43f5e] text-[#111827] dark:text-white font-light"
+                    className="w-full p-2.5 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
                   />
                 </div>
-
                 <div>
-                  <label className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal block mb-1">TARGET INDUSTRY</label>
+                  <label className="block text-[#959494] uppercase mb-1">Target Industry</label>
                   <input
                     type="text"
                     required
                     value={industry}
                     onChange={(e) => setIndustry(e.target.value)}
-                    className="w-full text-sm border border-[#e5e7eb] dark:border-[#27272a] bg-white dark:bg-[#18181b] rounded-xl p-2.5 focus:outline-none focus:border-[#f43f5e] text-[#111827] dark:text-white font-light"
+                    className="w-full p-2.5 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal block mb-1">SEARCH KEYWORDS (COMMA-SEPARATED)</label>
+                <label className="block text-[#959494] uppercase mb-1">Keywords (Comma Separated)</label>
                 <input
                   type="text"
                   required
                   value={keywords}
                   onChange={(e) => setKeywords(e.target.value)}
-                  className="w-full text-sm border border-[#e5e7eb] dark:border-[#27272a] bg-white dark:bg-[#18181b] rounded-xl p-2.5 focus:outline-none focus:border-[#f43f5e] text-[#111827] dark:text-white font-light"
+                  className="w-full p-2.5 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal block mb-1">MONTHLY TARGET</label>
+                  <label className="block text-[#959494] uppercase mb-1">Monthly Target</label>
                   <input
                     type="number"
+                    min={1}
+                    max={1000}
                     value={monthlyTarget}
                     onChange={(e) => setMonthlyTarget(Number(e.target.value))}
-                    className="w-full text-sm border border-[#e5e7eb] dark:border-[#27272a] bg-white dark:bg-[#18181b] rounded-xl p-2.5 focus:outline-none focus:border-[#f43f5e] text-[#111827] dark:text-white font-light"
+                    className="w-full p-2.5 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
                   />
                 </div>
-
                 <div>
-                  <label className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal block mb-1">MIN SCORE (PTS)</label>
+                  <label className="block text-[#959494] uppercase mb-1">Min Lead Score (%)</label>
                   <input
                     type="number"
+                    min={1}
+                    max={100}
                     value={threshold}
                     onChange={(e) => setThreshold(Number(e.target.value))}
-                    className="w-full text-sm border border-[#e5e7eb] dark:border-[#27272a] bg-white dark:bg-[#18181b] rounded-xl p-2.5 focus:outline-none focus:border-[#f43f5e] text-[#111827] dark:text-white font-light"
+                    className="w-full p-2.5 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-[#f3f4f6] dark:border-[#27272a]">
+              <div className="pt-3 border-t border-[#ebebeb] dark:border-white/[0.08] flex items-center justify-end space-x-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="mono-btn text-xs text-[#6b7280] dark:text-[#a1a1aa] hover:text-[#111827] dark:hover:text-white px-4 py-2 rounded-full font-normal"
+                  className="mono-btn px-3.5 py-2 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] text-[#959494] hover:text-black dark:hover:text-white"
                 >
                   CANCEL
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-5 py-2.5 rounded-full text-xs font-normal shadow-sm disabled:opacity-50"
+                  className="mono-btn px-4 py-2 rounded-[4px] bg-black dark:bg-white text-white dark:text-black font-semibold"
                 >
-                  {submitting ? 'LAUNCHING...' : 'LAUNCH CAMPAIGN'}
+                  {submitting ? 'CREATING...' : 'LAUNCH CAMPAIGN'}
                 </button>
               </div>
             </form>
