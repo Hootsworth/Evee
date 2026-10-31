@@ -4,6 +4,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { replaceTemplateVariables } from '@/lib/csv/parser';
 import { sendEmailWithSafetyChecks } from '@/lib/providers/email/sender';
+import {
+  classifyProspectBatchWithAi,
+  applyAiAnalysisToProspect,
+} from '@/lib/csv/classifier';
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,9 +23,34 @@ export async function POST(req: NextRequest) {
     }
 
     const emailCol = mapping?.email || 'email';
+    const companyCol = mapping?.companyName || 'company_name';
+    const websiteCol = mapping?.website || 'website';
+    const cityCol = mapping?.city || 'city';
+
+    // Ensure all recipients have AI company classification & adjustments applied
+    const needsEnrichment = recipients.some(
+      (r) => !r.ai_company_type && !r.company_type
+    );
+    let processedRecipients = recipients;
+
+    if (needsEnrichment) {
+      const formatted = recipients.map((p) => ({
+        companyName:
+          p[companyCol] || p.company_name || p.company || p.business_name || 'Business',
+        website: p[websiteCol] || p.website || '',
+        city: p[cityCol] || p.city || '',
+      }));
+
+      const analyses = await classifyProspectBatchWithAi(formatted);
+      processedRecipients = recipients.map((p, idx) =>
+        applyAiAnalysisToProspect(p, analyses[idx])
+      );
+    }
+
     const results: Array<{
       email: string;
       status: 'sent' | 'suppressed' | 'failed';
+      companyType?: string;
       error?: string;
       providerMessageId?: string;
     }> = [];
@@ -30,7 +59,7 @@ export async function POST(req: NextRequest) {
     let suppressedCount = 0;
     let failedCount = 0;
 
-    for (const prospect of recipients) {
+    for (const prospect of processedRecipients) {
       const email = (prospect[emailCol] || prospect.email || '').trim().toLowerCase();
 
       if (!email || !email.includes('@')) {
@@ -39,6 +68,7 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      const companyType = prospect.ai_company_type || prospect.company_type || 'General Business';
       const personalizedSubject = replaceTemplateVariables(template.subject, prospect, mapping);
       const personalizedBodyText = replaceTemplateVariables(template.bodyText, prospect, mapping);
       const personalizedBodyHtml = template.bodyHtml
@@ -55,13 +85,13 @@ export async function POST(req: NextRequest) {
 
       if (res.success) {
         sentCount++;
-        results.push({ email, status: 'sent', providerMessageId: res.providerMessageId });
+        results.push({ email, status: 'sent', companyType, providerMessageId: res.providerMessageId });
       } else if (res.suppressed) {
         suppressedCount++;
-        results.push({ email, status: 'suppressed', error: res.error });
+        results.push({ email, status: 'suppressed', companyType, error: res.error });
       } else {
         failedCount++;
-        results.push({ email, status: 'failed', error: res.error });
+        results.push({ email, status: 'failed', companyType, error: res.error });
       }
     }
 

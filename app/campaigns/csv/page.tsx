@@ -56,8 +56,12 @@ export default function CsvOutreachPage() {
   // Template State
   const [subject, setSubject] = useState('Personalized idea for {company_name}');
   const [bodyText, setBodyText] = useState(
-    'Hi {first_name},\n\nI was looking into {company_name} and noticed an opportunity to streamline your customer booking and digital workflows on {website}.\n\nWe recently helped similar businesses in {city} improve online conversion with a dedicated, zero-friction booking system.\n\nWould you be open to a brief 5-minute chat this week?\n\nBest regards,\nOperator'
+    'Hi {first_name},\n\nI was looking into {company_name} in {city} and wanted to reach out specifically regarding your {company_type} operations.\n\n{personalized_pitch}\n\nMany {company_type} teams experience friction around {pain_point}. We recently implemented {value_prop} for similar businesses to streamline this completely.\n\nWould you be open to a brief 5-minute chat this week?\n\nBest regards,\nOperator'
   );
+
+  // AI Enrichment state
+  const [enriching, setEnriching] = useState(false);
+  const [enriched, setEnriched] = useState(false);
 
   // Preview State
   const [previewContactIdx, setPreviewContactIdx] = useState(0);
@@ -112,10 +116,80 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
     processCsvContent(sample);
   };
 
+  const triggerAutoEnrich = async (rows: Array<Record<string, string>>, activeMapping: CsvColumnMapping) => {
+    if (!rows || rows.length === 0) return;
+    setEnriching(true);
+
+    try {
+      const res = await fetch('/api/csv-outreach/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prospects: rows,
+          mapping: activeMapping,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.enrichedProspects) {
+        setCsvResult((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            rows: data.enrichedProspects,
+          };
+        });
+        setEnriched(true);
+      }
+    } catch (err) {
+      console.warn('Auto enrichment silent fail, will retry on demand:', err);
+    } finally {
+      setEnriching(false);
+    }
+  };
+
   const processCsvContent = (content: string) => {
     const result = parseAndAnalyzeCsv(content);
     setCsvResult(result);
     setMapping(result.detectedMapping);
+    setEnriched(false);
+    if (result.rows.length > 0) {
+      triggerAutoEnrich(result.rows, result.detectedMapping);
+    }
+  };
+
+  const handleEnrichWithAi = async () => {
+    if (!csvResult || csvResult.rows.length === 0) return;
+    setEnriching(true);
+
+    try {
+      const res = await fetch('/api/csv-outreach/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prospects: csvResult.rows,
+          mapping,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.enrichedProspects) {
+        setCsvResult((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            rows: data.enrichedProspects,
+          };
+        });
+        setEnriched(true);
+      } else {
+        alert(data.error || 'Failed to enrich prospects with AI.');
+      }
+    } catch (err: any) {
+      alert(`Network error during AI enrichment: ${err.message}`);
+    } finally {
+      setEnriching(false);
+    }
   };
 
   // Insert variable into active editor
@@ -331,6 +405,41 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                   </div>
                 ) : (
                   <div className="space-y-6">
+                    {/* AI Company Intelligence Banner */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gradient-to-r from-rose-500/10 via-amber-500/5 to-transparent border border-rose-500/20 rounded-xl gap-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full bg-[#f43f5e]/15 text-[#f43f5e] flex items-center justify-center shrink-0">
+                          <Sparkles className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-normal text-[#111827] dark:text-white flex items-center space-x-2">
+                            <span>AI Company Type Classifier & Adjustment Engine</span>
+                            {enriched && (
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                                ACTIVE
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-[#6b7280] dark:text-[#a1a1aa] font-mono font-light mt-0.5">
+                            {enriching
+                              ? 'Analyzing company profiles and crafting tailored adjustments with AI...'
+                              : enriched
+                              ? `All ${csvResult.rows.length} companies classified with customized pitch angles.`
+                              : 'Uses your AI API key to identify company types and adjust copy per contact.'}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleEnrichWithAi}
+                        disabled={enriching}
+                        className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-4 py-2 rounded-full text-xs font-normal flex items-center justify-center space-x-1.5 shadow-sm transition active:scale-95 disabled:opacity-50 shrink-0 self-start sm:self-auto"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${enriching ? 'animate-spin' : ''}`} />
+                        <span>{enriching ? 'ANALYZING...' : enriched ? 'RE-ANALYZE WITH AI' : 'ENRICH ALL WITH AI'}</span>
+                      </button>
+                    </div>
+
                     {/* Mapping Selectors */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {[
@@ -363,13 +472,14 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                     {/* Preview Table */}
                     <div>
                       <h3 className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal mb-2">
-                        FIRST 4 IMPORTED CANDIDATES
+                        FIRST 4 IMPORTED CANDIDATES WITH AI CLASSIFICATION
                       </h3>
                       <div className="border border-[#e5e7eb] dark:border-[#27272a] rounded-xl overflow-hidden overflow-x-auto">
                         <table className="w-full text-left text-xs font-mono">
                           <thead className="bg-[#f8fafc] dark:bg-[#18181b] border-b border-[#e5e7eb] dark:border-[#27272a] text-[#4b5563] dark:text-[#a1a1aa]">
                             <tr>
                               <th className="py-2.5 px-3 font-normal">#</th>
+                              <th className="py-2.5 px-3 font-normal text-[#f43f5e]">AI Identified Type</th>
                               {csvResult.headers.map((h) => (
                                 <th key={h} className="py-2.5 px-3 font-normal">
                                   {h}
@@ -381,6 +491,11 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                             {csvResult.rows.slice(0, 4).map((row, idx) => (
                               <tr key={idx} className="hover:bg-[#f8fafc] dark:hover:bg-[#18181b]">
                                 <td className="py-2.5 px-3 text-[#9ca3af]">{idx + 1}</td>
+                                <td className="py-2.5 px-3">
+                                  <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-rose-50 dark:bg-rose-950/50 text-[#f43f5e] border border-rose-200 dark:border-rose-900 font-normal">
+                                    {row.ai_company_type || row.company_type || 'Classifying...'}
+                                  </span>
+                                </td>
                                 {csvResult.headers.map((h) => (
                                   <td key={h} className="py-2.5 px-3 text-[#111827] dark:text-white max-w-xs truncate">
                                     {row[h] || '—'}
@@ -420,12 +535,45 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                   </button>
                 </div>
 
-                {/* Variable Insertion Pills */}
+                {/* AI Variable Insertion Pills */}
+                <div className="p-4 bg-gradient-to-r from-rose-500/10 via-amber-500/5 to-transparent border border-rose-500/25 rounded-xl space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-[#f43f5e]" />
+                      <span className="mono-eyebrow text-[#111827] dark:text-white font-medium text-xs">
+                        AI COMPANY-SPECIFIC ADJUSTMENT TOKENS
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono text-[#6b7280] dark:text-[#a1a1aa]">
+                      Analyzes & customizes per company
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { token: 'company_type', label: '+{company_type}', desc: 'Identified Business Type' },
+                      { token: 'personalized_pitch', label: '+{personalized_pitch}', desc: 'Tailored Industry Pitch' },
+                      { token: 'pain_point', label: '+{pain_point}', desc: 'Industry Specific Bottleneck' },
+                      { token: 'value_prop', label: '+{value_prop}', desc: 'Tailored Solution' },
+                      { token: 'industry', label: '+{industry}', desc: 'High-Level Industry' },
+                    ].map((v) => (
+                      <button
+                        key={v.token}
+                        type="button"
+                        onClick={() => handleInsertVariable(v.token)}
+                        className="mono-btn text-xs px-3 py-1.5 rounded-full bg-white dark:bg-[#12141c] border border-rose-200 dark:border-rose-900/60 text-[#f43f5e] hover:bg-[#f43f5e] hover:text-white transition font-normal shadow-sm flex items-center space-x-1"
+                        title={v.desc}
+                      >
+                        <span>{v.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Standard Variable Insertion Pills */}
                 <div>
                   <div className="flex items-center space-x-1.5 mb-2">
-                    <Sparkles className="w-3.5 h-3.5 text-[#f43f5e]" />
                     <span className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal">
-                      CLICK TO INSERT DYNAMIC VARIABLES
+                      STANDARD CSV CONTACT VARIABLES
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -442,7 +590,26 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
 
                     {/* Any custom headers detected in CSV */}
                     {csvResult?.headers
-                      .filter((h) => !['first_name', 'company_name', 'website', 'city', 'email'].includes(h.toLowerCase()))
+                      .filter(
+                        (h) =>
+                          ![
+                            'first_name',
+                            'company_name',
+                            'website',
+                            'city',
+                            'email',
+                            'company_type',
+                            'ai_company_type',
+                            'personalized_pitch',
+                            'ai_personalized_pitch',
+                            'pain_point',
+                            'ai_pain_point',
+                            'value_prop',
+                            'ai_value_prop',
+                            'industry',
+                            'ai_industry',
+                          ].includes(h.toLowerCase())
+                      )
                       .map((customHeader) => (
                         <button
                           key={customHeader}
@@ -543,6 +710,32 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                         </option>
                       ))}
                     </select>
+                  )}
+                </div>
+
+                {/* AI Identified Business Card */}
+                <div className="p-3.5 bg-gradient-to-r from-rose-500/10 via-amber-500/5 to-transparent border border-rose-500/25 rounded-xl space-y-2 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-1.5 text-[#f43f5e] text-xs font-mono font-medium">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>AI IDENTIFIED PROFILE</span>
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white dark:bg-[#101218] text-[#f43f5e] border border-rose-200 dark:border-rose-900/60 font-normal">
+                      {sampleProspect.ai_industry || sampleProspect.industry || 'Commercial Services'}
+                    </span>
+                  </div>
+                  <div className="text-sm font-normal text-[#111827] dark:text-white">
+                    {sampleProspect.ai_company_type || sampleProspect.company_type || 'Artisan Bakery & Patisserie'}
+                  </div>
+                  {sampleProspect.ai_pain_point && (
+                    <div className="text-[11px] font-mono text-[#6b7280] dark:text-[#a1a1aa] font-light leading-snug">
+                      Detected Bottleneck: <span className="text-[#111827] dark:text-zinc-200">{sampleProspect.ai_pain_point}</span>
+                    </div>
+                  )}
+                  {sampleProspect.ai_personalized_pitch && (
+                    <div className="text-[11px] font-mono text-[#6b7280] dark:text-[#a1a1aa] font-light leading-snug pt-1.5 border-t border-rose-500/15">
+                      Personalized Angle: <span className="text-[#111827] dark:text-zinc-200">{sampleProspect.ai_personalized_pitch}</span>
+                    </div>
                   )}
                 </div>
 
@@ -692,6 +885,7 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                   <thead className="bg-[#f8fafc] dark:bg-[#18181b] border-b border-[#e5e7eb] dark:border-[#27272a] text-[#4b5563] dark:text-[#a1a1aa]">
                     <tr>
                       <th className="py-2.5 px-4 font-normal">RECIPIENT</th>
+                      <th className="py-2.5 px-4 font-normal text-[#f43f5e]">AI IDENTIFIED TYPE</th>
                       <th className="py-2.5 px-4 font-normal">DISPATCH STATUS</th>
                     </tr>
                   </thead>
@@ -699,6 +893,11 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                     {dispatchResults.map((r, i) => (
                       <tr key={i}>
                         <td className="py-2.5 px-4 text-[#111827] dark:text-white font-light">{r.email}</td>
+                        <td className="py-2.5 px-4">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-rose-50 dark:bg-rose-950/50 text-[#f43f5e] border border-rose-200 dark:border-rose-900 font-normal">
+                            {r.companyType || 'Classified'}
+                          </span>
+                        </td>
                         <td className="py-2.5 px-4">
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-normal ${

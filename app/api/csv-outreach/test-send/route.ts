@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { replaceTemplateVariables } from '@/lib/csv/parser';
 import { sendEmailWithSafetyChecks } from '@/lib/providers/email/sender';
+import {
+  classifySingleProspectWithAi,
+  applyAiAnalysisToProspect,
+} from '@/lib/csv/classifier';
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,18 +33,39 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Replace variables using the sample prospect data
-    const personalizedSubject = `[TEST EMAIL] ${replaceTemplateVariables(template.subject, sampleProspect || {}, mapping)}`;
+    // Auto-enrich sample prospect with AI if not already classified
+    let enrichedSample = sampleProspect || {};
+    if (!enrichedSample.ai_company_type && !enrichedSample.company_type) {
+      const companyCol = mapping?.companyName || 'company_name';
+      const websiteCol = mapping?.website || 'website';
+      const cityCol = mapping?.city || 'city';
+
+      const companyName =
+        enrichedSample[companyCol] ||
+        enrichedSample.company_name ||
+        enrichedSample.company ||
+        enrichedSample.business_name ||
+        'Business';
+      const website = enrichedSample[websiteCol] || enrichedSample.website || '';
+      const city = enrichedSample[cityCol] || enrichedSample.city || '';
+
+      const analysis = await classifySingleProspectWithAi({ companyName, website, city });
+      enrichedSample = applyAiAnalysisToProspect(enrichedSample, analysis);
+    }
+
+    // Replace variables using the AI-enriched sample prospect data
+    const personalizedSubject = `[TEST EMAIL] ${replaceTemplateVariables(template.subject, enrichedSample, mapping)}`;
     
-    const banner = `------------------------------------------------------------\n⚠️ [EVEE AI TEST EMAIL PREVIEW]\nThis test was dispatched to verify formatting and variable rendering before bulk send.\nSample Recipient: ${sampleProspect?.email || 'sample@prospect.com'} | Company: ${sampleProspect?.company_name || sampleProspect?.company || 'Sample Company'}\n------------------------------------------------------------\n\n`;
+    const detectedType = enrichedSample.ai_company_type || enrichedSample.company_type || 'General Business';
+    const banner = `------------------------------------------------------------\n⚠️ [EVEE AI TEST EMAIL PREVIEW]\nThis test was dispatched to verify formatting and variable rendering before bulk broadcast.\nSample Recipient: ${enrichedSample?.email || 'sample@prospect.com'} | Company: ${enrichedSample?.company_name || enrichedSample?.company || 'Sample Company'}\nAI Identified Type: ${detectedType}\n------------------------------------------------------------\n\n`;
     
-    const personalizedBodyText = banner + replaceTemplateVariables(template.bodyText, sampleProspect || {}, mapping);
+    const personalizedBodyText = banner + replaceTemplateVariables(template.bodyText, enrichedSample, mapping);
 
     const result = await sendEmailWithSafetyChecks({
       to: operatorEmail,
       subject: personalizedSubject,
       bodyText: personalizedBodyText,
-      bodyHtml: template.bodyHtml ? `<div style="background:#fef2f2;border:1px solid #fecdd3;padding:12px;margin-bottom:16px;border-radius:6px;font-family:sans-serif;font-size:12px;color:#991b1b;"><strong>⚠️ [EVEE AI TEST EMAIL PREVIEW]</strong><br/>Dispatched to verify formatting before bulk broadcast.</div>${replaceTemplateVariables(template.bodyHtml, sampleProspect || {}, mapping)}` : undefined,
+      bodyHtml: template.bodyHtml ? `<div style="background:#fef2f2;border:1px solid #fecdd3;padding:12px;margin-bottom:16px;border-radius:6px;font-family:sans-serif;font-size:12px;color:#991b1b;"><strong>⚠️ [EVEE AI TEST EMAIL PREVIEW]</strong><br/>Dispatched to verify formatting before bulk broadcast.<br/><strong>AI Detected Type:</strong> ${detectedType}</div>${replaceTemplateVariables(template.bodyHtml, enrichedSample, mapping)}` : undefined,
       isTestSend: true,
     });
 
@@ -53,6 +78,7 @@ export async function POST(req: NextRequest) {
         preview: {
           subject: personalizedSubject,
           bodyText: personalizedBodyText,
+          detectedType,
         },
       });
     } else {

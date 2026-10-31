@@ -210,9 +210,27 @@ export function replaceTemplateVariables(
       return String(data[foundDataKey]);
     }
 
-    // 4. Fallback defaults for standard keys
+    // 4. AI-Enhanced Dynamic Tokens
+    if (lowerKey === 'companytype' || lowerKey === 'type' || lowerKey === 'businesstype' || lowerKey === 'category') {
+      return data.ai_company_type || data.company_type || data.companyType || data.category || 'growing business';
+    }
+    if (lowerKey === 'personalizedpitch' || lowerKey === 'pitch' || lowerKey === 'hook') {
+      return data.ai_personalized_pitch || data.personalized_pitch || data.personalizedPitch || 'We help streamline online customer conversion and booking workflows.';
+    }
+    if (lowerKey === 'painpoint' || lowerKey === 'pain' || lowerKey === 'challenge') {
+      return data.ai_pain_point || data.pain_point || data.painPoint || 'customer coordination drop-offs and scheduling friction';
+    }
+    if (lowerKey === 'valueprop' || lowerKey === 'solution' || lowerKey === 'benefit') {
+      return data.ai_value_prop || data.value_prop || data.valueProp || 'frictionless digital booking workflows';
+    }
+    if (lowerKey === 'industry' || lowerKey === 'sector') {
+      return data.ai_industry || data.industry || 'Commercial Services';
+    }
+
+    // 5. Fallback defaults for standard keys
     if (lowerKey === 'firstname' || lowerKey === 'name') return 'there';
     if (lowerKey === 'companyname' || lowerKey === 'company') return 'your team';
+    if (lowerKey === 'city' || lowerKey === 'location') return 'your area';
 
     return match; // preserve if unmatched custom variable
   });
