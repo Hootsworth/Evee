@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Logo from '@/components/Logo';
-import { LogOut, Plus, Moon, Sun, Activity } from 'lucide-react';
+import { LogOut, Plus, Moon, Sun, Building2, ChevronDown, Shield } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 
 export default function NavBar() {
@@ -16,6 +16,8 @@ export default function NavBar() {
 
   const [metrics, setMetrics] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
+  const [currentOrg, setCurrentOrg] = useState('Primary Workspace');
+  const [userRole, setUserRole] = useState<'ADMIN' | 'OPERATOR' | 'VIEWER'>('ADMIN');
 
   useEffect(() => {
     fetch('/api/reports/overview')
@@ -25,6 +27,9 @@ export default function NavBar() {
 
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
+      if (data.user?.user_metadata?.role) {
+        setUserRole(data.user.user_metadata.role.toUpperCase());
+      }
     });
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -69,8 +74,15 @@ export default function NavBar() {
 
       <div className="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between">
         {/* Brand Logo & Clean Monospace Navigation */}
-        <div className="flex items-center space-x-8">
+        <div className="flex items-center space-x-6">
           <Logo height={26} showSubtitle={false} />
+
+          {/* Organization Multi-Tenant Switcher Pill */}
+          <div className="hidden xl:flex items-center space-x-1.5 px-2.5 py-1 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/30 text-[10px] font-mono text-black dark:text-white cursor-pointer hover:border-black dark:hover:border-white transition">
+            <Building2 className="w-3 h-3 text-[#ef2cc1]" />
+            <span className="font-semibold uppercase tracking-wider">{currentOrg}</span>
+            <ChevronDown className="w-2.5 h-2.5 text-[#959494]" />
+          </div>
 
           {/* Navigation Links with 4px border radius and mono caps */}
           <nav className="hidden md:flex items-center space-x-1">
@@ -104,8 +116,13 @@ export default function NavBar() {
           </nav>
         </div>
 
-        {/* Right Actions: Live Status, Dark Mode Toggle, User Name, New Campaign */}
-        <div className="flex items-center space-x-3">
+        {/* Right Actions: Live Status, Role Pill, Dark Mode Toggle, User Name, New Campaign */}
+        <div className="flex items-center space-x-2.5">
+          {/* RBAC Role Indicator */}
+          <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded-[3px] bg-[#313641]/20 dark:bg-white/[0.08] border border-[#ebebeb] dark:border-white/[0.08] text-[9px] font-mono font-semibold tracking-wider text-[#6b7280] dark:text-[#959494] uppercase">
+            {userRole}
+          </span>
+
           {/* Engine Status Indicator */}
           <div className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/40 text-[10px] font-mono text-[#6b7280] dark:text-[#959494]">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -126,7 +143,7 @@ export default function NavBar() {
             )}
           </button>
 
-          {/* Primary CTA: Solid black pill in 4px radius as per DESIGN.md */}
+          {/* Primary CTA: Solid black pill in 4px radius */}
           <Link
             href="/campaigns"
             className="mono-btn bg-black dark:bg-white hover:bg-neutral-800 dark:hover:bg-neutral-200 text-white dark:text-black px-3.5 py-1.5 rounded-[4px] text-[11px] font-semibold flex items-center space-x-1.5 transition active:scale-95"
@@ -136,14 +153,14 @@ export default function NavBar() {
           </Link>
 
           {user && (
-            <div className="flex items-center space-x-2 pl-3 border-l border-[#ebebeb] dark:border-white/[0.08]">
+            <div className="flex items-center space-x-2 pl-2.5 border-l border-[#ebebeb] dark:border-white/[0.08]">
               {/* User Avatar with 4px radius */}
               <div className="w-6 h-6 rounded-[4px] bg-[#313641] text-white flex items-center justify-center text-[10px] font-mono font-medium">
                 {displayName.charAt(0).toUpperCase()}
               </div>
 
               {/* User Name */}
-              <span className="mono-eyebrow text-[11px] text-[#374151] dark:text-[#e4e4e7] max-w-[120px] truncate hidden lg:inline font-normal capitalize">
+              <span className="mono-eyebrow text-[11px] text-[#374151] dark:text-[#e4e4e7] max-w-[110px] truncate hidden lg:inline font-normal capitalize">
                 {displayName}
               </span>
 

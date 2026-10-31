@@ -20,12 +20,13 @@ import {
   RefreshCw,
   ExternalLink,
   Copy,
+  ScrollText,
 } from 'lucide-react';
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'smtp' | 'ai' | 'places' | 'enrichment' | 'suppression' | 'dns' | 'webhooks'>('smtp');
+  const [activeTab, setActiveTab] = useState<'smtp' | 'ai' | 'places' | 'enrichment' | 'suppression' | 'dns' | 'webhooks' | 'audit'>('smtp');
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Show/Hide password toggles
@@ -66,6 +67,10 @@ export default function SettingsPage() {
   const [dnsResults, setDnsResults] = useState<any>(null);
   const [copiedWebhook, setCopiedWebhook] = useState<string | null>(null);
 
+  // Audit Logs state
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [loadingAudit, setLoadingAudit] = useState(false);
+
   const fetchSettings = async () => {
     try {
       const [settingsRes, supRes] = await Promise.all([
@@ -97,9 +102,28 @@ export default function SettingsPage() {
     }
   };
 
+  const fetchAuditLogs = async () => {
+    setLoadingAudit(true);
+    try {
+      const res = await fetch('/api/audit-logs?limit=40');
+      const data = await res.json();
+      setAuditLogs(data.logs || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingAudit(false);
+    }
+  };
+
   useEffect(() => {
     fetchSettings();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'audit') {
+      fetchAuditLogs();
+    }
+  }, [activeTab]);
 
   const handleSaveProviders = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -144,6 +168,17 @@ export default function SettingsPage() {
         setPlacesApiKey('');
         setEnrichmentApiKey('');
         fetchSettings();
+
+        // Record audit event
+        fetch('/api/audit-logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'API_KEY_UPDATED',
+            entityType: 'PROVIDER_SETTINGS',
+            metadata: { aiProvider, smtpUser: smtpEmail },
+          }),
+        }).catch(() => {});
       } else {
         setMessage({ text: data.error || 'Failed to update settings', type: 'error' });
       }
@@ -172,6 +207,16 @@ export default function SettingsPage() {
       if (res.ok) {
         setNewSuppressionEmail('');
         fetchSettings();
+
+        fetch('/api/audit-logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'SUPPRESSION_ADDED',
+            entityType: 'SUPPRESSION_LIST',
+            metadata: { value: newSuppressionEmail, reason: newSuppressionReason },
+          }),
+        }).catch(() => {});
       }
     } catch (e) {
       console.error(e);
@@ -200,6 +245,16 @@ export default function SettingsPage() {
       });
       const data = await res.json();
       setDnsResults(data);
+
+      fetch('/api/audit-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'DNS_AUDITED',
+          entityType: 'DELIVERABILITY_CHECK',
+          metadata: { domain: dnsDomain, score: data.score },
+        }),
+      }).catch(() => {});
     } catch (err: any) {
       setMessage({ text: `DNS audit error: ${err.message}`, type: 'error' });
     } finally {
@@ -226,6 +281,7 @@ export default function SettingsPage() {
     { id: 'places', label: 'Places Discovery', icon: Key, badge: placesKeyConfigured ? 'Live API' : 'Simulation' },
     { id: 'enrichment', label: 'Lead Enrichment (Free AI)', icon: Search, badge: '100% Free' },
     { id: 'suppression', label: 'Suppression Registry', icon: ShieldCheck, count: suppressions.length },
+    { id: 'audit', label: 'Audit Trail', icon: ScrollText, badge: 'Telemetry' },
   ];
 
   return (
@@ -246,7 +302,7 @@ export default function SettingsPage() {
               Settings & Deliverability
             </h1>
             <p className="text-xs text-[#959494] mt-1 max-w-xl font-normal">
-              Manage authenticated outbound mailers, DNS pre-flight verification, LLM reasoning keys, webhooks, and global suppression rules.
+              Manage authenticated outbound mailers, DNS pre-flight verification, LLM reasoning keys, webhooks, and immutable audit logs.
             </p>
           </div>
 
@@ -576,6 +632,70 @@ export default function SettingsPage() {
                     Uses Gemini 1.5 Flash to classify replies into <strong className="text-black dark:text-white">INTERESTED</strong> (hot lead alert), <strong className="text-black dark:text-white">UNSUBSCRIBE</strong> (auto-block), or <strong className="text-black dark:text-white">OUT_OF_OFFICE</strong>.
                   </p>
                 </div>
+              </div>
+            )}
+
+            {/* TAB: Audit Trail Stream */}
+            {activeTab === 'audit' && (
+              <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-6 space-y-5 text-xs font-mono">
+                <div className="flex items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08]">
+                  <div>
+                    <h2 className="text-base font-semibold text-black dark:text-white">
+                      Immutable Audit Trail
+                    </h2>
+                    <p className="text-[#959494] mt-0.5">
+                      Cryptographically-ordered log recording all dispatch actions, approvals, API modifications, and system events.
+                    </p>
+                  </div>
+                  <button
+                    onClick={fetchAuditLogs}
+                    className="text-[10px] text-[#ef2cc1] hover:underline flex items-center space-x-1"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>REFRESH</span>
+                  </button>
+                </div>
+
+                {loadingAudit ? (
+                  <div className="py-12 text-center text-[#959494]">Loading audit log stream...</div>
+                ) : auditLogs.length === 0 ? (
+                  <div className="py-12 text-center text-[#959494] border border-[#ebebeb] dark:border-white/[0.06] rounded-[4px]">
+                    No audit records logged yet. Actions like approvals, settings updates, and dispatches will stream here.
+                  </div>
+                ) : (
+                  <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead className="bg-[#f8fafc] dark:bg-[#313641]/30 border-b border-[#ebebeb] dark:border-white/[0.08] text-[#959494]">
+                        <tr>
+                          <th className="py-2.5 px-3 font-semibold">ACTION</th>
+                          <th className="py-2.5 px-3 font-semibold">ACTOR</th>
+                          <th className="py-2.5 px-3 font-semibold">ENTITY</th>
+                          <th className="py-2.5 px-3 text-right font-semibold">TIMESTAMP</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#ebebeb] dark:divide-white/[0.06]">
+                        {auditLogs.map((log) => (
+                          <tr key={log.id} className="hover:bg-[#f8fafc] dark:hover:bg-white/[0.02] transition">
+                            <td className="py-2.5 px-3">
+                              <span className="px-1.5 py-0.5 rounded-[2px] bg-black dark:bg-white text-white dark:text-black font-semibold text-[10px]">
+                                {log.action}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-black dark:text-white">
+                              {log.actorEmail}
+                            </td>
+                            <td className="py-2.5 px-3 text-[#959494]">
+                              {log.entityType}
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-[#959494]">
+                              {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
 
