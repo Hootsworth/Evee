@@ -8,6 +8,8 @@ import {
   ResearchResultSchema,
   EmailDraftOutputSchema,
   EmailDraftOutput,
+  EnhanceDraftInput,
+  EnhanceDraftOutput,
 } from './interface';
 import { EvidenceItem, ResearchResult } from '@/lib/types';
 
@@ -218,5 +220,102 @@ RULES:
     const parsedJson = JSON.parse(content);
 
     return EmailDraftOutputSchema.parse(parsedJson);
+  }
+
+  async enhanceDraft(input: EnhanceDraftInput): Promise<EnhanceDraftOutput> {
+    if (!this.config.apiKey) {
+      throw new Error(`API key is required for ${this.config.provider.toUpperCase()}. Please configure it in Settings.`);
+    }
+
+    const goalDescriptions: Record<string, string> = {
+      concise: 'Make this draft radically concise, sharp, and easy to read on mobile. Cut fluff, preamble, and pleasantries. Target under 85 words.',
+      persuasive: 'Make this draft more compelling and value-focused. Hook the reader immediately and articulate the high-impact business benefit clearly.',
+      cta: 'Improve the Call-To-Action (CTA). Make it conversational, low-friction, and easy to reply to (e.g. asking if they are open to a 2-min screen share or quick question).',
+      warmer: 'Make the tone warmer, respectful, consultative, and peer-to-peer. Avoid sounding like a pushy or automated sales blast.',
+      punchy: 'Make sentences short, active, dynamic, and direct. Eliminate passive voice and corporate jargon.',
+      custom: input.instruction || 'Improve the copy for better clarity and conversion.',
+    };
+
+    const targetGoal = input.goal || 'persuasive';
+    const goalInstruction = goalDescriptions[targetGoal] || goalDescriptions.persuasive;
+
+    const systemPrompt = `You are a world-class B2B cold email strategist and copywriter.
+Your task is to refine and elevate an outreach email to maximize engagement, positive reply rates, and clarity.
+
+PRIMARY OBJECTIVE:
+${goalInstruction}
+
+ADDITIONAL OPERATOR INSTRUCTION:
+${input.instruction ? input.instruction : 'None provided.'}
+
+CRITICAL RULES:
+1. STRICTLY PRESERVE all placeholder/template tokens in curly brackets (e.g., {first_name}, {company_name}, {company_type}, {personalized_pitch}, {website}, {city}, {industry}, {pain_point}, {value_prop}). NEVER remove, rename, or translate these tokens.
+2. Maintain plain-text email styling with short 1-2 sentence paragraphs.
+3. Preserve or include an opt-out footer notice (e.g., "Reply 'unsubscribe' to opt out" or similar).
+4. Do NOT make deceptive claims or fake guarantees.
+5. Provide a crisp summary of what you improved and why.
+
+Output strictly valid JSON with this exact schema:
+{
+  "improvedSubject": "Refined email subject line",
+  "improvedBody": "Refined plain text email body",
+  "changesSummary": "Concise 1-2 sentence summary of specific enhancements made",
+  "keyImprovementTips": ["Key tip 1 applied", "Key tip 2 applied"]
+}`;
+
+    const userPrompt = JSON.stringify({
+      businessContext: input.businessContext,
+      currentSubject: input.subject || '',
+      currentBodyText: input.bodyText,
+      goal: targetGoal,
+      operatorInstruction: input.instruction,
+    });
+
+    const baseUrl = this.getEffectiveBaseUrl();
+    const model = this.getEffectiveModel();
+
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.4,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`${this.config.provider.toUpperCase()} (${model}) API returned error ${response.status}: ${err}`);
+    }
+
+    const data = await response.json();
+    const rawContent = data.choices?.[0]?.message?.content;
+    if (!rawContent) {
+      throw new Error(`${this.config.provider.toUpperCase()} (${model}) returned empty response`);
+    }
+
+    let parsed: any;
+    try {
+      const cleaned = rawContent.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+      parsed = JSON.parse(cleaned);
+    } catch (e) {
+      throw new Error(`Failed to parse AI response into JSON: ${rawContent.slice(0, 100)}`);
+    }
+
+    return {
+      improvedSubject: parsed.improvedSubject || input.subject || 'Follow-up regarding your workflow',
+      improvedBody: parsed.improvedBody || input.bodyText,
+      changesSummary: parsed.changesSummary || 'Copy polished for clarity and conversion.',
+      keyImprovementTips: Array.isArray(parsed.keyImprovementTips) ? parsed.keyImprovementTips : [],
+      modelUsed: `${this.config.provider.toUpperCase()} // ${model}`,
+    };
   }
 }

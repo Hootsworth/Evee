@@ -19,14 +19,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Draft not found' }, { status: 404 });
   }
 
-  // Update draft status to approved
+  // Update draft status to approved (and persist any copy edits if provided)
+  let payload: { bodyText?: string; subjectLine?: string } = {};
+  try {
+    payload = await req.json();
+  } catch {
+    // No request body provided; proceed with status update
+  }
+
+  const updateFields: Record<string, any> = {
+    approval_status: 'approved',
+    approved_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  if (payload.bodyText) updateFields.body_text = payload.bodyText;
+  if (payload.subjectLine) updateFields.subject_line = payload.subjectLine;
+
   const { data: updated, error: updateErr } = await admin
     .from('email_drafts')
-    .update({
-      approval_status: 'approved',
-      approved_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
+    .update(updateFields)
     .eq('id', id)
     .select()
     .single();

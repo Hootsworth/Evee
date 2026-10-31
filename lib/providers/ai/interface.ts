@@ -28,6 +28,26 @@ export const EmailDraftOutputSchema = z.object({
 
 export type EmailDraftOutput = z.infer<typeof EmailDraftOutputSchema>;
 
+export interface EnhanceDraftInput {
+  subject?: string;
+  bodyText: string;
+  goal?: 'concise' | 'persuasive' | 'cta' | 'warmer' | 'punchy' | 'custom';
+  instruction?: string;
+  businessContext?: {
+    name?: string;
+    category?: string;
+    city?: string;
+  };
+}
+
+export interface EnhanceDraftOutput {
+  improvedSubject: string;
+  improvedBody: string;
+  changesSummary: string;
+  keyImprovementTips?: string[];
+  modelUsed: string;
+}
+
 export interface ResearchProvider {
   name: string;
   analyzeBusiness(
@@ -45,4 +65,5 @@ export interface DraftProvider {
     serviceMatch: string,
     styleConfig?: { tone?: string; language?: string }
   ): Promise<EmailDraftOutput>;
+  enhanceDraft?(input: EnhanceDraftInput): Promise<EnhanceDraftOutput>;
 }

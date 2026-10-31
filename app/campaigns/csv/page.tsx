@@ -17,6 +17,8 @@ import {
   FileSpreadsheet,
   ArrowLeft,
   Info,
+  Check,
+  X,
 } from 'lucide-react';
 import {
   parseCsvFile,
@@ -67,6 +69,19 @@ export default function CsvOutreachPage() {
   const [testSending, setTestSending] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
   const [testError, setTestError] = useState<string | null>(null);
+
+  // AI Template Optimizer State
+  const [showAiEnhancer, setShowAiEnhancer] = useState(false);
+  const [aiGoal, setAiGoal] = useState<'concise' | 'persuasive' | 'cta' | 'warmer' | 'punchy' | 'custom'>('persuasive');
+  const [aiCustomInstruction, setAiCustomInstruction] = useState('');
+  const [aiEnhancing, setAiEnhancing] = useState(false);
+  const [aiResult, setAiResult] = useState<{
+    improvedSubject: string;
+    improvedBody: string;
+    changesSummary: string;
+    keyImprovementTips?: string[];
+    modelUsed: string;
+  } | null>(null);
 
   // Bulk dispatch state
   const [dispatching, setDispatching] = useState(false);
@@ -182,6 +197,48 @@ export default function CsvOutreachPage() {
     } finally {
       setEnriching(false);
     }
+  };
+
+  // AI Email Template Optimization
+  const handleEnhanceTemplate = async () => {
+    if (!bodyText) return;
+    setAiEnhancing(true);
+    setTestError(null);
+    try {
+      const res = await fetch('/api/drafts/enhance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject,
+          bodyText,
+          goal: aiGoal,
+          instruction: aiCustomInstruction,
+          businessContext: {
+            name: '{company_name}',
+            category: '{company_type}',
+            city: '{city}',
+          },
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAiResult(data);
+      } else {
+        setTestError(`AI template enhancement failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (err: any) {
+      setTestError(`Error enhancing template: ${err.message}`);
+    } finally {
+      setAiEnhancing(false);
+    }
+  };
+
+  const handleApplyAiTemplate = () => {
+    if (!aiResult) return;
+    if (aiResult.improvedSubject) setSubject(aiResult.improvedSubject);
+    if (aiResult.improvedBody) setBodyText(aiResult.improvedBody);
+    setShowAiEnhancer(false);
+    setAiResult(null);
   };
 
   // Helper to insert a variable chip into the bodyText at the current cursor position
@@ -661,11 +718,166 @@ export default function CsvOutreachPage() {
                   />
                 </div>
 
-                {/* Body Textarea */}
-                <div>
-                  <label className="mono-eyebrow text-[#6b7280] dark:text-[#959494] block mb-1">
-                    EMAIL BODY TEMPLATE
-                  </label>
+                {/* Body Textarea with AI Enhancer Toggle */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="mono-eyebrow text-[#6b7280] dark:text-[#959494] block">
+                      EMAIL BODY TEMPLATE
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAiEnhancer(!showAiEnhancer);
+                        if (showAiEnhancer) setAiResult(null);
+                      }}
+                      className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-[3px] border text-[10px] font-mono font-semibold transition ${
+                        showAiEnhancer
+                          ? 'bg-[#ef2cc1] border-[#ef2cc1] text-white'
+                          : 'bg-black dark:bg-white text-white dark:text-black border-transparent hover:opacity-90'
+                      }`}
+                    >
+                      <Sparkles className="w-3 h-3 text-[#ef2cc1]" />
+                      <span>{showAiEnhancer ? 'CLOSE AI OPTIMIZER' : 'IMPROVE COPY WITH AI'}</span>
+                    </button>
+                  </div>
+
+                  {/* AI Copywriting & Optimization Panel */}
+                  {showAiEnhancer && (
+                    <div className="ai-flat-container overflow-hidden space-y-3">
+                      {aiEnhancing ? (
+                        <div className="w-full h-[2px] bg-neutral-200 dark:bg-white/[0.08] overflow-hidden relative">
+                          <div className="w-1/3 h-full bg-gradient-to-r from-[#fc4c02] via-[#ef2cc1] to-[#bdbbff] animate-flat-scan" />
+                        </div>
+                      ) : (
+                        <div className="brand-gradient-h w-full" />
+                      )}
+
+                      <div className="p-3.5 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Sparkles className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                            <span className="font-mono text-xs font-semibold uppercase text-black dark:text-white">
+                              AI Template Optimizer
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-mono text-[#959494]">
+                            Preserves dynamic tokens ({'{company_name}'}, {'{first_name}'}, etc.)
+                          </span>
+                        </div>
+
+                        {/* Quick Goal Selector */}
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-mono uppercase text-[#959494] block">
+                            Select Enhancement Goal:
+                          </label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {[
+                              { id: 'persuasive', label: '🎯 Higher Conversion Hook' },
+                              { id: 'concise', label: '✂️ More Concise (<85 words)' },
+                              { id: 'cta', label: '⚡ Low-Friction CTA' },
+                              { id: 'warmer', label: '🤝 Warmer Advisory Tone' },
+                              { id: 'punchy', label: '💥 Short & Punchy' },
+                              { id: 'custom', label: '✏️ Custom Instruction' },
+                            ].map((g) => (
+                              <button
+                                key={g.id}
+                                type="button"
+                                onClick={() => setAiGoal(g.id as any)}
+                                className={`text-[10px] font-mono px-2 py-0.5 rounded-[3px] border transition ${
+                                  aiGoal === g.id
+                                    ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white font-semibold'
+                                    : 'bg-white dark:bg-[#14161f] border-[#ebebeb] dark:border-white/[0.1] text-[#6b7280] dark:text-[#959494] hover:text-black dark:hover:text-white'
+                                }`}
+                              >
+                                {g.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {aiGoal === 'custom' && (
+                          <input
+                            type="text"
+                            value={aiCustomInstruction}
+                            onChange={(e) => setAiCustomInstruction(e.target.value)}
+                            placeholder="e.g. Focus on our free 1-click audit, sound friendly, keep it casual..."
+                            className="w-full text-xs font-mono p-2 border border-[#ebebeb] dark:border-white/[0.08] rounded-[3px] bg-white dark:bg-[#010120] text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
+                          />
+                        )}
+
+                        <div className="flex justify-end pt-1">
+                          <button
+                            type="button"
+                            onClick={handleEnhanceTemplate}
+                            disabled={aiEnhancing}
+                            className="mono-btn bg-black dark:bg-white text-white dark:text-black px-3.5 py-1.5 rounded-[3px] text-xs font-mono font-semibold flex items-center space-x-1.5 hover:opacity-90 disabled:opacity-50 transition"
+                          >
+                            {aiEnhancing ? (
+                              <>
+                                <RefreshCw className="w-3 h-3 animate-spin" />
+                                <span>OPTIMIZING TEMPLATE...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-3 h-3 text-[#ef2cc1]" />
+                                <span>GENERATE IMPROVED TEMPLATE</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Results Box */}
+                        {aiResult && (
+                          <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] bg-white dark:bg-[#010120] p-3 space-y-2.5 mt-2">
+                            <div className="flex items-center justify-between pb-1.5 border-b border-[#ebebeb] dark:border-white/[0.06]">
+                              <div className="flex items-center space-x-1.5 text-xs font-mono font-semibold text-black dark:text-white">
+                                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                <span>OPTIMIZED COPY READY</span>
+                              </div>
+                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-[2px] bg-black/5 dark:bg-white/10 text-black dark:text-white">
+                                {aiResult.modelUsed}
+                              </span>
+                            </div>
+
+                            <div className="text-xs font-sans text-[#4b5563] dark:text-[#9ca3af] bg-[#f8fafc] dark:bg-[#14161f] p-2 rounded-[3px]">
+                              {aiResult.changesSummary}
+                            </div>
+
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-mono text-[#959494] uppercase block">Preview Subject:</span>
+                              <div className="text-xs font-mono font-medium text-black dark:text-white">{aiResult.improvedSubject}</div>
+                            </div>
+
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-mono text-[#959494] uppercase block">Preview Body:</span>
+                              <div className="text-xs font-mono whitespace-pre-wrap bg-[#f8fafc] dark:bg-[#14161f] p-2.5 rounded-[3px] border border-[#ebebeb] dark:border-white/[0.06] text-black dark:text-white max-h-36 overflow-y-auto">
+                                {aiResult.improvedBody}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-end space-x-2 pt-1 border-t border-[#ebebeb] dark:border-white/[0.06]">
+                              <button
+                                type="button"
+                                onClick={() => setAiResult(null)}
+                                className="mono-btn text-[11px] font-mono text-[#6b7280] dark:text-[#959494] px-2 py-1"
+                              >
+                                DISCARD
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleApplyAiTemplate}
+                                className="mono-btn px-3 py-1.5 rounded-[3px] bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-mono font-semibold flex items-center space-x-1 shadow-sm"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                <span>APPLY TO TEMPLATE</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <textarea
                     ref={textareaRef}
                     rows={10}

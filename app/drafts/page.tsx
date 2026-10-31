@@ -32,6 +32,19 @@ export default function DraftsApprovalPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
+  // AI Copywriting & Optimization State
+  const [showAiEnhancer, setShowAiEnhancer] = useState(false);
+  const [aiGoal, setAiGoal] = useState<'concise' | 'persuasive' | 'cta' | 'warmer' | 'punchy' | 'custom'>('persuasive');
+  const [aiCustomInstruction, setAiCustomInstruction] = useState('');
+  const [aiEnhancing, setAiEnhancing] = useState(false);
+  const [aiResult, setAiResult] = useState<{
+    improvedSubject: string;
+    improvedBody: string;
+    changesSummary: string;
+    keyImprovementTips?: string[];
+    modelUsed: string;
+  } | null>(null);
+
   const fetchDrafts = async () => {
     try {
       const [draftsRes, wfRes] = await Promise.all([
@@ -68,15 +81,67 @@ export default function DraftsApprovalPage() {
     }
   }, [selectedDraftId]);
 
+  const handleEnhanceDraft = async () => {
+    if (!selectedDraft) return;
+    setAiEnhancing(true);
+    setStatusMessage(null);
+    try {
+      const currentSubject = selectedDraft.subject_line || '';
+      const currentBody = editedBody || selectedDraft.body_text || '';
+      const res = await fetch('/api/drafts/enhance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: currentSubject,
+          bodyText: currentBody,
+          goal: aiGoal,
+          instruction: aiCustomInstruction,
+          businessContext: {
+            name: selectedDraft.business?.display_name,
+            category: selectedDraft.business?.industry_category,
+            city: selectedDraft.business?.city,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAiResult(data);
+      } else {
+        setStatusMessage(`AI Enhancement failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (err: any) {
+      setStatusMessage(`Error enhancing draft: ${err.message}`);
+    } finally {
+      setAiEnhancing(false);
+    }
+  };
+
+  const handleApplyAiEnhancement = () => {
+    if (!aiResult || !selectedDraft) return;
+    setEditedBody(aiResult.improvedBody);
+    selectedDraft.subject_line = aiResult.improvedSubject;
+    selectedDraft.body_text = aiResult.improvedBody;
+    setIsEditing(true);
+    setShowAiEnhancer(false);
+    setStatusMessage(`Applied AI enhancements (${aiResult.modelUsed}). Switched to edit mode for final review.`);
+  };
+
   const handleApprove = async (draftId: string) => {
     setActionLoading(draftId);
     setStatusMessage('Approving draft...');
     try {
-      const res = await fetch(`/api/drafts/${draftId}/approve`, { method: 'POST' });
+      const res = await fetch(`/api/drafts/${draftId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bodyText: editedBody || selectedDraft?.body_text,
+          subjectLine: selectedDraft?.subject_line,
+        }),
+      });
       if (res.ok) {
-        setStatusMessage('Draft approved. Ready for dispatch.');
+        setStatusMessage('Draft approved with current copy. Ready for dispatch.');
         setDrafts((prev) =>
-          prev.map((d) => (d.id === draftId ? { ...d, approval_status: 'approved' } : d))
+          prev.map((d) => (d.id === draftId ? { ...d, approval_status: 'approved', body_text: editedBody || d.body_text } : d))
         );
       }
     } catch (err: any) {
@@ -334,6 +399,21 @@ export default function DraftsApprovalPage() {
                       </span>
                       <div className="flex items-center space-x-2">
                         <button
+                          onClick={() => {
+                            setShowAiEnhancer(!showAiEnhancer);
+                            if (showAiEnhancer) setAiResult(null);
+                          }}
+                          className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-[3px] border text-[10px] font-mono font-semibold transition shadow-sm ${
+                            showAiEnhancer
+                              ? 'bg-[#ef2cc1] border-[#ef2cc1] text-white'
+                              : 'bg-black dark:bg-white text-white dark:text-black border-transparent hover:opacity-90'
+                          }`}
+                        >
+                          <Sparkles className="w-3 h-3 text-[#ef2cc1]" />
+                          <span>{showAiEnhancer ? 'CLOSE AI OPTIMIZER' : 'IMPROVE WITH AI'}</span>
+                        </button>
+
+                        <button
                           onClick={() => setIsEditing(!isEditing)}
                           className="text-[10px] font-mono uppercase underline text-[#6b7280] dark:text-[#959494] hover:text-black dark:hover:text-white"
                         >
@@ -363,6 +443,178 @@ export default function DraftsApprovalPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* AI Copywriting & Optimization Panel */}
+                  {showAiEnhancer && (
+                    <div className="border-b border-[#ebebeb] dark:border-white/[0.08] bg-[#fafafa] dark:bg-[#070814] p-4 space-y-3.5 max-h-[380px] overflow-y-auto">
+                      {/* Flat Container with Precision Runner */}
+                      <div className="ai-flat-container overflow-hidden">
+                        {aiEnhancing ? (
+                          <div className="w-full h-[2px] bg-neutral-200 dark:bg-white/[0.08] overflow-hidden relative">
+                            <div className="w-1/3 h-full bg-gradient-to-r from-[#fc4c02] via-[#ef2cc1] to-[#bdbbff] animate-flat-scan" />
+                          </div>
+                        ) : (
+                          <div className="brand-gradient-h w-full" />
+                        )}
+
+                        <div className="p-3.5 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <Sparkles className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                              <span className="font-mono text-xs font-semibold uppercase text-black dark:text-white">
+                                AI Copywriting & Conversion Optimizer
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-mono text-[#959494]">
+                              Multi-LLM // Meta • Gemini • OpenAI
+                            </span>
+                          </div>
+
+                          {/* Quick Goal Selector */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-mono uppercase text-[#959494] block">
+                              Select Enhancement Goal:
+                            </label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {[
+                                { id: 'persuasive', label: '🎯 Higher Conversion Hook' },
+                                { id: 'concise', label: '✂️ More Concise (<85 words)' },
+                                { id: 'cta', label: '⚡ Low-Friction CTA' },
+                                { id: 'warmer', label: '🤝 Warmer Advisory Tone' },
+                                { id: 'punchy', label: '💥 Short & Punchy' },
+                                { id: 'custom', label: '✏️ Custom Instruction' },
+                              ].map((g) => (
+                                <button
+                                  key={g.id}
+                                  type="button"
+                                  onClick={() => setAiGoal(g.id as any)}
+                                  className={`text-[10px] font-mono px-2.5 py-1 rounded-[3px] border transition ${
+                                    aiGoal === g.id
+                                      ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white font-semibold'
+                                      : 'bg-white dark:bg-[#14161f] border-[#ebebeb] dark:border-white/[0.1] text-[#6b7280] dark:text-[#959494] hover:text-black dark:hover:text-white'
+                                  }`}
+                                >
+                                  {g.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Custom instruction input if selected */}
+                          {aiGoal === 'custom' && (
+                            <div>
+                              <input
+                                type="text"
+                                value={aiCustomInstruction}
+                                onChange={(e) => setAiCustomInstruction(e.target.value)}
+                                placeholder="e.g. Focus on our free 1-click audit, sound friendly, keep it casual..."
+                                className="w-full text-xs font-mono p-2 border border-[#ebebeb] dark:border-white/[0.08] rounded-[3px] bg-white dark:bg-[#010120] text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
+                              />
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-[10px] font-mono text-[#959494]">
+                              Preserves dynamic tokens ({'{first_name}'}, {'{company_name}'}, etc.)
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={handleEnhanceDraft}
+                              disabled={aiEnhancing}
+                              className="mono-btn bg-black dark:bg-white text-white dark:text-black px-3.5 py-1.5 rounded-[3px] text-xs font-mono font-semibold flex items-center space-x-1.5 hover:opacity-90 disabled:opacity-50 transition"
+                            >
+                              {aiEnhancing ? (
+                                <>
+                                  <RefreshCw className="w-3 h-3 animate-spin" />
+                                  <span>OPTIMIZING COPY...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles className="w-3 h-3 text-[#ef2cc1]" />
+                                  <span>GENERATE IMPROVED COPY</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Display AI Improvement Results if available */}
+                      {aiResult && (
+                        <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] bg-white dark:bg-[#010120] p-3.5 space-y-3">
+                          <div className="flex items-center justify-between pb-2 border-b border-[#ebebeb] dark:border-white/[0.06]">
+                            <div className="flex items-center space-x-2">
+                              <Check className="w-3.5 h-3.5 text-emerald-500" />
+                              <span className="text-xs font-mono font-semibold text-black dark:text-white uppercase">
+                                Copy Optimized
+                              </span>
+                            </div>
+                            <span className="text-[9px] font-mono px-2 py-0.5 rounded-[2px] bg-black/5 dark:bg-white/10 text-black dark:text-white border border-[#ebebeb] dark:border-white/[0.1]">
+                              {aiResult.modelUsed}
+                            </span>
+                          </div>
+
+                          {/* Summary of changes */}
+                          <div className="text-xs font-sans text-[#4b5563] dark:text-[#9ca3af] bg-[#f8fafc] dark:bg-[#14161f] p-2.5 rounded-[3px] border border-[#ebebeb] dark:border-white/[0.06]">
+                            <strong className="text-black dark:text-white font-mono text-[11px] block mb-0.5">
+                              Summary of Improvements:
+                            </strong>
+                            {aiResult.changesSummary}
+                          </div>
+
+                          {aiResult.keyImprovementTips && aiResult.keyImprovementTips.length > 0 && (
+                            <ul className="text-[11px] font-mono text-[#6b7280] dark:text-[#959494] space-y-0.5 list-disc list-inside">
+                              {aiResult.keyImprovementTips.map((tip, i) => (
+                                <li key={i}>{tip}</li>
+                              ))}
+                            </ul>
+                          )}
+
+                          {/* Subject Preview */}
+                          {aiResult.improvedSubject && (
+                            <div>
+                              <div className="text-[10px] font-mono uppercase text-[#959494]">
+                                Improved Subject:
+                              </div>
+                              <div className="text-xs font-mono font-medium text-black dark:text-white mt-0.5">
+                                {aiResult.improvedSubject}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Body Preview */}
+                          <div>
+                            <div className="text-[10px] font-mono uppercase text-[#959494] mb-1">
+                              Improved Body Preview:
+                            </div>
+                            <div className="text-xs font-sans whitespace-pre-wrap bg-[#f8fafc] dark:bg-[#14161f] p-3 rounded-[3px] border border-[#ebebeb] dark:border-white/[0.06] text-black dark:text-white max-h-48 overflow-y-auto">
+                              {aiResult.improvedBody}
+                            </div>
+                          </div>
+
+                          {/* Apply & Discard Controls */}
+                          <div className="flex items-center justify-end space-x-2 pt-2 border-t border-[#ebebeb] dark:border-white/[0.06]">
+                            <button
+                              type="button"
+                              onClick={() => setAiResult(null)}
+                              className="mono-btn px-3 py-1.5 rounded-[3px] text-[11px] font-mono text-[#6b7280] dark:text-[#959494] hover:text-black dark:hover:text-white"
+                            >
+                              DISCARD
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleApplyAiEnhancement}
+                              className="mono-btn px-4 py-1.5 rounded-[3px] bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-mono font-semibold flex items-center space-x-1.5 shadow-sm"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>APPLY TO DRAFT</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Email Body Content */}
                   <div className="p-5 flex-1 overflow-y-auto">
