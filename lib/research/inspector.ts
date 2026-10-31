@@ -60,6 +60,18 @@ async function safeFetchHtml(targetUrl: string, timeoutMs = 8000): Promise<{ htm
   }
 }
 
+function isValidPublicEmail(email: string): boolean {
+  if (!email || !email.includes('@')) return false;
+  const lower = email.toLowerCase().trim();
+  // Filter out image/media extensions captured accidentally
+  if (/\.(png|jpg|jpeg|gif|webp|svg|css|js)$/i.test(lower)) return false;
+  // Filter out dummy/template placeholders
+  if (lower.startsWith('example') || lower.startsWith('user@') || lower.startsWith('yourname@') || lower.startsWith('name@') || lower.startsWith('test@')) return false;
+  // Filter out framework/CDN noise
+  if (lower.includes('sentry.io') || lower.includes('wixpress.com') || lower.includes('cloudflare.com') || lower.includes('github.com')) return false;
+  return true;
+}
+
 /**
  * Inspects a business website up to maxPages (default: 5)
  */
@@ -76,6 +88,20 @@ export async function inspectWebsite(baseUrl: string, maxPages = 5, timeoutMs = 
 
   try {
     const baseParsed = new URL(baseUrl);
+    const origin = baseParsed.origin;
+
+    // Proactively queue high-yield contact & about pages
+    const commonPages = [
+      `${origin}/contact`,
+      `${origin}/contact-us`,
+      `${origin}/about`,
+      `${origin}/about-us`,
+      `${origin}/team`,
+      `${origin}/privacy-policy`,
+    ];
+    for (const p of commonPages) {
+      if (!pagesToVisit.includes(p)) pagesToVisit.push(p);
+    }
 
     while (pagesToVisit.length > 0 && visited.size < maxPages) {
       const currentUrl = pagesToVisit.shift()!;
@@ -96,12 +122,20 @@ export async function inspectWebsite(baseUrl: string, maxPages = 5, timeoutMs = 
       if (!result.contactEmail) {
         const mailto = $('a[href^="mailto:"]').first().attr('href');
         if (mailto) {
-          result.contactEmail = mailto.replace(/^mailto:/i, '').split('?')[0].trim();
-        } else {
+          const rawMail = mailto.replace(/^mailto:/i, '').split('?')[0].trim();
+          if (isValidPublicEmail(rawMail)) {
+            result.contactEmail = rawMail;
+          }
+        }
+        
+        if (!result.contactEmail) {
           const bodyText = $('body').text();
-          const emailMatch = bodyText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-          if (emailMatch) {
-            result.contactEmail = emailMatch[0].trim();
+          const emailMatches = bodyText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g);
+          if (emailMatches) {
+            const valid = emailMatches.find((m) => isValidPublicEmail(m));
+            if (valid) {
+              result.contactEmail = valid.trim();
+            }
           }
         }
       }

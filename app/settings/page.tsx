@@ -590,10 +590,11 @@ export default function SettingsPage() {
                     <label className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal block mb-2.5">
                       ENRICHMENT PROVIDER
                     </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {[
-                        { id: 'explorium', name: 'Explorium B2B Enrichment', desc: 'Enterprise business profile, direct executive emails & phones' },
-                        { id: 'built_in', name: 'Built-in Web & AI Discovery', desc: 'Zero-config crawler extracting contact pages & domain mailboxes' },
+                        { id: 'built_in', name: 'Built-in Web & AI (Free)', desc: '100% Free. Auto-crawls contact pages, mailto links, & DNS MX records.' },
+                        { id: 'hunter', name: 'Hunter.io (Free 25/mo)', desc: '25 free domain email searches per month. Quick free signup.' },
+                        { id: 'explorium', name: 'Explorium B2B', desc: 'Enterprise data matching with decision maker phone & email.' },
                       ].map((p) => {
                         const isSelected = enrichmentProvider === p.id;
                         return (
@@ -618,6 +619,36 @@ export default function SettingsPage() {
                       })}
                     </div>
                   </div>
+
+                  {enrichmentProvider === 'hunter' && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal">
+                          HUNTER.IO API KEY (FREE TIER: 25 SEARCHES/MONTH)
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowEnrichmentKey(!showEnrichmentKey)}
+                          className="text-[10px] font-mono text-[#f43f5e] hover:underline flex items-center space-x-1"
+                        >
+                          {showEnrichmentKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          <span>{showEnrichmentKey ? 'HIDE' : 'SHOW'}</span>
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type={showEnrichmentKey ? 'text' : 'password'}
+                          placeholder={enrichmentKeyConfigured ? '•••••••••••••••• (Leave blank to keep existing key)' : 'Enter Hunter.io API Key...'}
+                          value={enrichmentApiKey}
+                          onChange={(e) => setEnrichmentApiKey(e.target.value)}
+                          className="w-full text-xs font-mono border border-[#e5e7eb] dark:border-[#27272a] bg-white dark:bg-[#18181b] rounded-xl p-3 focus:outline-none focus:border-[#f43f5e] focus:ring-1 focus:ring-rose-500/20 text-[#111827] dark:text-white font-light"
+                        />
+                      </div>
+                      <p className="text-[11px] text-[#9ca3af] dark:text-[#71717a] mt-1.5 font-mono">
+                        Get 25 free credits every month at <a href="https://hunter.io" target="_blank" rel="noopener noreferrer" className="text-[#f43f5e] underline">hunter.io</a> (no credit card required).
+                      </p>
+                    </div>
+                  )}
 
                   {enrichmentProvider === 'explorium' && (
                     <div>

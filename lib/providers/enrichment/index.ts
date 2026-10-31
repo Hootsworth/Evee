@@ -16,8 +16,10 @@ export async function getDynamicEnrichmentProvider(): Promise<EnrichmentProvider
   if (record && record.encrypted_access_token) {
     try {
       const apiKey = decryptSecret(record.encrypted_access_token);
+      const meta = record.scopes as any;
       return new ExploriumEnrichmentProvider({
         apiKey,
+        provider: meta?.provider || 'explorium',
       });
     } catch (e) {
       console.error('Failed to decrypt saved Explorium/Enrichment key:', e);
