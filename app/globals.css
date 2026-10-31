@@ -203,61 +203,73 @@
   animation: ios-swish 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-@keyframes ai-pulse-beam {
-  0%, 100% {
-    opacity: 0.6;
-    background-position: 0% 50%;
-  }
-  50% {
-    opacity: 1;
-    background-position: 100% 50%;
-  }
-}
+/* ==========================================================================
+   Flat Technical AI Design System (Strict Together AI Aesthetic)
+   Replaces fake glassmorphism & glowing gradients with crisp flat developer chrome
+   ========================================================================== */
 
-/* Distinct AI Card Chrome */
-.ai-glass-card {
+/* Clean flat container matching DESIGN.md */
+.ai-flat-container {
   position: relative;
   border-radius: 4px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.8) 100%);
-  border: 1px solid rgba(239, 44, 193, 0.28);
-  box-shadow: 0 0 0 1px rgba(252, 76, 2, 0.08), 0 4px 20px -4px rgba(239, 44, 193, 0.12);
+  background-color: #ffffff;
+  border: 1px solid #ebebeb;
 }
 
-.dark .ai-glass-card {
-  background: linear-gradient(180deg, rgba(20, 22, 34, 0.85) 0%, rgba(12, 13, 20, 0.9) 100%) !important;
-  border: 1px solid rgba(239, 44, 193, 0.35) !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(239, 44, 193, 0.2), 0 8px 32px -8px rgba(0, 0, 0, 0.7) !important;
+.dark .ai-flat-container {
+  background-color: #010120 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
 }
 
-/* Distinct AI Chip */
-.ai-chip {
-  position: relative;
+/* Crisp flat monospace technical pill */
+.ai-flat-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.2rem 0.55rem;
-  border-radius: 4px;
-  font-family: 'JetBrains Mono', monospace;
+  padding: 0.15rem 0.5rem;
+  border-radius: 2px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-weight: 500;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  background: linear-gradient(135deg, rgba(252, 76, 2, 0.12) 0%, rgba(239, 44, 193, 0.14) 50%, rgba(189, 187, 255, 0.15) 100%);
-  border: 1px solid rgba(239, 44, 193, 0.35);
-  color: #111827;
+  background-color: #f8fafc;
+  border: 1px solid #ebebeb;
+  color: #000000;
 }
 
-.dark .ai-chip {
-  background: linear-gradient(135deg, rgba(252, 76, 2, 0.18) 0%, rgba(239, 44, 193, 0.22) 50%, rgba(189, 187, 255, 0.2) 100%) !important;
-  border: 1px solid rgba(239, 44, 193, 0.45) !important;
+.dark .ai-flat-pill {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
   color: #ffffff !important;
-  box-shadow: 0 0 12px rgba(239, 44, 193, 0.15);
+  box-shadow: none !important;
 }
 
-/* AI Laser Ribbon */
-.ai-laser-top {
-  height: 2px;
-  background: linear-gradient(90deg, #fc4c02 0%, #ef2cc1 50%, #bdbbff 100%);
-  background-size: 200% 200%;
-  animation: ai-pulse-beam 3s ease infinite;
+/* High-precision linear scanner loading animation (zero spinning icons) */
+@keyframes flat-scan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+.animate-flat-scan {
+  animation: flat-scan 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Flat pulse for terminal status indicators (crisp opacity shift, no blurred glow) */
+@keyframes flat-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.animate-flat-pulse {
+  animation: flat-pulse 1.2s ease-in-out infinite;
 }

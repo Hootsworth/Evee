@@ -419,47 +419,88 @@ export default function CsvOutreachPage() {
                   </div>
                 ) : (
                   <div className="space-y-5">
-                    {/* Distinct AI Company Intelligence Glass Card */}
-                    <div className="ai-glass-card overflow-hidden">
-                      <div className="ai-laser-top w-full" />
-                      <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 rounded-[4px] bg-gradient-to-br from-[#fc4c02]/20 via-[#ef2cc1]/20 to-[#bdbbff]/20 border border-[#ef2cc1]/30 text-[#ef2cc1] flex items-center justify-center shrink-0">
-                            <Sparkles className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <div className="text-xs font-semibold text-black dark:text-white flex flex-wrap items-center gap-2">
-                              <span className="font-mono uppercase tracking-wider">
-                                AI Classification & Copy Adaptation Engine
+                    {/* Flat Technical AI Reasoning & Adaptation Bar (Together AI Aesthetic) */}
+                    <div className="ai-flat-container overflow-hidden">
+                      {/* Active Linear Scanner when Enriching, otherwise static 2px brand ribbon */}
+                      {enriching ? (
+                        <div className="w-full h-[2px] bg-neutral-200 dark:bg-white/[0.08] overflow-hidden relative">
+                          <div className="w-1/3 h-full bg-gradient-to-r from-[#fc4c02] via-[#ef2cc1] to-[#bdbbff] animate-flat-scan" />
+                        </div>
+                      ) : (
+                        <div className="brand-gradient-h w-full" />
+                      )}
+
+                      <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="space-y-1.5 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="mono-eyebrow text-[#959494] text-[10px] tracking-[0.55px] uppercase font-semibold">
+                              AI REASONING & COPY ADAPTATION
+                            </span>
+                            {enriching ? (
+                              <span className="ai-flat-pill text-[#fc4c02] border-[#fc4c02]/30 bg-[#fc4c02]/5">
+                                <span className="w-1.5 h-1.5 rounded-[1px] bg-[#fc4c02] animate-flat-pulse" />
+                                <span>SYNTHESIZING PROFILES // {aiMeta?.provider ? aiMeta.provider.toUpperCase() : 'GEMINI 1.5 FLASH'}</span>
                               </span>
-                              {enriched && (
-                                <span className="ai-chip animate-ios-swish">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-[#ef2cc1] animate-ping" />
-                                  <span>
-                                    AI SYNTHESIS ACTIVE // {aiMeta?.provider ? aiMeta.provider.toUpperCase() : 'NEURAL ENGINE'} {aiMeta?.model ? `(${aiMeta.model.replace(/^meta-llama\//, '')})` : ''}
-                                  </span>
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[11px] text-[#6b7280] dark:text-[#959494] font-mono mt-0.5">
-                              {enriching
-                                ? 'Neural reasoning in progress: deducing business models, operational friction, and bespoke angles...'
-                                : enriched
-                                ? `All ${csvResult.rows.length} businesses enriched with precision company types and bespoke outreach angles.`
-                                : 'Uses AI reasoning to deduce exact business verticals, friction points, and bespoke value propositions per row.'}
-                            </div>
+                            ) : enriched ? (
+                              <span className="ai-flat-pill text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/5">
+                                <span className="w-1.5 h-1.5 rounded-[1px] bg-emerald-500" />
+                                <span>ACTIVE // {aiMeta?.provider ? aiMeta.provider.toUpperCase() : 'NEURAL ENGINE'} ({csvResult.rows.length} ROWS ENRICHED)</span>
+                              </span>
+                            ) : (
+                              <span className="ai-flat-pill">
+                                <span className="w-1.5 h-1.5 rounded-[1px] bg-neutral-400" />
+                                <span>STANDBY // MULTI-LLM READY</span>
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="text-xs font-mono text-black dark:text-white leading-relaxed">
+                            {enriching
+                              ? `Evaluating ${csvResult.rows.length} businesses: deducing operating verticals, operational friction points, and bespoke angles...`
+                              : enriched
+                              ? `All ${csvResult.rows.length} businesses classified with high-confidence industry verticals and personalized value propositions.`
+                              : 'Automatically analyzes websites and business names with multi-provider LLMs to generate personalized outreach angles.'}
+                          </div>
+
+                          <div className="text-[11px] text-[#959494] font-mono flex items-center space-x-3 pt-0.5">
+                            <span>INPUT: {csvResult.totalRows} PROSPECTS</span>
+                            <span>•</span>
+                            <span>OUTPUT: {`{company_type}, {pain_point}, {value_prop}, {personalized_pitch}`}</span>
                           </div>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={handleEnrichWithAi}
-                          disabled={enriching}
-                          className="mono-btn bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 px-4 py-2 rounded-[4px] text-xs font-semibold flex items-center justify-center space-x-1.5 shadow-sm transition active:scale-95 disabled:opacity-50 shrink-0 self-start sm:self-auto"
-                        >
-                          <RefreshCw className={`w-3.5 h-3.5 ${enriching ? 'animate-spin' : ''}`} />
-                          <span>{enriching ? 'SYNTHESIZING...' : enriched ? 'RE-SYNTHESIZE WITH AI' : 'ENRICH ALL WITH AI'}</span>
-                        </button>
+                        {/* Flat Technical Action Button */}
+                        <div className="shrink-0 self-start md:self-auto">
+                          <button
+                            type="button"
+                            onClick={handleEnrichWithAi}
+                            disabled={enriching}
+                            className={`mono-btn px-4 py-2 rounded-[4px] text-xs font-mono font-medium uppercase tracking-wider flex items-center space-x-2 transition ${
+                              enriching
+                                ? 'bg-neutral-100 dark:bg-white/[0.08] text-neutral-400 cursor-not-allowed border border-[#ebebeb] dark:border-white/[0.08]'
+                                : enriched
+                                ? 'bg-white dark:bg-[#14161f] text-black dark:text-white border border-[#ebebeb] dark:border-white/[0.16] hover:border-black dark:hover:border-white'
+                                : 'bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200'
+                            }`}
+                          >
+                            {enriching ? (
+                              <>
+                                <span className="w-2 h-2 rounded-[1px] bg-[#ef2cc1] animate-flat-pulse" />
+                                <span>INFERENCE IN PROGRESS...</span>
+                              </>
+                            ) : enriched ? (
+                              <>
+                                <span>RE-RUN AI ENRICHMENT</span>
+                                <span>↺</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                                <span>ENRICH ALL WITH AI</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -518,8 +559,8 @@ export default function CsvOutreachPage() {
                               <tr key={idx} className="hover:bg-[#f8fafc] dark:hover:bg-white/[0.02]">
                                 <td className="py-2.5 px-3 text-[#959494]">{idx + 1}</td>
                                 <td className="py-2.5 px-3">
-                                  <span className="ai-chip animate-ios-swish text-[10px]">
-                                    <Sparkles className="w-2.5 h-2.5 text-[#ef2cc1]" />
+                                  <span className="ai-flat-pill animate-ios-swish text-[10px]">
+                                    <span className="w-1 h-1 rounded-[1px] bg-[#ef2cc1]" />
                                     <span>{row.ai_company_type || row.company_type || 'AI Synthesizing...'}</span>
                                   </span>
                                 </td>
@@ -564,37 +605,37 @@ export default function CsvOutreachPage() {
                   </button>
                 </div>
 
-                {/* AI Variable Insertion Chips with iOS Swish & Distinct Glass Styling */}
-                <div className="ai-glass-card overflow-hidden">
-                  <div className="ai-laser-top w-full" />
-                  <div className="p-3.5 space-y-2">
+                {/* Flat Technical AI Variable Tokens */}
+                <div className="ai-flat-container overflow-hidden">
+                  <div className="brand-gradient-h w-full" />
+                  <div className="p-3.5 space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-1.5 text-black dark:text-white font-semibold text-xs font-mono">
-                        <Sparkles className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                      <div className="flex items-center space-x-2 text-black dark:text-white font-mono text-xs font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-[1px] bg-[#ef2cc1]" />
                         <span>AI ADAPTATION TOKENS</span>
                       </div>
                       <span className="text-[10px] font-mono text-[#959494]">
-                        Computed dynamically per company
+                        Dynamically evaluated per prospect
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {[
-                        { token: 'company_type', label: '+{company_type}', desc: 'Identified Business Type' },
-                        { token: 'personalized_pitch', label: '+{personalized_pitch}', desc: 'Tailored Industry Pitch' },
-                        { token: 'pain_point', label: '+{pain_point}', desc: 'Industry Specific Bottleneck' },
-                        { token: 'value_prop', label: '+{value_prop}', desc: 'Tailored Solution' },
-                        { token: 'industry', label: '+{industry}', desc: 'High-Level Industry' },
+                        { token: 'company_type', label: '{company_type}', desc: 'Identified Business Type' },
+                        { token: 'personalized_pitch', label: '{personalized_pitch}', desc: 'Tailored Industry Pitch' },
+                        { token: 'pain_point', label: '{pain_point}', desc: 'Industry Specific Bottleneck' },
+                        { token: 'value_prop', label: '{value_prop}', desc: 'Tailored Solution' },
+                        { token: 'industry', label: '{industry}', desc: 'High-Level Industry' },
                       ].map((v) => (
                         <button
                           key={v.token}
                           type="button"
                           onClick={() => handleInsertVariable(v.token)}
-                          className="ai-chip animate-ios-swish hover:scale-105 active:scale-95 transition"
+                          className="mono-btn text-[11px] font-mono px-2.5 py-1 rounded-[3px] bg-[#f8fafc] dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.12] text-black dark:text-white hover:border-black dark:hover:border-white transition flex items-center space-x-1.5"
                           title={v.desc}
                         >
-                          <Sparkles className="w-2.5 h-2.5 text-[#ef2cc1]" />
-                          <span>{v.label}</span>
+                          <span>+{v.label}</span>
+                          <span className="text-[9px] text-[#ef2cc1] font-mono uppercase font-semibold">[AI]</span>
                         </button>
                       ))}
                     </div>
@@ -713,30 +754,42 @@ export default function CsvOutreachPage() {
                   )}
                 </div>
 
-                {/* AI Identified Business Card */}
-                <div className="ai-glass-card p-3.5 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-1.5 text-black dark:text-white text-xs font-mono font-semibold">
-                      <Sparkles className="w-3.5 h-3.5 text-[#ef2cc1]" />
-                      <span>AI SYNTHESIZED PROFILE</span>
+                {/* Flat AI Synthesized Profile Card */}
+                <div className="ai-flat-container overflow-hidden">
+                  <div className="brand-gradient-h w-full" />
+                  <div className="p-3.5 space-y-2">
+                    <div className="flex items-center justify-between pb-2 border-b border-[#ebebeb] dark:border-white/[0.06]">
+                      <div className="flex items-center space-x-2 text-black dark:text-white text-xs font-mono font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-[1px] bg-[#ef2cc1]" />
+                        <span>AI INFERENCE PROFILE</span>
+                      </div>
+                      <span className="ai-flat-pill text-[9px]">
+                        {sampleProspect.ai_industry || sampleProspect.industry || 'Commercial Services'}
+                      </span>
                     </div>
-                    <span className="ai-chip text-[9px]">
-                      {sampleProspect.ai_industry || sampleProspect.industry || 'Commercial Services'}
-                    </span>
+                    <div>
+                      <span className="text-[9px] font-mono uppercase text-[#959494] block">IDENTIFIED VERTICAL</span>
+                      <div className="text-xs font-semibold text-black dark:text-white font-mono">
+                        {sampleProspect.ai_company_type || sampleProspect.company_type || 'Modern Enterprise'}
+                      </div>
+                    </div>
+                    {sampleProspect.ai_pain_point && (
+                      <div className="pt-1.5 border-t border-[#ebebeb] dark:border-white/[0.06]">
+                        <span className="text-[9px] font-mono uppercase text-[#959494] block">OPERATIONAL FRICTION</span>
+                        <div className="text-[11px] font-mono text-black dark:text-white leading-snug">
+                          {sampleProspect.ai_pain_point}
+                        </div>
+                      </div>
+                    )}
+                    {sampleProspect.ai_personalized_pitch && (
+                      <div className="pt-1.5 border-t border-[#ebebeb] dark:border-white/[0.06]">
+                        <span className="text-[9px] font-mono uppercase text-[#959494] block">BESPOKE PITCH ANGLE</span>
+                        <div className="text-[11px] font-mono text-black dark:text-white leading-snug">
+                          {sampleProspect.ai_personalized_pitch}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-xs font-semibold text-black dark:text-white font-mono">
-                    {sampleProspect.ai_company_type || sampleProspect.company_type || 'Modern Enterprise'}
-                  </div>
-                  {sampleProspect.ai_pain_point && (
-                    <div className="text-[11px] font-mono text-[#6b7280] dark:text-[#959494] leading-snug">
-                      Bottleneck: <span className="text-black dark:text-white">{sampleProspect.ai_pain_point}</span>
-                    </div>
-                  )}
-                  {sampleProspect.ai_personalized_pitch && (
-                    <div className="text-[11px] font-mono text-[#6b7280] dark:text-[#959494] leading-snug pt-1.5 border-t border-[#ebebeb] dark:border-white/[0.06]">
-                      Angle: <span className="text-black dark:text-white">{sampleProspect.ai_personalized_pitch}</span>
-                    </div>
-                  )}
                 </div>
 
                 <div className="bg-[#f8fafc] dark:bg-[#313641]/20 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] p-3.5 text-xs font-mono space-y-2.5">

@@ -469,15 +469,15 @@ export default function DraftsApprovalPage() {
                     </div>
                   </div>
 
-                  {/* AI Rationalization with iOS Swish & Distinct Glass Card */}
-                  <div className="ai-glass-card overflow-hidden animate-ios-swish">
-                    <div className="ai-laser-top w-full" />
-                    <div className="p-3 space-y-1.5">
-                      <div className="flex items-center space-x-1.5 text-[10px] font-mono uppercase text-black dark:text-white font-semibold">
-                        <Sparkles className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                  {/* AI Rationalization (Flat Technical Design) */}
+                  <div className="ai-flat-container overflow-hidden">
+                    <div className="brand-gradient-h w-full" />
+                    <div className="p-3.5 space-y-1.5">
+                      <div className="flex items-center space-x-2 text-[10px] font-mono uppercase text-black dark:text-white font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-[1px] bg-[#ef2cc1]" />
                         <span>AI RESEARCH ANGLE</span>
                       </div>
-                      <p className="text-[11px] text-[#6b7280] dark:text-[#959494] leading-relaxed">
+                      <p className="text-[11px] text-[#6b7280] dark:text-[#959494] font-mono leading-relaxed">
                         {selectedDraft.rationale ||
                           'Synthesized from website metadata and verified deliverability records. Tailored offer focusing on digital workflows and conversion improvements.'}
                       </p>
