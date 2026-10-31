@@ -6,7 +6,7 @@
   :root {
     --canvas-dark: #010120;
     --canvas-white: #ffffff;
-    --hairline: #e5e7eb;
+    --hairline: #ebebeb;
     --hairline-dark: rgba(255, 255, 255, 0.12);
   }
 
@@ -40,13 +40,19 @@
   font-family: 'JetBrains Mono', ui-monospace, SF Mono, Menlo, monospace;
   font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+  border-radius: 4px;
 }
 
-/* Subtle flat accent gradient */
+/* Together AI-inspired three-stop brand gradient */
 .brand-gradient {
-  background: linear-gradient(90deg, #f43f5e 0%, #fb7185 100%);
+  background: linear-gradient(90deg, #fc4c02 0%, #ef2cc1 50%, #bdbbff 100%);
+}
+
+.brand-gradient-h {
+  height: 2px;
+  background: linear-gradient(90deg, #fc4c02 0%, #ef2cc1 50%, #bdbbff 100%);
 }
 
 /* ==========================================================================
