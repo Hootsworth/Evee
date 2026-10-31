@@ -22,6 +22,8 @@ import {
   Copy,
   ScrollText,
   Cpu,
+  MapPin,
+  Building2,
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -51,6 +53,11 @@ export default function SettingsPage() {
   // Google Places Discovery key state
   const [placesApiKey, setPlacesApiKey] = useState('');
   const [placesKeyConfigured, setPlacesKeyConfigured] = useState(false);
+  const [placesTestQuery, setPlacesTestQuery] = useState('Specialty Coffee & Bakery');
+  const [placesTestLocation, setPlacesTestLocation] = useState('Bengaluru');
+  const [placesTesting, setPlacesTesting] = useState(false);
+  const [placesTestResult, setPlacesTestResult] = useState<any>(null);
+  const [placesTestError, setPlacesTestError] = useState<string | null>(null);
 
   // Lead Enrichment state
   const [enrichmentProvider, setEnrichmentProvider] = useState<'built_in' | 'explorium' | 'hunter'>('built_in');
@@ -264,6 +271,33 @@ export default function SettingsPage() {
       setMessage({ text: `DNS audit error: ${err.message}`, type: 'error' });
     } finally {
       setDnsAuditing(false);
+    }
+  };
+
+  const runPlacesTest = async () => {
+    setPlacesTesting(true);
+    setPlacesTestError(null);
+    setPlacesTestResult(null);
+    try {
+      const res = await fetch('/api/settings/places-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: placesTestQuery,
+          location: placesTestLocation,
+          apiKey: placesApiKey.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPlacesTestResult(data);
+      } else {
+        setPlacesTestError(data.error || 'Failed to query Google Places API');
+      }
+    } catch (err: any) {
+      setPlacesTestError(err.message || 'Network error running Places discovery test');
+    } finally {
+      setPlacesTesting(false);
     }
   };
 
@@ -684,6 +718,209 @@ export default function SettingsPage() {
                   >
                     {saving ? 'ENCRYPTING & SAVING...' : 'SAVE AI CONFIGURATION'}
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: Google Places Discovery Engine */}
+            {activeTab === 'places' && (
+              <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-6 space-y-6 text-xs font-mono">
+                {/* Header */}
+                <div className="flex items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08]">
+                  <div>
+                    <h2 className="text-base font-semibold text-black dark:text-white flex items-center space-x-2">
+                      <MapPin className="w-4 h-4 text-rose-500" />
+                      <span>Google Places Discovery Engine</span>
+                    </h2>
+                    <p className="text-[#959494] mt-0.5">
+                      Configure official Google Places API (New) credentials for live small business discovery with automated field masking.
+                    </p>
+                  </div>
+                  <span
+                    className={`text-[10px] font-mono px-2 py-0.5 rounded-[2px] font-semibold uppercase ${
+                      placesKeyConfigured
+                        ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                        : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                    }`}
+                  >
+                    {placesKeyConfigured ? 'LIVE PLACES API' : 'SIMULATION FALLBACK'}
+                  </span>
+                </div>
+
+                {/* API Key Configuration Card */}
+                <div className="space-y-4">
+                  <div className="p-4 rounded-[4px] bg-[#f8fafc] dark:bg-white/[0.03] border border-[#ebebeb] dark:border-white/[0.08] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-black dark:text-white flex items-center space-x-1.5">
+                        <Key className="w-3.5 h-3.5 text-black dark:text-white" />
+                        <span>Google Cloud Places API (New) Key</span>
+                      </span>
+                      <a
+                        href="https://console.cloud.google.com/apis/library/places.googleapis.com"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] text-blue-500 hover:underline flex items-center space-x-1"
+                      >
+                        <span>Google Cloud Console</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                    <p className="text-[11px] text-[#959494] leading-relaxed">
+                      Evee interfaces with Google Places API (New Text Search <code className="text-black dark:text-white">v1/places:searchText</code>). To eliminate accidental cost spikes, requests are strictly filtered via <code className="text-black dark:text-white">X-Goog-FieldMask</code> to only load public coordinates, display names, formatted addresses, official websites, and phone numbers.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="mono-eyebrow text-[#959494] block mb-1.5 text-[11px]">
+                      PLACES API KEY
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPlacesKey ? 'text' : 'password'}
+                        placeholder={
+                          placesKeyConfigured
+                            ? '•••••••••••••••••••••••••••••••• (Leave blank to keep existing key)'
+                            : 'AIzaSy...'
+                        }
+                        value={placesApiKey}
+                        onChange={(e) => setPlacesApiKey(e.target.value)}
+                        className="w-full text-xs font-mono border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-2.5 pr-10 text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPlacesKey(!showPlacesKey)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#959494] hover:text-black dark:hover:text-white p-1"
+                      >
+                        {showPlacesKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-[#959494] mt-1">
+                      Credentials are encrypted at rest via hardware-accelerated AES-256-GCM.
+                    </p>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      onClick={() => handleSaveProviders()}
+                      disabled={saving || !placesApiKey.trim()}
+                      className="mono-btn bg-black dark:bg-white text-white dark:text-black disabled:opacity-40 px-4 py-2 rounded-[4px] text-xs font-semibold flex items-center space-x-1.5"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>{saving ? 'ENCRYPTING & SAVING...' : 'SAVE PLACES CONFIGURATION'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Section: Interactive Discovery Test Sandbox */}
+                <div className="pt-6 border-t border-[#ebebeb] dark:border-white/[0.08] space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white flex items-center space-x-2">
+                        <Building2 className="w-3.5 h-3.5 text-blue-500" />
+                        <span>Interactive Discovery Diagnostics Sandbox</span>
+                      </h3>
+                      <p className="text-[11px] text-[#959494] mt-0.5">
+                        Test querying Google Places live with target industry keywords and geographic location before launching campaigns.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="mono-eyebrow text-[#959494] block mb-1 text-[11px]">
+                        INDUSTRY QUERY / NICHE
+                      </label>
+                      <input
+                        type="text"
+                        value={placesTestQuery}
+                        onChange={(e) => setPlacesTestQuery(e.target.value)}
+                        placeholder="e.g. Specialty Coffee & Bakery"
+                        className="w-full text-xs font-mono border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-2.5 text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="mono-eyebrow text-[#959494] block mb-1 text-[11px]">
+                        GEOGRAPHY / CITY
+                      </label>
+                      <input
+                        type="text"
+                        value={placesTestLocation}
+                        onChange={(e) => setPlacesTestLocation(e.target.value)}
+                        placeholder="e.g. Bengaluru, San Francisco, London"
+                        className="w-full text-xs font-mono border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-2.5 text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={runPlacesTest}
+                      disabled={placesTesting}
+                      className="mono-btn px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-[4px] text-xs font-semibold flex items-center space-x-2 disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${placesTesting ? 'animate-spin' : ''}`} />
+                      <span>{placesTesting ? 'QUERYING PLACES...' : 'TEST DISCOVERY QUERY'}</span>
+                    </button>
+                  </div>
+
+                  {/* Diagnostic Test Error */}
+                  {placesTestError && (
+                    <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 rounded-[4px] text-xs flex items-center space-x-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{placesTestError}</span>
+                    </div>
+                  )}
+
+                  {/* Diagnostic Test Results */}
+                  {placesTestResult && (
+                    <div className="p-4 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-white/[0.02] space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-[#ebebeb] dark:border-white/[0.06]">
+                        <span className="font-semibold text-black dark:text-white">
+                          Found {placesTestResult.count} businesses in {placesTestLocation}
+                        </span>
+                        <span
+                          className={`text-[9px] font-mono px-2 py-0.5 rounded-[2px] font-semibold uppercase ${
+                            placesTestResult.isLiveApi
+                              ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                              : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                          }`}
+                        >
+                          {placesTestResult.isLiveApi ? 'LIVE GOOGLE PLACES API' : 'MOCK SIMULATION'}
+                        </span>
+                      </div>
+
+                      <div className="divide-y divide-[#ebebeb] dark:divide-white/[0.06]">
+                        {placesTestResult.places.map((place: any, idx: number) => (
+                          <div key={idx} className="py-2.5 flex items-start justify-between">
+                            <div>
+                              <div className="font-semibold text-black dark:text-white">{place.name}</div>
+                              <div className="text-[11px] text-[#959494] mt-0.5">
+                                {place.category && <span className="mr-2 text-rose-500 font-medium">{place.category}</span>}
+                                {place.city}
+                              </div>
+                            </div>
+                            <div className="text-right text-[11px] space-y-0.5">
+                              {place.officialWebsite ? (
+                                <a
+                                  href={place.officialWebsite.startsWith('http') ? place.officialWebsite : `https://${place.officialWebsite}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-blue-500 hover:underline flex items-center justify-end space-x-1"
+                                >
+                                  <span>Website</span>
+                                  <ExternalLink className="w-2.5 h-2.5" />
+                                </a>
+                              ) : (
+                                <span className="text-[#959494]">No website</span>
+                              )}
+                              <div className="text-[#959494]">{place.publicPhone || 'No phone'}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
