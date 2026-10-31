@@ -1,6 +1,6 @@
 // Evee - Multi-LLM Provider Adapter
-// Supports OpenAI, Google Gemini, and Meta (Llama/Together) models
-// Supports dynamic API key passed per request or from persistent settings
+// Supports OpenAI, Google Gemini, and Meta Llama (Together.ai / Groq)
+// Supports dynamic API key, free choice of model identifier, and custom base URL
 
 import {
   ResearchProvider,
@@ -28,13 +28,15 @@ export class MultiLlmProvider implements ResearchProvider, DraftProvider {
   }
 
   private getEffectiveBaseUrl(): string {
-    if (this.config.baseUrl) return this.config.baseUrl;
+    if (this.config.baseUrl && this.config.baseUrl.trim()) {
+      return this.config.baseUrl.trim().replace(/\/+$/, '');
+    }
 
     if (this.config.provider === 'gemini') {
       // Gemini's official OpenAI-compatible endpoint
       return 'https://generativelanguage.googleapis.com/v1beta/openai';
     } else if (this.config.provider === 'meta') {
-      // Meta Llama / Muse endpoints via Together.ai
+      // Meta Llama endpoints via Together.ai
       return 'https://api.together.xyz/v1';
     }
 
@@ -43,31 +45,35 @@ export class MultiLlmProvider implements ResearchProvider, DraftProvider {
   }
 
   private getEffectiveModel(): string {
-    const raw = this.config.model?.toLowerCase() || '';
+    const raw = this.config.model?.trim() || '';
 
-    if (this.config.provider === 'gemini') {
-      if (raw.includes('2.0') || raw.includes('2-flash')) {
-        return 'gemini-2.0-flash';
+    // If user provided a specific model identifier, respect their free choice
+    if (raw) {
+      // Helpful shortcuts for aliases
+      const lower = raw.toLowerCase();
+      if (this.config.provider === 'gemini') {
+        if (lower === 'gemini-1.5-flash' || lower.includes('1.5-flash')) return 'gemini-1.5-flash';
+        if (lower === 'gemini-2.0-flash' || lower.includes('2.0')) return 'gemini-2.0-flash';
+        if (lower === 'gemini-1.5-pro' || lower.includes('1.5-pro')) return 'gemini-1.5-pro';
+      } else if (this.config.provider === 'meta') {
+        if (lower.includes('3.3-70b') || lower.includes('70b-turbo')) {
+          return 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
+        }
+        if (lower.includes('3.1-8b') || lower.includes('8b-turbo')) {
+          return 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo';
+        }
+      } else if (this.config.provider === 'openai') {
+        if (lower === 'gpt-4o-mini' || lower.includes('mini')) return 'gpt-4o-mini';
+        if (lower === 'gpt-4o' || lower === '4o') return 'gpt-4o';
       }
-      if (raw.includes('pro') && !raw.includes('flash')) {
-        return 'gemini-1.5-pro';
-      }
-      // Standard stable Gemini fast model
-      return 'gemini-1.5-flash';
+
+      return raw;
     }
 
-    if (this.config.provider === 'meta') {
-      if (raw.includes('muse') || raw.includes('spark')) {
-        return 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
-      }
-      return 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo';
-    }
-
-    // OpenAI models
-    if (raw.includes('5.6') || raw.includes('mini')) {
-      return 'gpt-4o-mini';
-    }
-    return 'gpt-4o';
+    // Default fallbacks per provider
+    if (this.config.provider === 'gemini') return 'gemini-1.5-flash';
+    if (this.config.provider === 'meta') return 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo';
+    return 'gpt-4o-mini';
   }
 
   async analyzeBusiness(
@@ -137,13 +143,13 @@ CRITICAL RULES:
 
     if (!response.ok) {
       const err = await response.text();
-      throw new Error(`${this.config.provider.toUpperCase()} API returned error ${response.status}: ${err}`);
+      throw new Error(`${this.config.provider.toUpperCase()} (${model}) API returned error ${response.status}: ${err}`);
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
     if (!content) {
-      throw new Error(`${this.config.provider.toUpperCase()} returned empty response`);
+      throw new Error(`${this.config.provider.toUpperCase()} (${model}) returned empty response`);
     }
 
     const parsedJson = JSON.parse(content);
@@ -204,7 +210,7 @@ RULES:
 
     if (!response.ok) {
       const err = await response.text();
-      throw new Error(`${this.config.provider.toUpperCase()} API returned error ${response.status}: ${err}`);
+      throw new Error(`${this.config.provider.toUpperCase()} (${model}) API returned error ${response.status}: ${err}`);
     }
 
     const data = await response.json();

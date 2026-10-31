@@ -6,15 +6,21 @@ import { Target, Search, CheckCircle, Mail, AlertTriangle, ArrowRight, ShieldChe
 
 export default function DashboardPage() {
   const [data, setData] = useState<any>(null);
+  const [providerSettings, setProviderSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [cronRunning, setCronRunning] = useState(false);
   const [cronStatus, setCronStatus] = useState<string | null>(null);
 
   const fetchOverview = async () => {
     try {
-      const res = await fetch('/api/reports/overview');
-      const json = await res.json();
+      const [overviewRes, providersRes] = await Promise.all([
+        fetch('/api/reports/overview'),
+        fetch('/api/settings/providers'),
+      ]);
+      const json = await overviewRes.json();
+      const pJson = await providersRes.json();
       setData(json);
+      setProviderSettings(pJson?.settings);
     } catch (e) {
       console.error(e);
     } finally {
@@ -56,6 +62,9 @@ export default function DashboardPage() {
     estimatedCostInr: 0,
     monthlySpendCapInr: 0,
   };
+
+  const activeAiName = providerSettings?.aiProvider ? providerSettings.aiProvider.toUpperCase() : 'GEMINI';
+  const activeAiModel = providerSettings?.aiModel || 'gemini-1.5-flash';
 
   return (
     <div className="flex flex-col bg-white dark:bg-[#010120] text-[#000000] dark:text-[#ffffff] min-h-screen transition-colors duration-150">
@@ -252,7 +261,9 @@ export default function DashboardPage() {
               <div className="space-y-3 text-xs font-mono">
                 <div className="flex justify-between items-center py-1.5 border-b border-[#ebebeb] dark:border-white/[0.06]">
                   <span className="text-[#6b7280] dark:text-[#959494]">AI INFERENCE</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold">GEMINI 1.5 FLASH</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold truncate max-w-[170px]" title={`${activeAiName}: ${activeAiModel}`}>
+                    {activeAiName} ({activeAiModel.replace(/^meta-llama\//, '')})
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-1.5 border-b border-[#ebebeb] dark:border-white/[0.06]">
                   <span className="text-[#6b7280] dark:text-[#959494]">EMAIL DISPATCH</span>

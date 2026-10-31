@@ -21,6 +21,7 @@ import {
   ExternalLink,
   Copy,
   ScrollText,
+  Cpu,
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -40,9 +41,10 @@ export default function SettingsPage() {
   const [smtpAppPassword, setSmtpAppPassword] = useState('');
   const [smtpConfigured, setSmtpConfigured] = useState(false);
 
-  // AI Provider & Model state
+  // AI Provider & Model state (Supports Gemini, OpenAI, Meta Llama with free choice of models)
   const [aiProvider, setAiProvider] = useState<'openai' | 'gemini' | 'meta'>('gemini');
-  const [aiModel, setAiModel] = useState('Gemini 1.5 flash');
+  const [aiModel, setAiModel] = useState('gemini-1.5-flash');
+  const [aiBaseUrl, setAiBaseUrl] = useState('');
   const [aiApiKey, setAiApiKey] = useState('');
   const [aiKeyConfigured, setAiKeyConfigured] = useState(false);
 
@@ -84,6 +86,8 @@ export default function SettingsPage() {
           setSmtpConfigured(sData.settings.smtpConfigured);
           if (sData.settings.smtpUser) setSmtpEmail(sData.settings.smtpUser);
           setAiProvider(sData.settings.aiProvider || 'gemini');
+          setAiModel(sData.settings.aiModel || 'gemini-1.5-flash');
+          setAiBaseUrl(sData.settings.aiBaseUrl || '');
           setAiKeyConfigured(sData.settings.aiKeyConfigured);
           setPlacesKeyConfigured(sData.settings.discoveryKeyConfigured);
           setEnrichmentKeyConfigured(Boolean(sData.settings.enrichmentKeyConfigured));
@@ -134,6 +138,7 @@ export default function SettingsPage() {
       const payload: any = {
         aiProvider,
         aiModel,
+        aiBaseUrl,
       };
 
       if (smtpEmail && smtpAppPassword) {
@@ -176,7 +181,7 @@ export default function SettingsPage() {
           body: JSON.stringify({
             action: 'API_KEY_UPDATED',
             entityType: 'PROVIDER_SETTINGS',
-            metadata: { aiProvider, smtpUser: smtpEmail },
+            metadata: { aiProvider, aiModel, smtpUser: smtpEmail },
           }),
         }).catch(() => {});
       } else {
@@ -273,11 +278,31 @@ export default function SettingsPage() {
     return val.toLowerCase().includes(suppressionSearch.toLowerCase());
   });
 
+  // Model presets per provider
+  const modelPresets: Record<'gemini' | 'openai' | 'meta', Array<{ id: string; label: string; desc: string }>> = {
+    gemini: [
+      { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash', desc: 'Ultra-fast, high precision, free tier included' },
+      { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash', desc: 'Next-gen reasoning speed & agentic workflows' },
+      { id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro', desc: 'Deep contextual research & complex synthesis' },
+    ],
+    openai: [
+      { id: 'gpt-4o-mini', label: 'GPT-4o Mini', desc: 'Fast, highly cost-effective, crisp copywriting' },
+      { id: 'gpt-4o', label: 'GPT-4o', desc: 'Flagship multimodal reasoning & natural tone' },
+      { id: 'o1-mini', label: 'o1 Mini', desc: 'Deep analytical chain-of-thought verification' },
+      { id: 'o3-mini', label: 'o3 Mini', desc: 'Advanced STEM and reasoning benchmark model' },
+    ],
+    meta: [
+      { id: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', label: 'Llama 3.3 70B', desc: 'Flagship open weights model via Together.ai' },
+      { id: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo', label: 'Llama 3.1 8B', desc: 'High-speed, open-source model execution' },
+      { id: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', label: 'Llama 3.1 70B', desc: 'Enterprise deep reasoning open model' },
+    ],
+  };
+
   const tabs = [
     { id: 'smtp', label: 'Outbound Mailer', icon: Mail, badge: smtpConfigured ? 'Connected' : 'Setup' },
+    { id: 'ai', label: 'AI Engine (Multi-LLM)', icon: Sparkles, badge: aiKeyConfigured ? `${aiProvider.toUpperCase()}` : 'Key Required' },
     { id: 'dns', label: 'DNS & Deliverability', icon: Globe, badge: 'Pre-Flight' },
     { id: 'webhooks', label: 'Webhooks & Inbound', icon: Radio, badge: 'Automated' },
-    { id: 'ai', label: 'AI Reasoning', icon: Sparkles, badge: aiKeyConfigured ? 'Active' : 'Key Required' },
     { id: 'places', label: 'Places Discovery', icon: Key, badge: placesKeyConfigured ? 'Live API' : 'Simulation' },
     { id: 'enrichment', label: 'Lead Enrichment (Free AI)', icon: Search, badge: '100% Free' },
     { id: 'suppression', label: 'Suppression Registry', icon: ShieldCheck, count: suppressions.length },
@@ -299,10 +324,10 @@ export default function SettingsPage() {
               <span className="text-[#ef2cc1]">AES-256-GCM ENCRYPTED</span>
             </div>
             <h1 className="text-3xl font-medium tracking-tight text-white">
-              Settings & Deliverability
+              Settings & Intelligence Engine
             </h1>
             <p className="text-xs text-[#959494] mt-1 max-w-xl font-normal">
-              Manage authenticated outbound mailers, DNS pre-flight verification, LLM reasoning keys, webhooks, and immutable audit logs.
+              Configure multi-model AI reasoning (Meta, Gemini, OpenAI), outbound SMTP mailers, DNS deliverability checks, and immutable audit logs.
             </p>
           </div>
 
@@ -398,7 +423,7 @@ export default function SettingsPage() {
 
           {/* Tab Content Panel */}
           <section className="lg:col-span-9 space-y-6">
-            {/* TAB 1: Outbound Mailer */}
+            {/* TAB: Outbound Mailer */}
             {activeTab === 'smtp' && (
               <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-6">
                 <div className="flex items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08] mb-5">
@@ -471,6 +496,198 @@ export default function SettingsPage() {
               </div>
             )}
 
+            {/* TAB: AI Multi-LLM Engine & Free Choice of Models */}
+            {activeTab === 'ai' && (
+              <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-6 space-y-6 text-xs font-mono">
+                <div className="flex items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08]">
+                  <div>
+                    <h2 className="text-base font-semibold text-black dark:text-white">
+                      AI Reasoning Engine & Multi-Model Architecture
+                    </h2>
+                    <p className="text-[#959494] mt-0.5">
+                      Switch between Google Gemini, OpenAI, and Meta Llama with complete freedom to designate custom models and API endpoints.
+                    </p>
+                  </div>
+                  <span
+                    className={`text-[10px] font-mono px-2 py-0.5 rounded-[2px] font-semibold uppercase ${
+                      aiKeyConfigured
+                        ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                        : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                    }`}
+                  >
+                    {aiKeyConfigured ? `${aiProvider.toUpperCase()} ACTIVE` : 'KEY REQUIRED'}
+                  </span>
+                </div>
+
+                {/* 1. Provider Selection Cards */}
+                <div>
+                  <label className="block text-[#959494] uppercase tracking-wider mb-2 font-semibold">
+                    1. ACTIVE AI PROVIDER
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {[
+                      {
+                        id: 'gemini',
+                        name: 'Google Gemini',
+                        badge: 'Gemini API',
+                        defaultModel: 'gemini-1.5-flash',
+                        desc: 'Native multimodal, high speed, generous free tier.',
+                      },
+                      {
+                        id: 'openai',
+                        name: 'OpenAI',
+                        badge: 'GPT-4o & Reasoning',
+                        defaultModel: 'gpt-4o-mini',
+                        desc: 'Crisp copy, o1/o3 reasoning, enterprise standard.',
+                      },
+                      {
+                        id: 'meta',
+                        name: 'Meta Llama',
+                        badge: 'Together.ai / Groq',
+                        defaultModel: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+                        desc: 'Open weights architecture, high throughput.',
+                      },
+                    ].map((p) => {
+                      const isSelected = aiProvider === p.id;
+                      return (
+                        <div
+                          key={p.id}
+                          onClick={() => {
+                            setAiProvider(p.id as any);
+                            setAiModel(p.defaultModel);
+                          }}
+                          className={`cursor-pointer p-4 rounded-[4px] border transition-all ${
+                            isSelected
+                              ? 'border-black dark:border-white bg-[#f8fafc] dark:bg-[#313641]/60 shadow-sm'
+                              : 'border-[#ebebeb] dark:border-white/[0.08] hover:border-[#959494] dark:hover:border-white/[0.2]'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-semibold text-black dark:text-white text-xs">
+                              {p.name}
+                            </span>
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-[2px] bg-black dark:bg-white text-white dark:text-black">
+                              {p.badge}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[#6b7280] dark:text-[#959494] leading-relaxed">
+                            {p.desc}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Model Presets & Free Choice of Model Identifier */}
+                <div className="space-y-3 pt-3 border-t border-[#ebebeb] dark:border-white/[0.06]">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[#959494] uppercase tracking-wider font-semibold">
+                      2. MODEL PRESETS (QUICK SELECT)
+                    </label>
+                    <span className="text-[10px] text-[#ef2cc1]">CLICK TO APPLY</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {modelPresets[aiProvider].map((preset) => {
+                      const isModelActive = aiModel === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => setAiModel(preset.id)}
+                          className={`text-left p-2.5 rounded-[4px] border transition ${
+                            isModelActive
+                              ? 'border-black dark:border-white bg-black dark:bg-white text-white dark:text-black font-semibold'
+                              : 'border-[#ebebeb] dark:border-white/[0.08] hover:bg-[#f8fafc] dark:hover:bg-white/[0.04]'
+                          }`}
+                        >
+                          <div className="text-[11px]">{preset.label}</div>
+                          <div className={`text-[10px] mt-0.5 truncate ${isModelActive ? 'text-white/80 dark:text-black/70' : 'text-[#959494]'}`}>
+                            {preset.id}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. Model Identifier Free Input & Optional Base URL */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-[#ebebeb] dark:border-white/[0.06]">
+                  <div>
+                    <label className="block text-[#959494] uppercase mb-1 font-semibold">
+                      TARGET MODEL IDENTIFIER (FREE CHOICE)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={aiModel}
+                      onChange={(e) => setAiModel(e.target.value)}
+                      placeholder="e.g. gpt-4o, gemini-2.0-flash, meta-llama/Llama-3.3-70B-Instruct-Turbo"
+                      className="w-full text-xs font-mono border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-2.5 text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
+                    />
+                    <p className="text-[10px] text-[#959494] mt-1">
+                      Type any custom model version supported by {aiProvider.toUpperCase()} or your endpoint.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-[#959494] uppercase mb-1 font-semibold">
+                      CUSTOM API BASE URL (OPTIONAL)
+                    </label>
+                    <input
+                      type="text"
+                      value={aiBaseUrl}
+                      onChange={(e) => setAiBaseUrl(e.target.value)}
+                      placeholder="Leave blank for official endpoint, or enter custom URL"
+                      className="w-full text-xs font-mono border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-2.5 text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
+                    />
+                    <p className="text-[10px] text-[#959494] mt-1">
+                      Default: {aiProvider === 'gemini' ? 'https://generativelanguage.googleapis.com' : aiProvider === 'meta' ? 'https://api.together.xyz/v1' : 'https://api.openai.com/v1'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 4. API Token */}
+                <div className="pt-3 border-t border-[#ebebeb] dark:border-white/[0.06]">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[#959494] uppercase font-semibold">
+                      {aiProvider.toUpperCase()} API TOKEN (ENCRYPTED AT REST)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowAiKey(!showAiKey)}
+                      className="text-[10px] text-[#ef2cc1] hover:underline flex items-center space-x-1"
+                    >
+                      {showAiKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      <span>{showAiKey ? 'HIDE' : 'SHOW'}</span>
+                    </button>
+                  </div>
+                  <input
+                    type={showAiKey ? 'text' : 'password'}
+                    placeholder={aiKeyConfigured ? '•••••••••••••••• (Leave blank to keep existing key)' : `Enter your ${aiProvider.toUpperCase()} API key`}
+                    value={aiApiKey}
+                    onChange={(e) => setAiApiKey(e.target.value)}
+                    className="w-full text-xs font-mono border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-2.5 text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
+                  />
+                  <p className="text-[10px] text-[#959494] mt-1">
+                    Encrypted with hardware-accelerated AES-256-GCM before database persistence.
+                  </p>
+                </div>
+
+                {/* Save Button */}
+                <div className="pt-4 border-t border-[#ebebeb] dark:border-white/[0.08] flex justify-end">
+                  <button
+                    onClick={() => handleSaveProviders()}
+                    disabled={saving}
+                    className="mono-btn bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-[4px] text-xs font-semibold"
+                  >
+                    {saving ? 'ENCRYPTING & SAVING...' : 'SAVE AI CONFIGURATION'}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* TAB: DNS & Deliverability Pre-Flight Auditor */}
             {activeTab === 'dns' && (
               <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-6 space-y-6">
@@ -488,7 +705,6 @@ export default function SettingsPage() {
                   </span>
                 </div>
 
-                {/* Audit Input Form */}
                 <div className="flex items-center gap-3">
                   <input
                     type="text"
@@ -507,7 +723,6 @@ export default function SettingsPage() {
                   </button>
                 </div>
 
-                {/* DNS Results Grid */}
                 {dnsResults && (
                   <div className="space-y-4 pt-2">
                     <div className="flex items-center justify-between p-3.5 rounded-[4px] bg-[#f8fafc] dark:bg-[#313641]/30 border border-[#ebebeb] dark:border-white/[0.08]">
@@ -528,7 +743,6 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs font-mono">
-                      {/* MX Check */}
                       <div className="p-3.5 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] space-y-1.5">
                         <div className="flex items-center justify-between">
                           <span className="font-semibold text-black dark:text-white">MX RECORDS</span>
@@ -539,7 +753,6 @@ export default function SettingsPage() {
                         <p className="text-[11px] text-[#959494]">{dnsResults.mx.message}</p>
                       </div>
 
-                      {/* SPF Check */}
                       <div className="p-3.5 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] space-y-1.5">
                         <div className="flex items-center justify-between">
                           <span className="font-semibold text-black dark:text-white">SPF (v=spf1)</span>
@@ -550,7 +763,6 @@ export default function SettingsPage() {
                         <p className="text-[11px] text-[#959494]">{dnsResults.spf.message}</p>
                       </div>
 
-                      {/* DMARC Check */}
                       <div className="p-3.5 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] space-y-1.5">
                         <div className="flex items-center justify-between">
                           <span className="font-semibold text-black dark:text-white">DMARC (_dmarc)</span>
@@ -561,7 +773,6 @@ export default function SettingsPage() {
                         <p className="text-[11px] text-[#959494]">{dnsResults.dmarc.message}</p>
                       </div>
 
-                      {/* DKIM Check */}
                       <div className="p-3.5 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] space-y-1.5">
                         <div className="flex items-center justify-between">
                           <span className="font-semibold text-black dark:text-white">DKIM (resend._domainkey)</span>
@@ -589,7 +800,6 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
-                {/* Resend Webhook */}
                 <div className="p-4 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-black dark:text-white uppercase">
@@ -611,7 +821,6 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
-                {/* Inbound Reply Webhook */}
                 <div className="p-4 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-black dark:text-white uppercase">
@@ -699,57 +908,6 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* TAB: AI Reasoning */}
-            {activeTab === 'ai' && (
-              <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-6 space-y-4 text-xs font-mono">
-                <div className="flex items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08]">
-                  <div>
-                    <h2 className="text-base font-semibold text-black dark:text-white">AI Reasoning Engine</h2>
-                    <p className="text-[#959494] mt-0.5">
-                      Gemini 1.5 Flash generates tailored outreach hooks and analyzes prospect sentiment.
-                    </p>
-                  </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-[2px] bg-emerald-500/10 text-emerald-500 font-semibold uppercase">
-                    ACTIVE
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-[#959494] uppercase mb-1">AI MODEL</label>
-                    <select
-                      value={aiModel}
-                      onChange={(e) => setAiModel(e.target.value)}
-                      className="w-full text-xs font-mono border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-2.5 text-black dark:text-white"
-                    >
-                      <option value="gemini-1.5-flash">Gemini 1.5 Flash (Ultra-Fast & Free Tier Included)</option>
-                      <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Research)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[#959494] uppercase mb-1">API KEY</label>
-                    <input
-                      type="password"
-                      placeholder={aiKeyConfigured ? '•••••••••••••••• (Configured via env or vault)' : 'AIzaSy...'}
-                      value={aiApiKey}
-                      onChange={(e) => setAiApiKey(e.target.value)}
-                      className="w-full text-xs font-mono border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-2.5 text-black dark:text-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-[#ebebeb] dark:border-white/[0.08] flex justify-end">
-                  <button
-                    onClick={() => handleSaveProviders()}
-                    className="mono-btn bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-[4px] text-xs font-semibold"
-                  >
-                    SAVE AI SETTINGS
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* TAB: Lead Enrichment */}
             {activeTab === 'enrichment' && (
               <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-6 space-y-4 text-xs font-mono">
@@ -793,7 +951,6 @@ export default function SettingsPage() {
                   </span>
                 </div>
 
-                {/* Add Block Form */}
                 <form onSubmit={handleAddSuppression} className="flex gap-2">
                   <input
                     type="text"
@@ -811,7 +968,6 @@ export default function SettingsPage() {
                   </button>
                 </form>
 
-                {/* Table */}
                 <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] overflow-hidden">
                   <table className="w-full text-left">
                     <thead className="bg-[#f8fafc] dark:bg-[#313641]/30 border-b border-[#ebebeb] dark:border-white/[0.08] text-[#959494]">
