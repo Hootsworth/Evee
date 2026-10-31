@@ -19,6 +19,8 @@ export async function GET() {
     aiModel: 'gemini-1.5-flash',
     aiKeyConfigured: false,
     discoveryKeyConfigured: false,
+    enrichmentProvider: 'explorium',
+    enrichmentKeyConfigured: false,
   };
 
   for (const c of creds || []) {
@@ -32,6 +34,10 @@ export async function GET() {
       summary.aiKeyConfigured = Boolean(c.encrypted_access_token);
     } else if (c.provider === 'google_places_config') {
       summary.discoveryKeyConfigured = Boolean(c.encrypted_access_token);
+    } else if (c.provider === 'explorium_config' || c.provider === 'enrichment_config') {
+      summary.enrichmentKeyConfigured = Boolean(c.encrypted_access_token);
+      const meta = c.scopes as any;
+      if (meta?.provider) summary.enrichmentProvider = meta.provider;
     }
   }
 
@@ -98,6 +104,33 @@ export async function POST(req: NextRequest) {
           encrypted_refresh_token: 'active',
           encrypted_access_token: encryptedKey,
           scopes: ['places.searchText'],
+        },
+        { onConflict: 'provider' }
+      );
+    }
+
+    // 4. Save Explorium / Lead Enrichment API key
+    if (body.exploriumApiKey !== undefined || body.enrichmentApiKey !== undefined) {
+      const rawKey = body.exploriumApiKey || body.enrichmentApiKey;
+      let encryptedKey: string | null = null;
+      if (rawKey && rawKey.trim()) {
+        encryptedKey = encryptSecret(rawKey.trim());
+      } else {
+        const { data: existing } = await admin
+          .from('oauth_credentials')
+          .select('encrypted_access_token')
+          .eq('provider', 'explorium_config')
+          .maybeSingle();
+        encryptedKey = existing?.encrypted_access_token || null;
+      }
+
+      await admin.from('oauth_credentials').upsert(
+        {
+          provider: 'explorium_config',
+          account_email: 'explorium_enrichment',
+          encrypted_refresh_token: 'active',
+          encrypted_access_token: encryptedKey,
+          scopes: { provider: body.enrichmentProvider || 'explorium' } as any,
         },
         { onConflict: 'provider' }
       );

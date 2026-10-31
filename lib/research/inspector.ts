@@ -63,7 +63,7 @@ async function safeFetchHtml(targetUrl: string, timeoutMs = 8000): Promise<{ htm
 /**
  * Inspects a business website up to maxPages (default: 5)
  */
-export async function inspectWebsite(baseUrl: string, maxPages = 5): Promise<WebsiteInspectionResult> {
+export async function inspectWebsite(baseUrl: string, maxPages = 5, timeoutMs = 3000): Promise<WebsiteInspectionResult> {
   const result: WebsiteInspectionResult = {
     pagesAttempted: 0,
     pagesSuccessfullyRead: 0,
@@ -83,7 +83,7 @@ export async function inspectWebsite(baseUrl: string, maxPages = 5): Promise<Web
       visited.add(currentUrl);
 
       result.pagesAttempted++;
-      const fetched = await safeFetchHtml(currentUrl);
+      const fetched = await safeFetchHtml(currentUrl, timeoutMs);
       if (!fetched) {
         result.errors.push(`Could not fetch or invalid HTML: ${currentUrl}`);
         continue;

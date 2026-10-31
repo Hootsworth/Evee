@@ -8,7 +8,9 @@ export interface CsvColumnMapping {
   lastName: string | null;
   website: string | null;
   city: string | null;
-  [key: string]: string | null;
+  phone?: string | null;
+  category?: string | null;
+  [key: string]: string | null | undefined;
 }
 
 export interface ParsedCsvResult {
@@ -94,6 +96,8 @@ export function detectColumnMapping(headers: string[]): CsvColumnMapping {
   const lastNameCol = findHeader(['lastname', 'last', 'surname', 'familyname', 'lname']);
   const websiteCol = findHeader(['website', 'url', 'site', 'domain', 'webpage', 'link']);
   const cityCol = findHeader(['city', 'location', 'town', 'region', 'area']);
+  const phoneCol = findHeader(['phone', 'phonenumber', 'mobile', 'tel', 'telephone', 'cell', 'contactnumber']);
+  const categoryCol = findHeader(['category', 'businesstype', 'industry', 'type', 'sector', 'niche']);
 
   return {
     email: emailCol,
@@ -102,6 +106,8 @@ export function detectColumnMapping(headers: string[]): CsvColumnMapping {
     lastName: lastNameCol,
     website: websiteCol,
     city: cityCol,
+    phone: phoneCol,
+    category: categoryCol,
   };
 }
 

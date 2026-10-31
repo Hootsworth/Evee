@@ -6,13 +6,14 @@ import { Mail, Sparkles, Key, ShieldCheck, Check, AlertCircle, Save, Plus, Trash
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'smtp' | 'ai' | 'places' | 'suppression'>('smtp');
+  const [activeTab, setActiveTab] = useState<'smtp' | 'ai' | 'places' | 'enrichment' | 'suppression'>('smtp');
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Show/Hide password toggles
   const [showSmtpPass, setShowSmtpPass] = useState(false);
   const [showAiKey, setShowAiKey] = useState(false);
   const [showPlacesKey, setShowPlacesKey] = useState(false);
+  const [showEnrichmentKey, setShowEnrichmentKey] = useState(false);
 
   // SMTP App Password state
   const [smtpEmail, setSmtpEmail] = useState('');
@@ -28,6 +29,11 @@ export default function SettingsPage() {
   // Google Places Discovery key state
   const [placesApiKey, setPlacesApiKey] = useState('');
   const [placesKeyConfigured, setPlacesKeyConfigured] = useState(false);
+
+  // Explorium & Lead Enrichment state
+  const [enrichmentProvider, setEnrichmentProvider] = useState<'explorium' | 'hunter' | 'built_in'>('explorium');
+  const [enrichmentApiKey, setEnrichmentApiKey] = useState('');
+  const [enrichmentKeyConfigured, setEnrichmentKeyConfigured] = useState(false);
 
   // Global suppression state
   const [suppressions, setSuppressions] = useState<any[]>([]);
@@ -50,6 +56,8 @@ export default function SettingsPage() {
           setAiProvider(sData.settings.aiProvider || 'gemini');
           setAiKeyConfigured(sData.settings.aiKeyConfigured);
           setPlacesKeyConfigured(sData.settings.discoveryKeyConfigured);
+          setEnrichmentKeyConfigured(Boolean(sData.settings.enrichmentKeyConfigured));
+          if (sData.settings.enrichmentProvider) setEnrichmentProvider(sData.settings.enrichmentProvider);
         }
       }
 
@@ -92,6 +100,11 @@ export default function SettingsPage() {
         payload.placesApiKey = placesApiKey;
       }
 
+      if (enrichmentApiKey) {
+        payload.exploriumApiKey = enrichmentApiKey;
+        payload.enrichmentProvider = enrichmentProvider;
+      }
+
       const res = await fetch('/api/settings/providers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -104,6 +117,7 @@ export default function SettingsPage() {
         setSmtpAppPassword('');
         setAiApiKey('');
         setPlacesApiKey('');
+        setEnrichmentApiKey('');
         fetchSettings();
       } else {
         setMessage({ text: data.error || 'Failed to update settings', type: 'error' });
@@ -159,6 +173,7 @@ export default function SettingsPage() {
     { id: 'smtp', label: 'Outbound Mailer', icon: Mail, badge: smtpConfigured ? 'Connected' : 'Setup' },
     { id: 'ai', label: 'AI Reasoning', icon: Sparkles, badge: aiKeyConfigured ? 'Active' : 'Key Required' },
     { id: 'places', label: 'Places Discovery', icon: Key, badge: placesKeyConfigured ? 'Live API' : 'Simulation' },
+    { id: 'enrichment', label: 'Lead Enrichment (Explorium)', icon: Search, badge: enrichmentKeyConfigured ? 'Active' : 'Multi-Tier' },
     { id: 'suppression', label: 'Suppression Registry', icon: ShieldCheck, count: suppressions.length },
   ];
 
@@ -531,6 +546,116 @@ export default function SettingsPage() {
                       className="mono-btn bg-[#111827] dark:bg-white text-white dark:text-[#111827] hover:bg-black dark:hover:bg-zinc-200 px-5 py-2.5 rounded-full text-xs font-normal shadow-sm transition active:scale-95"
                     >
                       {saving ? 'ENCRYPTING & PERSISTING...' : 'SAVE PLACES KEY'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* TAB: Lead Enrichment (Explorium) */}
+            {activeTab === 'enrichment' && (
+              <div className="bg-white dark:bg-[#121217] border border-[#e5e7eb] dark:border-[#27272a] rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-6 border-b border-[#f3f4f6] dark:border-[#1f1f23]">
+                  <div>
+                    <h2 className="text-xl font-light text-[#111827] dark:text-white">B2B Lead Enrichment & Contact Discovery</h2>
+                    <p className="text-xs text-[#6b7280] dark:text-[#a1a1aa] font-mono mt-1 font-light">
+                      Enrich discovered leads with verified decision maker emails, executive contacts, and direct phone numbers.
+                    </p>
+                  </div>
+                  <span
+                    className={`self-start sm:self-auto text-[10px] font-mono px-3 py-1 rounded-full font-normal ${
+                      enrichmentKeyConfigured
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                        : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                    }`}
+                  >
+                    {enrichmentKeyConfigured ? 'EXPLORIUM CONNECTED' : 'MULTI-TIER ACTIVE (WEB & AI)'}
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[#f8fafc] dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] text-xs font-mono space-y-2">
+                  <div className="font-normal text-[#111827] dark:text-white flex items-center space-x-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Multi-Tier Enrichment Architecture:</span>
+                  </div>
+                  <ul className="list-disc list-inside space-y-1 text-[#6b7280] dark:text-[#a1a1aa] text-[11px] font-light">
+                    <li><strong className="font-normal text-[#111827] dark:text-white">Tier 1: Explorium B2B API</strong> — Queries Explorium's global database for decision maker emails and phones when your key is configured.</li>
+                    <li><strong className="font-normal text-[#111827] dark:text-white">Tier 2: Deep Web Inspection</strong> — Safely crawls the company's live website, contact page, and team directories to extract verified <code className="text-rose-500">mailto:</code> addresses.</li>
+                    <li><strong className="font-normal text-[#111827] dark:text-white">Tier 3: Domain Pattern AI Inference</strong> — Uses your active Gemini / OpenAI model to determine corporate mailbox conventions and validate DNS syntax.</li>
+                  </ul>
+                </div>
+
+                <form onSubmit={handleSaveProviders} className="space-y-4">
+                  <div>
+                    <label className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal block mb-2.5">
+                      ENRICHMENT PROVIDER
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {[
+                        { id: 'explorium', name: 'Explorium B2B Enrichment', desc: 'Enterprise business profile, direct executive emails & phones' },
+                        { id: 'built_in', name: 'Built-in Web & AI Discovery', desc: 'Zero-config crawler extracting contact pages & domain mailboxes' },
+                      ].map((p) => {
+                        const isSelected = enrichmentProvider === p.id;
+                        return (
+                          <div
+                            key={p.id}
+                            onClick={() => setEnrichmentProvider(p.id as any)}
+                            className={`p-4 rounded-xl border cursor-pointer transition flex flex-col justify-between ${
+                              isSelected
+                                ? 'border-[#f43f5e] bg-rose-50/20 dark:bg-rose-950/20'
+                                : 'border-[#e5e7eb] dark:border-[#27272a] bg-white dark:bg-[#18181b] hover:border-[#d1d5db]'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-normal text-[#111827] dark:text-white">{p.name}</span>
+                              <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${isSelected ? 'border-[#f43f5e] bg-[#f43f5e]' : 'border-[#d1d5db]'}`}>
+                                {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                              </div>
+                            </div>
+                            <p className="text-[11px] font-mono text-[#6b7280] dark:text-[#a1a1aa] font-light mt-1">{p.desc}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {enrichmentProvider === 'explorium' && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal">
+                          EXPLORIUM API KEY
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowEnrichmentKey(!showEnrichmentKey)}
+                          className="text-[10px] font-mono text-[#f43f5e] hover:underline flex items-center space-x-1"
+                        >
+                          {showEnrichmentKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          <span>{showEnrichmentKey ? 'HIDE' : 'SHOW'}</span>
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type={showEnrichmentKey ? 'text' : 'password'}
+                          placeholder={enrichmentKeyConfigured ? '•••••••••••••••• (Leave blank to keep existing key)' : 'Enter Explorium API Key...'}
+                          value={enrichmentApiKey}
+                          onChange={(e) => setEnrichmentApiKey(e.target.value)}
+                          className="w-full text-xs font-mono border border-[#e5e7eb] dark:border-[#27272a] bg-white dark:bg-[#18181b] rounded-xl p-3 focus:outline-none focus:border-[#f43f5e] focus:ring-1 focus:ring-rose-500/20 text-[#111827] dark:text-white font-light"
+                        />
+                      </div>
+                      <p className="text-[11px] text-[#9ca3af] dark:text-[#71717a] mt-1.5 font-mono">
+                        Obtained from your Explorium console (api.explorium.ai). If blank, Evee automatically uses deep web inspection and AI domain discovery.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="pt-4 border-t border-[#f3f4f6] dark:border-[#1f1f23] flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="mono-btn bg-[#111827] dark:bg-white text-white dark:text-[#111827] hover:bg-black dark:hover:bg-zinc-200 px-5 py-2.5 rounded-full text-xs font-normal shadow-sm transition active:scale-95"
+                    >
+                      {saving ? 'ENCRYPTING & PERSISTING...' : 'SAVE ENRICHMENT CONFIG'}
                     </button>
                   </div>
                 </form>

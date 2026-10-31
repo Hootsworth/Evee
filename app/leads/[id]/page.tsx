@@ -3,20 +3,49 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ExternalLink, CheckCircle2, AlertTriangle, ArrowLeft, ShieldCheck, Mail, Sparkles, ChevronRight } from 'lucide-react';
+import { ExternalLink, CheckCircle2, AlertTriangle, ArrowLeft, ShieldCheck, Mail, Sparkles, ChevronRight, X } from 'lucide-react';
 
 export default function BusinessDetailPage() {
   const { id } = useParams();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [enriching, setEnriching] = useState(false);
+  const [enrichStatus, setEnrichStatus] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadBusiness = () => {
     fetch(`/api/businesses/${id}`)
       .then((res) => res.json())
       .then((res) => setData(res))
       .catch((e) => console.error(e))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadBusiness();
   }, [id]);
+
+  const handleEnrichLead = async () => {
+    setEnriching(true);
+    setEnrichStatus(null);
+    try {
+      const res = await fetch('/api/leads/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessId: id }),
+      });
+      const resData = await res.json();
+      if (res.ok && resData.enriched?.[0]?.status === 'enriched') {
+        setEnrichStatus(`Enriched! Verified email: ${resData.enriched[0].email} via ${resData.enriched[0].source}`);
+        loadBusiness();
+      } else {
+        setEnrichStatus(resData.error || 'No verified email found on public sources.');
+      }
+    } catch (err: any) {
+      setEnrichStatus(`Error: ${err.message}`);
+    } finally {
+      setEnriching(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -83,17 +112,41 @@ export default function BusinessDetailPage() {
               </div>
             </div>
 
-            {/* Score Card Callout */}
-            {score && (
-              <div className="bg-white dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] rounded-xl p-5 shadow-sm text-center min-w-[160px]">
-                <div className="text-4xl font-light text-[#111827] dark:text-white">{score.total_score}</div>
-                <div className="mono-eyebrow text-[10px] text-[#9ca3af] dark:text-[#71717a] mt-1 font-normal">QUALIFICATION SCORE</div>
-                <div className="mt-2 text-[10px] font-mono text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full font-normal border border-emerald-200 dark:border-emerald-800 inline-block">
-                  {score.tier?.toUpperCase() || 'QUALIFIED'}
+            {/* Enrich Action & Score Card Callout */}
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <button
+                type="button"
+                onClick={handleEnrichLead}
+                disabled={enriching}
+                className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-4 py-2.5 rounded-full text-xs font-normal flex items-center space-x-2 shadow-sm transition active:scale-95 disabled:opacity-50"
+              >
+                <Sparkles className={`w-3.5 h-3.5 ${enriching ? 'animate-spin' : ''}`} />
+                <span>{enriching ? 'ENRICHING...' : 'ENRICH WITH EXPLORIUM'}</span>
+              </button>
+
+              {score && (
+                <div className="bg-white dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] rounded-xl p-5 shadow-sm text-center min-w-[160px]">
+                  <div className="text-4xl font-light text-[#111827] dark:text-white">{score.total_score || score.final_score}</div>
+                  <div className="mono-eyebrow text-[10px] text-[#9ca3af] dark:text-[#71717a] mt-1 font-normal">QUALIFICATION SCORE</div>
+                  <div className="mt-2 text-[10px] font-mono text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full font-normal border border-emerald-200 dark:border-emerald-800 inline-block">
+                    {score.tier?.toUpperCase() || 'QUALIFIED'}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
+
+          {enrichStatus && (
+            <div className="mt-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs font-mono text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{enrichStatus}</span>
+              </div>
+              <button onClick={() => setEnrichStatus(null)} className="text-current opacity-60 hover:opacity-100">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
