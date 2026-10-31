@@ -259,17 +259,3 @@
 .animate-flat-scan {
   animation: flat-scan 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
-
-/* Flat pulse for terminal status indicators (crisp opacity shift, no blurred glow) */
-@keyframes flat-pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
-}
-
-.animate-flat-pulse {
-  animation: flat-pulse 1.2s ease-in-out infinite;
-}

@@ -758,7 +758,6 @@ export default function LeadsPage() {
       {selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#010120] text-white border border-white/[0.16] rounded-[4px] px-5 py-3 shadow-2xl flex items-center space-x-4 animate-in fade-in slide-in-from-bottom-4">
           <div className="font-mono text-xs flex items-center space-x-2">
-            <span className="w-2 h-2 rounded-full bg-[#c8f6f9] animate-pulse" />
             <span>
               <strong>{selectedIds.size}</strong> {selectedIds.size === 1 ? 'LEAD' : 'LEADS'} SELECTED
             </span>
@@ -915,20 +914,9 @@ export default function LeadsPage() {
                         <span className="mono-eyebrow text-[#959494] text-[10px] tracking-[0.55px] uppercase font-semibold">
                           AI REASONING & COPY ADAPTATION
                         </span>
-                        {aiEnrichingModal ? (
-                          <span className="ai-flat-pill text-[#fc4c02] border-[#fc4c02]/30 bg-[#fc4c02]/5">
-                            <span className="w-1.5 h-1.5 rounded-[1px] bg-[#fc4c02] animate-flat-pulse" />
-                            <span>SYNTHESIZING PROFILES // {aiMetaModal?.provider ? aiMetaModal.provider.toUpperCase() : 'GEMINI 1.5 FLASH'}</span>
-                          </span>
-                        ) : aiEnrichedModal ? (
-                          <span className="ai-flat-pill text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/5">
-                            <span className="w-1.5 h-1.5 rounded-[1px] bg-emerald-500" />
-                            <span>ACTIVE // {aiMetaModal?.provider ? aiMetaModal.provider.toUpperCase() : 'NEURAL ENGINE'} ({activeRecipients.length} LEADS ENRICHED)</span>
-                          </span>
-                        ) : (
-                          <span className="ai-flat-pill">
-                            <span className="w-1.5 h-1.5 rounded-[1px] bg-neutral-400" />
-                            <span>STANDBY // MULTI-LLM READY</span>
+                        {aiEnrichingModal && (
+                          <span className="ai-flat-pill text-black dark:text-white border-[#ebebeb] dark:border-white/[0.12]">
+                            <span>SYNTHESIZING PROFILES...</span>
                           </span>
                         )}
                       </div>
@@ -963,10 +951,7 @@ export default function LeadsPage() {
                         }`}
                       >
                         {aiEnrichingModal ? (
-                          <>
-                            <span className="w-2 h-2 rounded-[1px] bg-[#ef2cc1] animate-flat-pulse" />
-                            <span>INFERENCE IN PROGRESS...</span>
-                          </>
+                          <span>INFERENCE IN PROGRESS...</span>
                         ) : aiEnrichedModal ? (
                           <>
                             <span>RE-RUN AI ENRICHMENT</span>

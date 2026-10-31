@@ -436,20 +436,9 @@ export default function CsvOutreachPage() {
                             <span className="mono-eyebrow text-[#959494] text-[10px] tracking-[0.55px] uppercase font-semibold">
                               AI REASONING & COPY ADAPTATION
                             </span>
-                            {enriching ? (
-                              <span className="ai-flat-pill text-[#fc4c02] border-[#fc4c02]/30 bg-[#fc4c02]/5">
-                                <span className="w-1.5 h-1.5 rounded-[1px] bg-[#fc4c02] animate-flat-pulse" />
-                                <span>SYNTHESIZING PROFILES // {aiMeta?.provider ? aiMeta.provider.toUpperCase() : 'GEMINI 1.5 FLASH'}</span>
-                              </span>
-                            ) : enriched ? (
-                              <span className="ai-flat-pill text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/5">
-                                <span className="w-1.5 h-1.5 rounded-[1px] bg-emerald-500" />
-                                <span>ACTIVE // {aiMeta?.provider ? aiMeta.provider.toUpperCase() : 'NEURAL ENGINE'} ({csvResult.rows.length} ROWS ENRICHED)</span>
-                              </span>
-                            ) : (
-                              <span className="ai-flat-pill">
-                                <span className="w-1.5 h-1.5 rounded-[1px] bg-neutral-400" />
-                                <span>STANDBY // MULTI-LLM READY</span>
+                            {enriching && (
+                              <span className="ai-flat-pill text-black dark:text-white border-[#ebebeb] dark:border-white/[0.12]">
+                                <span>SYNTHESIZING PROFILES...</span>
                               </span>
                             )}
                           </div>
@@ -484,10 +473,7 @@ export default function CsvOutreachPage() {
                             }`}
                           >
                             {enriching ? (
-                              <>
-                                <span className="w-2 h-2 rounded-[1px] bg-[#ef2cc1] animate-flat-pulse" />
-                                <span>INFERENCE IN PROGRESS...</span>
-                              </>
+                              <span>INFERENCE IN PROGRESS...</span>
                             ) : enriched ? (
                               <>
                                 <span>RE-RUN AI ENRICHMENT</span>
