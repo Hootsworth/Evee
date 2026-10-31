@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Search,
   Filter,
@@ -24,6 +25,10 @@ import {
   CheckSquare,
   Square,
   ArrowRight,
+  ArrowLeft,
+  Eye,
+  AlertTriangle,
+  Info,
 } from 'lucide-react';
 import { parseAndAnalyzeCsv, CsvColumnMapping, replaceTemplateVariables } from '@/lib/csv/parser';
 
@@ -35,6 +40,7 @@ Apex Legal Advisory,apexlegal.in,Meera Sen,,+91 98110 99887,Delhi,Legal Services
 Zenith Robotics,zenithrobotics.io,Rohan Verma,,+91 99000 77665,Bengaluru,Technology`;
 
 export default function LeadsPage() {
+  const router = useRouter();
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -48,17 +54,30 @@ export default function LeadsPage() {
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
   const [enrichMessage, setEnrichMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  // Outreach Modal state
+  // Unified 4-Step Outreach Wizard state (Strictly matching CSV Direct Outreach)
   const [showOutreachModal, setShowOutreachModal] = useState(false);
-  const [outreachSubject, setOutreachSubject] = useState('Quick question regarding {company_name} operations');
+  const [outreachStep, setOutreachStep] = useState<'recipients' | 'template' | 'test_sent' | 'dispatched'>('recipients');
+  const [outreachSubject, setOutreachSubject] = useState('Personalized idea for {company_name}');
   const [outreachBody, setOutreachBody] = useState(
-    'Hi {first_name},\n\nI was researching {company_name} in {city} and wanted to reach out regarding your {company_type} customer conversion workflow.\n\n{personalized_pitch}\n\nWe implemented automated scheduling and inquiries for peer teams, reducing response drop-offs significantly.\n\nWould you be open to a 5-minute conversation this Thursday?\n\nBest regards,\nOperator'
+    'Hi {first_name},\n\nI was looking into {company_name} in {city} and wanted to reach out specifically regarding your {company_type} operations.\n\n{personalized_pitch}\n\nMany {company_type} teams experience friction around {pain_point}. We recently implemented {value_prop} for similar businesses to streamline this completely.\n\nWould you be open to a brief 5-minute chat this week?\n\nBest regards,\nOperator'
   );
   const [operatorEmail, setOperatorEmail] = useState('');
+  const [previewLeadIdx, setPreviewLeadIdx] = useState(0);
   const [testSending, setTestSending] = useState(false);
-  const [testSuccess, setTestSuccess] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<any>(null);
+  const [testError, setTestError] = useState<string | null>(null);
   const [dispatching, setDispatching] = useState(false);
-  const [dispatchResult, setDispatchResult] = useState<any>(null);
+  const [dispatchSummary, setDispatchSummary] = useState<any>(null);
+  const [dispatchResults, setDispatchResults] = useState<any[]>([]);
+  const [aiEnrichingModal, setAiEnrichingModal] = useState(false);
+  const [aiEnrichedModal, setAiEnrichedModal] = useState(false);
+  const [aiMetaModal, setAiMetaModal] = useState<{
+    source: 'live' | 'ai_synthetic';
+    provider: string;
+    model: string;
+    error?: string;
+  } | null>(null);
+  const outreachTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // CSV Import Modal state
   const [showCsvModal, setShowCsvModal] = useState(false);
@@ -94,6 +113,14 @@ export default function LeadsPage() {
 
   useEffect(() => {
     fetchBusinesses();
+    fetch('/api/settings/providers')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.settings?.smtpUser) {
+          setOperatorEmail(data.settings.smtpUser);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Filtered list
@@ -139,6 +166,31 @@ export default function LeadsPage() {
   const selectedBusinesses = businesses.filter((b) => selectedIds.has(b.id));
   const selectedReadyToEmail = selectedBusinesses.filter((b) => Boolean(b.general_business_email));
   const selectedMissingEmail = selectedBusinesses.filter((b) => !b.general_business_email);
+
+  // Outreach Candidates: selected leads, or filtered leads if none explicitly selected
+  const activeCandidatesList = selectedBusinesses.length > 0 ? selectedBusinesses : filtered;
+  const outreachCandidates = activeCandidatesList.map((b) => ({
+    id: b.id,
+    email: b.general_business_email || b.contacts?.[0]?.contact_email || '',
+    company_name: b.display_name,
+    first_name: b.contacts?.[0]?.contact_name?.split(' ')[0] || 'there',
+    website: b.official_website_url || '',
+    city: b.city || '',
+    company_type: b.ai_company_type || b.business_type || 'growing business',
+    personalized_pitch: b.ai_personalized_pitch || '',
+    pain_point: b.ai_pain_point || '',
+    value_prop: b.ai_value_prop || '',
+    industry: b.business_type || 'Commercial Services',
+    ai_company_type: b.ai_company_type || b.business_type,
+    ai_personalized_pitch: b.ai_personalized_pitch,
+    ai_pain_point: b.ai_pain_point,
+    ai_value_prop: b.ai_value_prop,
+    ai_industry: b.business_type,
+  }));
+  const activeRecipients = outreachCandidates.filter((c) => Boolean(c.email && c.email.includes('@')));
+  const sampleCandidate = activeRecipients[previewLeadIdx] || activeRecipients[0] || {};
+  const renderedSubject = replaceTemplateVariables(outreachSubject, sampleCandidate);
+  const renderedBody = replaceTemplateVariables(outreachBody, sampleCandidate);
 
   // Single Lead Enrich
   const handleEnrichSingle = async (businessId: string) => {
@@ -257,92 +309,159 @@ export default function LeadsPage() {
     }
   };
 
-  // Handle Operator Test Send
-  const handleTestSend = async () => {
-    if (!operatorEmail || !operatorEmail.includes('@')) {
-      alert('Please enter your operator email address first to test send.');
+  // Helper to insert a variable chip into the outreachBody at the current cursor position
+  const handleInsertVariable = (tokenName: string) => {
+    const token = `{${tokenName}}`;
+    const textarea = outreachTextareaRef.current;
+    if (!textarea) {
+      setOutreachBody((prev) => prev + ' ' + token);
       return;
     }
-    const sample = selectedReadyToEmail[0] || businesses.find((b) => b.general_business_email) || {
-      display_name: 'Sample Business',
-      general_business_email: 'sample@business.com',
-      city: 'Bengaluru',
-      business_type: 'Artisan Bakery',
-    };
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = outreachBody;
+    const before = text.substring(0, start);
+    const after = text.substring(end, text.length);
+    setOutreachBody(before + token + after);
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + token.length, start + token.length);
+    }, 0);
+  };
 
+  // Trigger AI enrichment on candidate leads
+  const handleEnrichModalWithAi = async () => {
+    if (activeRecipients.length === 0) return;
+    setAiEnrichingModal(true);
+
+    try {
+      const res = await fetch('/api/csv-outreach/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prospects: activeRecipients,
+          mapping: {
+            email: 'email',
+            companyName: 'company_name',
+            firstName: 'first_name',
+            website: 'website',
+            city: 'city',
+          },
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.enrichedProspects) {
+        const enrichedMap = new Map<string, any>();
+        data.enrichedProspects.forEach((ep: any) => {
+          if (ep.id) enrichedMap.set(ep.id, ep);
+        });
+
+        setBusinesses((prev) =>
+          prev.map((b) => {
+            const ep = enrichedMap.get(b.id);
+            if (ep) {
+              return {
+                ...b,
+                ai_company_type: ep.ai_company_type || ep.company_type || b.ai_company_type,
+                ai_personalized_pitch: ep.ai_personalized_pitch || ep.personalized_pitch || b.ai_personalized_pitch,
+                ai_pain_point: ep.ai_pain_point || ep.pain_point || b.ai_pain_point,
+                ai_value_prop: ep.ai_value_prop || ep.value_prop || b.ai_value_prop,
+              };
+            }
+            return b;
+          })
+        );
+        setAiEnrichedModal(true);
+        setAiMetaModal(data.meta || null);
+      } else {
+        alert(`AI Enrichment Error: ${data.error || 'Failed to enrich prospects.'}`);
+      }
+    } catch (err: any) {
+      alert(`Network error during AI enrichment: ${err.message}`);
+    } finally {
+      setAiEnrichingModal(false);
+    }
+  };
+
+  // 1. Safety Gate: Send Test Email to Myself
+  const handleSendTestToSelf = async () => {
+    if (activeRecipients.length === 0) return;
     setTestSending(true);
-    setTestSuccess(null);
+    setTestError(null);
 
+    const sample = activeRecipients[previewLeadIdx] || activeRecipients[0];
     try {
       const res = await fetch('/api/csv-outreach/test-send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           template: { subject: outreachSubject, bodyText: outreachBody },
-          sampleProspect: {
-            company_name: sample.display_name,
-            email: sample.general_business_email,
-            first_name: sample.contacts?.[0]?.contact_name || 'Owner',
-            city: sample.city,
-            company_type: sample.business_type,
-          },
-          recipientOverride: operatorEmail.trim(),
+          sampleProspect: sample,
+          recipientOverride: operatorEmail,
         }),
       });
 
       const data = await res.json();
       if (res.ok) {
-        setTestSuccess(`Verification email delivered to ${operatorEmail}! Please inspect it.`);
+        setTestResult(data);
+        setOutreachStep('test_sent');
       } else {
-        alert(data.error || 'Test send failed');
+        setTestError(data.error || 'Failed to dispatch verification email.');
       }
     } catch (err: any) {
-      alert(`Network error: ${err.message}`);
+      setTestError(err.message || 'Network error sending test email.');
     } finally {
       setTestSending(false);
     }
   };
 
-  // Handle Full Outreach Dispatch
+  // 2. Full Live Bulk Dispatch
   const handleDispatchOutreach = async () => {
-    if (selectedReadyToEmail.length === 0) {
-      alert('None of the selected leads have an email address yet. Please enrich them first.');
-      return;
-    }
+    if (activeRecipients.length === 0) return;
     setDispatching(true);
-    setDispatchResult(null);
-
-    const formattedRecipients = selectedReadyToEmail.map((b) => ({
-      email: b.general_business_email,
-      company_name: b.display_name,
-      first_name: b.contacts?.[0]?.contact_name?.split(' ')[0] || 'Owner',
-      city: b.city,
-      company_type: b.business_type,
-      website: b.official_website_url,
-    }));
 
     try {
       const res = await fetch('/api/csv-outreach/dispatch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          recipients: formattedRecipients,
-          subjectTemplate: outreachSubject,
-          bodyTemplate: outreachBody,
+          template: { subject: outreachSubject, bodyText: outreachBody },
+          recipients: activeRecipients,
+          mapping: {
+            email: 'email',
+            companyName: 'company_name',
+            firstName: 'first_name',
+            website: 'website',
+            city: 'city',
+          },
         }),
       });
 
       const data = await res.json();
       if (res.ok) {
-        setDispatchResult(data);
+        setDispatchSummary(data.summary);
+        setDispatchResults(data.results || []);
+        setOutreachStep('dispatched');
+        fetchBusinesses();
       } else {
-        alert(data.error || 'Failed to dispatch outreach');
+        alert(`Bulk dispatch error: ${data.error}`);
       }
     } catch (err: any) {
-      alert(`Network error dispatching outreach: ${err.message}`);
+      alert(`Network error during dispatch: ${err.message}`);
     } finally {
       setDispatching(false);
     }
+  };
+
+  // Navigate to full-screen CSV outreach pipeline with preloaded leads
+  const handleOpenInFullCsvOutreach = () => {
+    try {
+      sessionStorage.setItem('evee_outreach_leads', JSON.stringify(activeRecipients));
+    } catch (e) {
+      console.error(e);
+    }
+    router.push('/campaigns/csv');
   };
 
   return (
@@ -399,9 +518,13 @@ export default function LeadsPage() {
                   // Select all filtered by default if none selected
                   setSelectedIds(new Set(filtered.map((b) => b.id)));
                 }
+                setOutreachStep('recipients');
+                setPreviewLeadIdx(0);
+                setTestResult(null);
+                setTestError(null);
+                setDispatchSummary(null);
+                setDispatchResults([]);
                 setShowOutreachModal(true);
-                setDispatchResult(null);
-                setTestSuccess(null);
               }}
               className="mono-btn bg-white hover:bg-[#ebebeb] text-[#010120] px-5 py-2 rounded-[4px] text-xs font-mono font-medium uppercase tracking-[0.05em] transition flex items-center space-x-2"
             >
@@ -656,9 +779,13 @@ export default function LeadsPage() {
 
           <button
             onClick={() => {
+              setOutreachStep('recipients');
+              setPreviewLeadIdx(0);
+              setTestResult(null);
+              setTestError(null);
+              setDispatchSummary(null);
+              setDispatchResults([]);
               setShowOutreachModal(true);
-              setDispatchResult(null);
-              setTestSuccess(null);
             }}
             className="mono-btn bg-white hover:bg-[#ebebeb] text-[#010120] px-4 py-1.5 rounded-[4px] text-xs font-mono font-medium uppercase tracking-wider flex items-center space-x-1.5 transition"
           >
@@ -675,182 +802,625 @@ export default function LeadsPage() {
         </div>
       )}
 
-      {/* Outreach Dispatch Modal: Together AI Style (Flat, Hairline, 4px radius) */}
+      {/* Outreach Dispatch Modal: Strictly unified with CSV Direct Outreach */}
       {showOutreachModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#0f1017] border border-[#ebebeb] dark:border-white/[0.12] rounded-[4px] w-full max-w-2xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 space-y-6">
+          <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.12] rounded-[4px] w-full max-w-5xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 space-y-6">
             <div className="brand-gradient-h -mx-6 -mt-6 sm:-mx-8 sm:-mt-8 mb-6" />
 
-            <div className="flex items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08] gap-4">
               <div>
-                <div className="mono-eyebrow text-[#959494] font-mono text-[11px] font-medium tracking-[0.55px] uppercase">
-                  OUTREACH DISPATCH PIPELINE
+                <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
+                  <span>UNIFIED OUTREACH PIPELINE</span>
+                  <span>•</span>
+                  <span className="text-[#ef2cc1]">AI ADAPTATION ENGINE</span>
                 </div>
-                <h3 className="text-xl font-medium tracking-tight text-[#000000] dark:text-white mt-1">
-                  Launch Outreach to Selected Leads
+                <h3 className="text-xl font-medium tracking-tight text-black dark:text-white">
+                  Direct Outreach to Leads
                 </h3>
               </div>
-              <button
-                onClick={() => setShowOutreachModal(false)}
-                className="text-[#959494] hover:text-[#000000] dark:hover:text-white p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
+
+              <div className="flex items-center space-x-3">
+                {/* Stepper Pill Indicator (Matches CSV Outreach) */}
+                <div className="flex items-center space-x-1 bg-[#f8fafc] dark:bg-[#313641]/40 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-1 text-xs font-mono">
+                  {[
+                    { id: 'recipients', label: '1. CANDIDATES' },
+                    { id: 'template', label: '2. COMPOSE' },
+                    { id: 'test_sent', label: '3. PRE-FLIGHT TEST' },
+                    { id: 'dispatched', label: '4. DISPATCHED' },
+                  ].map((s) => {
+                    const active = outreachStep === s.id;
+                    return (
+                      <span
+                        key={s.id}
+                        className={`px-2 py-0.5 rounded-[3px] text-[11px] transition ${
+                          active
+                            ? 'bg-black dark:bg-white text-white dark:text-black font-semibold'
+                            : 'text-[#959494]'
+                        }`}
+                      >
+                        {s.label}
+                      </span>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleOpenInFullCsvOutreach}
+                  title="Open in Full-Screen CSV Outreach Page"
+                  className="mono-btn hidden md:flex items-center space-x-1 text-xs text-[#ef2cc1] hover:underline font-mono"
+                >
+                  <span>Full Pipeline</span>
+                  <ExternalLink className="w-3 h-3" />
+                </button>
+
+                <button
+                  onClick={() => setShowOutreachModal(false)}
+                  className="text-[#959494] hover:text-black dark:hover:text-white p-1"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            {/* Recipient breakdown */}
-            <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-              <div className="p-3 bg-[#f8fafc] dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
-                <div className="text-[#959494]">READY TO EMAIL</div>
-                <div className="text-lg font-medium text-emerald-600 dark:text-emerald-400 mt-0.5">
-                  {selectedReadyToEmail.length}
-                </div>
-              </div>
-              <div className="p-3 bg-[#f8fafc] dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
-                <div className="text-[#959494]">MISSING EMAIL</div>
-                <div className="text-lg font-medium text-amber-600 dark:text-amber-400 mt-0.5 flex items-center justify-between">
-                  <span>{selectedMissingEmail.length}</span>
-                  {selectedMissingEmail.length > 0 && (
-                    <button
-                      onClick={() => handleBulkEnrich(selectedMissingEmail.map((b) => b.id))}
-                      disabled={bulkEnriching}
-                      className="text-[10px] font-mono px-2 py-0.5 rounded-[4px] bg-[#000000] dark:bg-white text-white dark:text-[#000000] uppercase font-medium disabled:opacity-50"
-                    >
-                      {bulkEnriching ? 'ENRICHING...' : 'ENRICH NOW'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Dispatch Results State */}
-            {dispatchResult ? (
-              <div className="space-y-4 py-2 font-mono text-xs">
-                <div className="p-4 rounded-[4px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 space-y-1">
-                  <div className="font-medium flex items-center space-x-2 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    <span>Outreach Sequence Dispatched Successfully</span>
-                  </div>
-                  <div className="pt-2 text-[11px] space-y-0.5">
-                    <div>• <strong>{dispatchResult.sentCount || 0}</strong> emails delivered to inboxes</div>
-                    <div>• <strong>{dispatchResult.suppressedCount || 0}</strong> excluded via suppression list</div>
-                    {dispatchResult.failedCount > 0 && (
-                      <div>• <strong>{dispatchResult.failedCount}</strong> failed (check SMTP settings)</div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-4 border-t border-[#ebebeb] dark:border-white/[0.08]">
-                  <button
-                    onClick={() => {
-                      setShowOutreachModal(false);
-                      setDispatchResult(null);
-                    }}
-                    className="mono-btn bg-[#000000] dark:bg-white text-white dark:text-[#000000] px-5 py-2 rounded-[4px] text-xs font-mono uppercase font-medium"
-                  >
-                    CLOSE
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-5">
-                {/* Subject Line */}
-                <div className="space-y-1.5">
-                  <label className="mono-eyebrow text-[#959494] text-[11px] font-mono block">
-                    EMAIL SUBJECT TEMPLATE
-                  </label>
-                  <input
-                    type="text"
-                    value={outreachSubject}
-                    onChange={(e) => setOutreachSubject(e.target.value)}
-                    className="w-full text-xs font-mono border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#14161f] rounded-[4px] p-2.5 focus:outline-none focus:border-[#000000] dark:focus:border-white text-[#000000] dark:text-white"
-                  />
-                </div>
-
-                {/* Email Body & Variables */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="mono-eyebrow text-[#959494] text-[11px] font-mono block">
-                      EMAIL BODY
-                    </label>
-                    <div className="flex items-center space-x-1.5 text-[10px] font-mono text-[#959494]">
-                      <span>INSERT:</span>
-                      {['company_name', 'first_name', 'city', 'company_type'].map((tok) => (
-                        <button
-                          key={tok}
-                          type="button"
-                          onClick={() => setOutreachBody((prev) => prev + ` {${tok}}`)}
-                          className="px-1.5 py-0.5 rounded-[4px] bg-[#f4f4f5] dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.08] hover:text-[#000000] dark:hover:text-white"
-                        >
-                          {`{${tok}}`}
-                        </button>
-                      ))}
+            {/* STEP 1: CANDIDATES & AI CLASSIFICATION */}
+            {outreachStep === 'recipients' && (
+              <div className="space-y-6 font-mono text-xs">
+                {/* Stats Breakdown */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="p-3 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
+                    <div className="text-[#959494] text-[10px] uppercase font-semibold">TOTAL CANDIDATES</div>
+                    <div className="text-xl font-semibold text-black dark:text-white mt-0.5">
+                      {outreachCandidates.length}
                     </div>
                   </div>
-                  <textarea
-                    rows={8}
-                    value={outreachBody}
-                    onChange={(e) => setOutreachBody(e.target.value)}
-                    className="w-full text-xs font-mono border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#14161f] rounded-[4px] p-3 focus:outline-none focus:border-[#000000] dark:focus:border-white text-[#000000] dark:text-white font-light leading-relaxed"
-                  />
+                  <div className="p-3 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
+                    <div className="text-[#959494] text-[10px] uppercase font-semibold">VALID EMAILS READY</div>
+                    <div className="text-xl font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                      {activeRecipients.length}
+                    </div>
+                  </div>
+                  <div className="p-3 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
+                    <div className="text-[#959494] text-[10px] uppercase font-semibold">MISSING EMAIL</div>
+                    <div className="text-xl font-semibold text-amber-600 dark:text-amber-400 mt-0.5 flex items-center justify-between">
+                      <span>{outreachCandidates.length - activeRecipients.length}</span>
+                      {outreachCandidates.length - activeRecipients.length > 0 && (
+                        <button
+                          onClick={() => handleBulkEnrich(selectedMissingEmail.map((b) => b.id))}
+                          disabled={bulkEnriching}
+                          className="mono-btn text-[10px] px-2 py-0.5 rounded-[3px] bg-black dark:bg-white text-white dark:text-black uppercase font-semibold disabled:opacity-50"
+                        >
+                          {bulkEnriching ? 'ENRICHING...' : 'ENRICH NOW'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                {/* Safety Check: Send Test to Myself First */}
-                <div className="p-4 rounded-[4px] bg-[#f8fafc] dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.08] space-y-2.5">
-                  <div className="flex items-center space-x-2 text-xs font-mono font-medium text-[#000000] dark:text-white">
-                    <ShieldCheck className="w-4 h-4 text-[#bdbbff]" />
-                    <span>PRE-FLIGHT VERIFICATION (TEST SEND TO OPERATOR)</span>
-                  </div>
-                  <p className="text-[11px] font-mono text-[#959494]">
-                    Verify formatting and spam scoring before sending to real prospect businesses.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="email"
-                      placeholder="operator@company.com"
-                      value={operatorEmail}
-                      onChange={(e) => setOperatorEmail(e.target.value)}
-                      className="flex-1 text-xs font-mono border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#0f1017] rounded-[4px] px-3 py-2 text-[#000000] dark:text-white"
-                    />
+                {/* AI Classification & Copy Adaptation Engine Glass Card */}
+                <div className="ai-glass-card overflow-hidden">
+                  <div className="ai-laser-top w-full" />
+                  <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 rounded-[4px] bg-gradient-to-br from-[#fc4c02]/20 via-[#ef2cc1]/20 to-[#bdbbff]/20 border border-[#ef2cc1]/30 text-[#ef2cc1] flex items-center justify-center shrink-0">
+                        <Sparkles className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold text-black dark:text-white flex flex-wrap items-center gap-2">
+                          <span className="uppercase tracking-wider">
+                            AI Classification & Copy Adaptation Engine
+                          </span>
+                          {aiEnrichedModal && (
+                            <span className="ai-chip animate-ios-swish">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#ef2cc1] animate-ping" />
+                              <span>
+                                AI SYNTHESIS ACTIVE // {aiMetaModal?.provider ? aiMetaModal.provider.toUpperCase() : 'NEURAL ENGINE'}
+                              </span>
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-[#6b7280] dark:text-[#959494] mt-0.5">
+                          {aiEnrichingModal
+                            ? 'Synthesizing business models, industry challenges, and bespoke outreach angles...'
+                            : aiEnrichedModal
+                            ? `All ${activeRecipients.length} candidate businesses enriched with tailored value propositions.`
+                            : 'Uses neural reasoning to deduce company verticals, friction points, and bespoke value props per prospect.'}
+                        </div>
+                      </div>
+                    </div>
+
                     <button
                       type="button"
-                      onClick={handleTestSend}
-                      disabled={testSending}
-                      className="mono-btn bg-[#000000] dark:bg-white text-white dark:text-[#000000] px-4 py-2 rounded-[4px] text-xs font-mono uppercase font-medium disabled:opacity-50"
+                      onClick={handleEnrichModalWithAi}
+                      disabled={aiEnrichingModal || activeRecipients.length === 0}
+                      className="mono-btn bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 px-4 py-2 rounded-[4px] text-xs font-semibold flex items-center justify-center space-x-1.5 shadow-sm transition active:scale-95 disabled:opacity-50 shrink-0 self-start sm:self-auto"
                     >
-                      {testSending ? 'SENDING TEST...' : 'SEND TEST DRAFT'}
+                      <RefreshCw className={`w-3.5 h-3.5 ${aiEnrichingModal ? 'animate-spin' : ''}`} />
+                      <span>{aiEnrichingModal ? 'SYNTHESIZING...' : aiEnrichedModal ? 'RE-SYNTHESIZE WITH AI' : 'ENRICH ALL WITH AI'}</span>
                     </button>
                   </div>
-                  {testSuccess && (
-                    <div className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 mt-1">
-                      ✓ {testSuccess}
-                    </div>
-                  )}
                 </div>
 
-                {/* Dispatch Controls */}
+                {/* Candidate Preview Table */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="mono-eyebrow text-[#6b7280] dark:text-[#959494] font-semibold text-[11px]">
+                      CANDIDATE LEADS WITH AI CLASSIFICATION
+                    </span>
+                    <span className="text-[11px] text-[#959494]">
+                      Showing {activeRecipients.length} valid email recipients
+                    </span>
+                  </div>
+
+                  <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] overflow-hidden overflow-x-auto max-h-56">
+                    <table className="w-full text-left text-xs font-mono">
+                      <thead className="bg-[#f8fafc] dark:bg-[#313641]/30 border-b border-[#ebebeb] dark:border-white/[0.08] text-[#959494] sticky top-0 bg-opacity-95">
+                        <tr>
+                          <th className="py-2 px-3">#</th>
+                          <th className="py-2 px-3 text-[#ef2cc1]">AI IDENTIFIED TYPE</th>
+                          <th className="py-2 px-3">COMPANY NAME</th>
+                          <th className="py-2 px-3">EMAIL</th>
+                          <th className="py-2 px-3">CITY</th>
+                          <th className="py-2 px-3">WEBSITE</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#ebebeb] dark:divide-white/[0.06]">
+                        {outreachCandidates.slice(0, 15).map((row, idx) => (
+                          <tr key={idx} className="hover:bg-[#f8fafc] dark:hover:bg-white/[0.02]">
+                            <td className="py-2 px-3 text-[#959494]">{idx + 1}</td>
+                            <td className="py-2 px-3">
+                              <span className="ai-chip animate-ios-swish text-[10px]">
+                                <Sparkles className="w-2.5 h-2.5 text-[#ef2cc1]" />
+                                <span>{row.ai_company_type || row.company_type || 'Commercial Enterprise'}</span>
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-black dark:text-white font-medium">{row.company_name}</td>
+                            <td className="py-2 px-3">
+                              {row.email ? (
+                                <span className="text-emerald-600 dark:text-emerald-400">{row.email}</span>
+                              ) : (
+                                <span className="text-rose-500 text-[10px]">Missing Email</span>
+                              )}
+                            </td>
+                            <td className="py-2 px-3 text-[#959494]">{row.city || '—'}</td>
+                            <td className="py-2 px-3 text-[#959494] truncate max-w-xs">{row.website || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Footer Controls */}
                 <div className="flex items-center justify-between pt-4 border-t border-[#ebebeb] dark:border-white/[0.08]">
                   <button
                     type="button"
                     onClick={() => setShowOutreachModal(false)}
-                    className="text-xs font-mono text-[#959494] hover:underline"
+                    className="text-xs font-mono text-[#959494] hover:text-black dark:hover:text-white"
                   >
                     Cancel
                   </button>
 
                   <button
-                    type="button"
-                    onClick={handleDispatchOutreach}
-                    disabled={dispatching || selectedReadyToEmail.length === 0}
-                    className="mono-btn bg-[#000000] dark:bg-white text-white dark:text-[#000000] hover:bg-black/90 dark:hover:bg-zinc-200 px-6 py-2.5 rounded-[4px] text-xs font-mono font-medium uppercase tracking-wider flex items-center space-x-2 disabled:opacity-50"
+                    onClick={() => setOutreachStep('template')}
+                    disabled={activeRecipients.length === 0}
+                    className="mono-btn bg-black dark:bg-white text-white dark:text-black px-6 py-2.5 rounded-[4px] text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition active:scale-95 disabled:opacity-50"
                   >
-                    <Send className={`w-3.5 h-3.5 ${dispatching ? 'animate-spin' : ''}`} />
-                    <span>
-                      {dispatching
-                        ? 'DISPATCHING TO INBOXES...'
-                        : `APPROVE & DISPATCH (${selectedReadyToEmail.length})`}
-                    </span>
+                    <span>NEXT: COMPOSE TEMPLATE ({activeRecipients.length})</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: COMPOSE TEMPLATE & REAL-TIME PREVIEW */}
+            {outreachStep === 'template' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* Left Column: Editor & Variables Toolbar */}
+                  <div className="lg:col-span-7 bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-5 space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-[#ebebeb] dark:border-white/[0.08]">
+                      <div>
+                        <h4 className="text-sm font-semibold text-black dark:text-white">
+                          Compose Outreach Template
+                        </h4>
+                        <p className="text-[11px] text-[#959494] font-mono mt-0.5">
+                          Click dynamic variable chips to insert personalized tokens.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setOutreachStep('recipients')}
+                        className="mono-btn text-xs text-[#6b7280] dark:text-[#959494] hover:text-black dark:hover:text-white flex items-center space-x-1"
+                      >
+                        <ArrowLeft className="w-3 h-3" />
+                        <span>Candidates</span>
+                      </button>
+                    </div>
+
+                    {/* AI Variable Insertion Chips with iOS Swish */}
+                    <div className="ai-glass-card overflow-hidden">
+                      <div className="ai-laser-top w-full" />
+                      <div className="p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-1.5 text-black dark:text-white font-semibold text-xs font-mono">
+                            <Sparkles className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                            <span>AI ADAPTATION TOKENS</span>
+                          </div>
+                          <span className="text-[10px] font-mono text-[#959494]">
+                            Dynamically resolved per lead
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5">
+                          {[
+                            { token: 'company_type', label: '+{company_type}', desc: 'Identified Business Type' },
+                            { token: 'personalized_pitch', label: '+{personalized_pitch}', desc: 'Tailored Industry Pitch' },
+                            { token: 'pain_point', label: '+{pain_point}', desc: 'Industry Specific Bottleneck' },
+                            { token: 'value_prop', label: '+{value_prop}', desc: 'Tailored Solution' },
+                            { token: 'industry', label: '+{industry}', desc: 'High-Level Industry' },
+                          ].map((v) => (
+                            <button
+                              key={v.token}
+                              type="button"
+                              onClick={() => handleInsertVariable(v.token)}
+                              className="ai-chip animate-ios-swish hover:scale-105 active:scale-95 transition text-[10px]"
+                              title={v.desc}
+                            >
+                              <Sparkles className="w-2.5 h-2.5 text-[#ef2cc1]" />
+                              <span>{v.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Standard Contact Variables */}
+                    <div>
+                      <div className="mono-eyebrow text-[#6b7280] dark:text-[#959494] mb-1.5 text-[10px] font-semibold">
+                        STANDARD CONTACT VARIABLES
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {['first_name', 'company_name', 'website', 'city', 'email'].map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            onClick={() => handleInsertVariable(v)}
+                            className="mono-btn text-[11px] px-2 py-0.5 rounded-[3px] bg-[#f8fafc] dark:bg-[#313641]/30 border border-[#ebebeb] dark:border-white/[0.08] text-black dark:text-white hover:border-black dark:hover:border-white transition"
+                          >
+                            +{`{${v}}`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Subject Line Input */}
+                    <div>
+                      <label className="mono-eyebrow text-[#6b7280] dark:text-[#959494] block mb-1 text-[11px]">
+                        SUBJECT LINE
+                      </label>
+                      <input
+                        type="text"
+                        value={outreachSubject}
+                        onChange={(e) => setOutreachSubject(e.target.value)}
+                        placeholder="e.g. Quick question regarding {company_name}"
+                        className="w-full text-xs font-mono border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-2.5 text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
+                      />
+                    </div>
+
+                    {/* Body Textarea */}
+                    <div>
+                      <label className="mono-eyebrow text-[#6b7280] dark:text-[#959494] block mb-1 text-[11px]">
+                        EMAIL BODY TEMPLATE
+                      </label>
+                      <textarea
+                        ref={outreachTextareaRef}
+                        rows={8}
+                        value={outreachBody}
+                        onChange={(e) => setOutreachBody(e.target.value)}
+                        placeholder="Hi {first_name},\n\nWrite your message here..."
+                        className="w-full text-xs font-mono leading-relaxed border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-3 text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
+                      />
+                    </div>
+
+                    {/* Test Error Alert */}
+                    {testError && (
+                      <div className="p-3 rounded-[4px] border border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-mono flex items-center space-x-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        <span>{testError}</span>
+                      </div>
+                    )}
+
+                    {/* Send Test to Myself Safety Gate */}
+                    <div className="pt-3 border-t border-[#ebebeb] dark:border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="text-xs font-mono text-[#6b7280] dark:text-[#959494] flex items-center space-x-1.5">
+                        <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                        <span>Safety Gate: Tests must be verified by you first</span>
+                      </div>
+
+                      <button
+                        onClick={handleSendTestToSelf}
+                        disabled={testSending || !outreachSubject || !outreachBody}
+                        className="mono-btn bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 px-5 py-2.5 rounded-[4px] text-xs font-semibold flex items-center space-x-2 shadow-sm transition active:scale-95 disabled:opacity-50"
+                      >
+                        {testSending ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>DISPATCHING TEST TO YOU...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="w-3.5 h-3.5" />
+                            <span>SEND TEST EMAIL TO MYSELF →</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Live Variable Preview Sidebar */}
+                  <div className="lg:col-span-5 bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-5 space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-[#ebebeb] dark:border-white/[0.08]">
+                      <div className="flex items-center space-x-2">
+                        <Eye className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                        <span className="mono-eyebrow text-black dark:text-white font-semibold text-[11px]">
+                          LIVE RENDERED PREVIEW
+                        </span>
+                      </div>
+
+                      {/* Prospect Selector */}
+                      {activeRecipients.length > 0 && (
+                        <div className="relative inline-flex items-center">
+                          <select
+                            value={previewLeadIdx}
+                            onChange={(e) => setPreviewLeadIdx(Number(e.target.value))}
+                            className="appearance-none text-[11px] font-mono border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[3px] pl-2.5 pr-7 py-1 text-black dark:text-white focus:outline-none focus:border-black cursor-pointer"
+                          >
+                            {activeRecipients.slice(0, 20).map((r, i) => (
+                              <option key={i} value={i}>
+                                Contact #{i + 1} ({r.company_name})
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="w-3 h-3 absolute right-2 text-[#959494] pointer-events-none" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* AI Identified Business Profile Card */}
+                    <div className="ai-glass-card p-3.5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-1.5 text-black dark:text-white text-xs font-mono font-semibold">
+                          <Sparkles className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                          <span>AI SYNTHESIZED PROFILE</span>
+                        </div>
+                        <span className="ai-chip text-[9px]">
+                          {sampleCandidate.ai_industry || sampleCandidate.industry || 'Commercial Services'}
+                        </span>
+                      </div>
+                      <div className="text-xs font-semibold text-black dark:text-white font-mono">
+                        {sampleCandidate.ai_company_type || sampleCandidate.company_type || 'Growing Business'}
+                      </div>
+                      {sampleCandidate.ai_pain_point && (
+                        <div className="text-[11px] font-mono text-[#6b7280] dark:text-[#959494] leading-snug">
+                          Bottleneck: <span className="text-black dark:text-white">{sampleCandidate.ai_pain_point}</span>
+                        </div>
+                      )}
+                      {sampleCandidate.ai_personalized_pitch && (
+                        <div className="text-[11px] font-mono text-[#6b7280] dark:text-[#959494] leading-snug pt-1.5 border-t border-[#ebebeb] dark:border-white/[0.06]">
+                          Angle: <span className="text-black dark:text-white">{sampleCandidate.ai_personalized_pitch}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bg-[#f8fafc] dark:bg-[#313641]/20 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] p-3.5 text-xs font-mono space-y-2.5">
+                      <div>
+                        <span className="text-[#959494] block text-[10px] font-semibold">TO RECIPIENT:</span>
+                        <span className="text-black dark:text-white">
+                          {sampleCandidate.email || 'recipient@domain.com'}
+                        </span>
+                      </div>
+
+                      <div className="pt-2 border-t border-[#ebebeb] dark:border-white/[0.06]">
+                        <span className="text-[#959494] block text-[10px] font-semibold">SUBJECT:</span>
+                        <span className="text-black dark:text-white font-medium">{renderedSubject}</span>
+                      </div>
+
+                      <div className="pt-2 border-t border-[#ebebeb] dark:border-white/[0.06]">
+                        <span className="text-[#959494] block text-[10px] font-semibold mb-1">BODY:</span>
+                        <div className="whitespace-pre-line leading-relaxed text-[#374151] dark:text-[#d4d4d8]">
+                          {renderedBody}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] text-[11px] font-mono text-[#6b7280] dark:text-[#959494] space-y-1">
+                      <div className="flex items-center space-x-1.5 text-black dark:text-white font-semibold">
+                        <Info className="w-3.5 h-3.5" />
+                        <span>Pre-Flight Destination</span>
+                      </div>
+                      <p>
+                        Test draft will be delivered to:{' '}
+                        <strong className="text-black dark:text-white">{operatorEmail || 'your logged-in email'}</strong>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: PRE-FLIGHT TEST VERIFICATION REVIEW */}
+            {outreachStep === 'test_sent' && (
+              <div className="max-w-3xl mx-auto space-y-6 font-mono text-xs">
+                <div className="border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-6 space-y-5">
+                  <div className="flex items-start space-x-3.5 mb-4">
+                    <div className="w-8 h-8 rounded-[4px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-semibold text-black dark:text-white">
+                        Verification Test Email Dispatched Successfully
+                      </h4>
+                      <p className="text-xs text-[#959494] font-mono mt-0.5">
+                        Delivered a rendered preview copy to <strong className="text-black dark:text-white">{operatorEmail}</strong>.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#f8fafc] dark:bg-[#313641]/20 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] p-4 space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-[#959494]">DELIVERY PROVIDER:</span>
+                      <span className="text-black dark:text-white font-semibold">AUTHENTICATED SMTP</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#959494]">MESSAGE ID:</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-mono">
+                        {testResult?.messageId || 'smtp_verified'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#959494]">SAMPLE TEST COMPANY:</span>
+                      <span className="text-black dark:text-white font-semibold">{sampleCandidate.company_name}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-[4px] text-amber-700 dark:text-amber-400 space-y-1">
+                    <div className="font-semibold flex items-center space-x-1.5">
+                      <ShieldCheck className="w-4 h-4 shrink-0" />
+                      <span>Ready for Live Dispatch</span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed">
+                      Confirming will immediately queue and transmit emails to all{' '}
+                      <strong>{activeRecipients.length}</strong> selected businesses. Suppressed contacts will be automatically bypassed.
+                    </p>
+                  </div>
+
+                  <div className="pt-4 border-t border-[#ebebeb] dark:border-white/[0.08] flex items-center justify-between">
+                    <button
+                      onClick={() => setOutreachStep('template')}
+                      className="mono-btn text-xs text-[#959494] hover:text-black dark:hover:text-white"
+                    >
+                      ← Back to Edit Template
+                    </button>
+
+                    <button
+                      onClick={handleDispatchOutreach}
+                      disabled={dispatching}
+                      className="mono-btn bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 px-6 py-2.5 rounded-[4px] text-xs font-semibold flex items-center space-x-2 shadow-md transition active:scale-95 disabled:opacity-50"
+                    >
+                      <Send className={`w-3.5 h-3.5 ${dispatching ? 'animate-spin' : ''}`} />
+                      <span>
+                        {dispatching
+                          ? 'DISPATCHING LIVE SEQUENCE...'
+                          : `APPROVE & DISPATCH TO ${activeRecipients.length} LEADS`}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4: DISPATCHED SUMMARY */}
+            {outreachStep === 'dispatched' && (
+              <div className="max-w-3xl mx-auto space-y-6 font-mono text-xs">
+                <div className="border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-6 space-y-5">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className="w-8 h-8 rounded-[4px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-semibold text-black dark:text-white">
+                        Live Outreach Sequence Completed
+                      </h4>
+                      <p className="text-xs text-[#959494] mt-0.5">
+                        Transmitted live personalized emails to the selected leads.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Summary Metric Cards */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-3 rounded-[4px] bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08]">
+                      <span className="text-[#959494] block text-[10px]">TOTAL DISPATCHED</span>
+                      <span className="text-base font-semibold text-emerald-600 dark:text-emerald-400">
+                        {dispatchSummary?.sent || 0}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-[4px] bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08]">
+                      <span className="text-[#959494] block text-[10px]">SUPPRESSED / OPTED-OUT</span>
+                      <span className="text-base font-semibold text-amber-600 dark:text-amber-400">
+                        {dispatchSummary?.suppressed || 0}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-[4px] bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08]">
+                      <span className="text-[#959494] block text-[10px]">FAILED / ERRORS</span>
+                      <span className="text-base font-semibold text-rose-600 dark:text-rose-400">
+                        {dispatchSummary?.failed || 0}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Itemized Recipient Table */}
+                  {dispatchResults.length > 0 && (
+                    <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] overflow-hidden max-h-56 overflow-y-auto">
+                      <table className="w-full text-left text-xs font-mono">
+                        <thead className="bg-[#f8fafc] dark:bg-[#313641]/30 border-b border-[#ebebeb] dark:border-white/[0.08] text-[#959494]">
+                          <tr>
+                            <th className="py-2 px-3">RECIPIENT</th>
+                            <th className="py-2 px-3 text-[#ef2cc1]">AI IDENTIFIED TYPE</th>
+                            <th className="py-2 px-3">STATUS</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#ebebeb] dark:divide-white/[0.06]">
+                          {dispatchResults.map((r, i) => (
+                            <tr key={i}>
+                              <td className="py-2 px-3 text-black dark:text-white">{r.email}</td>
+                              <td className="py-2 px-3">
+                                <span className="ai-chip text-[10px]">
+                                  {r.companyType || 'Classified'}
+                                </span>
+                              </td>
+                              <td className="py-2 px-3">
+                                <span
+                                  className={`px-1.5 py-0.5 rounded-[2px] text-[10px] font-semibold uppercase ${
+                                    r.status === 'sent'
+                                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                      : r.status === 'suppressed'
+                                      ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                      : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                                  }`}
+                                >
+                                  {r.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  <div className="pt-3 border-t border-[#ebebeb] dark:border-white/[0.08] flex items-center justify-between">
+                    <Link
+                      href="/outreach"
+                      className="mono-btn px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-[4px] text-xs font-semibold inline-flex items-center space-x-1.5"
+                    >
+                      <span>VIEW OUTREACH LOGS</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOutreachModal(false);
+                        setOutreachStep('recipients');
+                        setSelectedIds(new Set());
+                      }}
+                      className="mono-btn text-xs text-[#959494] hover:text-black dark:hover:text-white"
+                    >
+                      Done / Close
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

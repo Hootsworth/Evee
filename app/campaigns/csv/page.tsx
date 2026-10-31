@@ -78,7 +78,7 @@ export default function CsvOutreachPage() {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Fetch operator's email on mount
+  // Fetch operator's email on mount and check for pre-loaded leads
   useEffect(() => {
     fetch('/api/settings/providers')
       .then((res) => res.json())
@@ -88,6 +88,41 @@ export default function CsvOutreachPage() {
         }
       })
       .catch(() => {});
+
+    // Check for pre-loaded leads passed from Leads tab
+    try {
+      const cached = sessionStorage.getItem('evee_outreach_leads');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const headers = ['email', 'company_name', 'first_name', 'city', 'website', 'company_type'];
+          setCsvResult({
+            headers,
+            rows: parsed,
+            detectedMapping: {
+              email: 'email',
+              companyName: 'company_name',
+              firstName: 'first_name',
+              lastName: null,
+              website: 'website',
+              city: 'city',
+            },
+            totalRows: parsed.length,
+            validEmailCount: parsed.filter((r: any) => r.email && r.email.includes('@')).length,
+          });
+          setFileName(`leads_outreach_${parsed.length}.csv`);
+          setMapping({
+            email: 'email',
+            companyName: 'company_name',
+            firstName: 'first_name',
+            lastName: null,
+            website: 'website',
+            city: 'city',
+          });
+          sessionStorage.removeItem('evee_outreach_leads');
+        }
+      }
+    } catch {}
   }, []);
 
   // Handle local CSV upload
