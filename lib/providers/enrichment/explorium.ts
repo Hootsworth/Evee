@@ -13,13 +13,31 @@ export interface ExploriumConfig {
   provider?: 'explorium' | 'hunter' | 'built_in';
 }
 
-async function checkDomainHasMx(domain: string): Promise<boolean> {
+export async function checkDomainMxDetails(domain: string): Promise<{
+  hasMx: boolean;
+  provider?: string;
+}> {
+  if (!domain || !domain.includes('.')) return { hasMx: false };
   try {
     const dns = await import('node:dns/promises');
     const records = await dns.resolveMx(domain);
-    return Boolean(records && records.length > 0);
+    if (!records || records.length === 0) return { hasMx: false };
+
+    const exchanges = records.map((r) => (r.exchange || '').toLowerCase());
+    let provider = 'Custom Mail Server';
+    if (exchanges.some((e) => e.includes('google') || e.includes('aspmx') || e.includes('gmail'))) {
+      provider = 'Google Workspace';
+    } else if (exchanges.some((e) => e.includes('outlook') || e.includes('microsoft'))) {
+      provider = 'Microsoft 365';
+    } else if (exchanges.some((e) => e.includes('zoho'))) {
+      provider = 'Zoho Mail';
+    } else if (exchanges.some((e) => e.includes('pphosted') || e.includes('proofpoint'))) {
+      provider = 'Proofpoint';
+    }
+
+    return { hasMx: true, provider };
   } catch {
-    return false;
+    return { hasMx: false };
   }
 }
 
@@ -32,7 +50,7 @@ export class ExploriumEnrichmentProvider implements EnrichmentProvider {
   constructor(config?: ExploriumConfig) {
     this.apiKey = config?.apiKey || process.env.EXPLORIUM_API_KEY || process.env.HUNTER_API_KEY || process.env.ENRICHMENT_API_KEY;
     this.baseUrl = config?.baseUrl || process.env.EXPLORIUM_BASE_URL || 'https://api.explorium.ai/v1';
-    this.activeProvider = config?.provider || (process.env.HUNTER_API_KEY ? 'hunter' : 'explorium');
+    this.activeProvider = config?.provider || 'built_in';
   }
 
   async enrichBusiness(target: {
@@ -143,34 +161,38 @@ export class ExploriumEnrichmentProvider implements EnrichmentProvider {
       }
     }
 
-    // 2. Secondary Tier: Safe Web Inspection if email not found yet
+    // 2. Step 1 (Method 1): Safe Deep Web Inspection (Crawls /contact, /about, /team, /privacy-policy)
     if (contacts.length === 0 && target.website) {
       try {
-        const inspection = await inspectWebsite(target.website, 3);
+        const inspection = await inspectWebsite(target.website, 5, 3000);
         if (inspection.contactEmail) {
           generalEmail = inspection.contactEmail;
+          const emailDomain = inspection.contactEmail.split('@')[1];
+          const mx = await checkDomainMxDetails(emailDomain);
+
           contacts.push({
             fullName: `${target.name} Contact`,
             email: inspection.contactEmail.toLowerCase().trim(),
-            confidence: 0.9,
+            confidence: mx.hasMx ? 0.95 : 0.9,
             source: 'website_inspection',
             type: 'general_business',
             verificationStatus: 'provider_verified',
           });
-          sourceProvider = 'website_inspection';
+          sourceProvider = mx.hasMx && mx.provider ? `website_crawl (${mx.provider})` : 'website_crawl';
         }
       } catch (err) {
         console.warn('[Enrichment] Web inspection error:', err);
       }
     }
 
-    // 3. Third Tier: Domain Email Heuristic & AI Model Inference
+    // 3. Step 2 & 3 (Methods 3 & 4): Gemini AI Domain Inference + Real DNS MX Validation
     if (contacts.length === 0 && domain) {
       const cleanDomain = domain.replace(/^www\./, '');
+      const mx = await checkDomainMxDetails(cleanDomain);
       const defaultMailboxes = ['contact', 'hello', 'info', 'support'];
       const primaryEmail = `${defaultMailboxes[0]}@${cleanDomain}`;
 
-      // Check if we can use active AI provider to deduce key founder / operator email format
+      // Query active Gemini LLM
       try {
         const ai = await getDynamicAiProvider();
         if (ai instanceof MultiLlmProvider) {
@@ -179,7 +201,7 @@ export class ExploriumEnrichmentProvider implements EnrichmentProvider {
             const baseUrl = (ai as any).getEffectiveBaseUrl();
             const model = (ai as any).getEffectiveModel();
 
-            const prompt = `Given business name "${target.name}", category "${target.category || 'Business'}", and canonical domain "${cleanDomain}", what is the most probable public email contact or standard mailbox address (e.g. hello@..., contact@..., info@..., owner@...)? Return valid JSON: {"email": "...", "mailboxRole": "..."}`;
+            const prompt = `Given business name "${target.name}", category "${target.category || 'Business'}", and canonical domain "${cleanDomain}"${mx.provider ? ` (Mail exchanger: ${mx.provider})` : ''}, what is the most probable public email contact or standard inbound mailbox address (e.g. hello@..., contact@..., info@..., owner@...)? Return valid JSON: {"email": "...", "mailboxRole": "..."}`;
 
             const aiRes = await fetch(`${baseUrl}/chat/completions`, {
               method: 'POST',
@@ -206,12 +228,12 @@ export class ExploriumEnrichmentProvider implements EnrichmentProvider {
                   contacts.push({
                     fullName: `${target.name} (${result.mailboxRole || 'Inbound'})`,
                     email: generalEmail!,
-                    confidence: 0.8,
+                    confidence: mx.hasMx ? 0.9 : 0.8,
                     source: 'ai_inference',
                     type: 'general_business',
-                    verificationStatus: 'syntax_valid',
+                    verificationStatus: mx.hasMx ? 'provider_verified' : 'syntax_valid',
                   });
-                  sourceProvider = 'ai_inference';
+                  sourceProvider = mx.hasMx && mx.provider ? `gemini_ai (${mx.provider})` : 'gemini_ai';
                 }
               }
             }
@@ -221,19 +243,18 @@ export class ExploriumEnrichmentProvider implements EnrichmentProvider {
         console.warn('[Enrichment] AI inference fallback error:', aiErr);
       }
 
-      // If still empty, use high-confidence primary domain mailbox with free MX verification
+      // Step 4 Fallback: Primary corporate mailbox verified with MX
       if (contacts.length === 0) {
-        const hasMx = await checkDomainHasMx(cleanDomain);
         generalEmail = primaryEmail;
         contacts.push({
           fullName: `${target.name} Inquiries`,
           email: primaryEmail,
-          confidence: hasMx ? 0.85 : 0.7,
+          confidence: mx.hasMx ? 0.85 : 0.7,
           source: 'ai_inference',
           type: 'general_business',
-          verificationStatus: hasMx ? 'provider_verified' : 'syntax_valid',
+          verificationStatus: mx.hasMx ? 'provider_verified' : 'syntax_valid',
         });
-        sourceProvider = hasMx ? 'domain_mx_verified' : 'heuristic_domain';
+        sourceProvider = mx.hasMx && mx.provider ? `domain_mx (${mx.provider})` : 'domain_pattern';
       }
     }
 

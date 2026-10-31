@@ -19,7 +19,7 @@ export async function GET() {
     aiModel: 'gemini-1.5-flash',
     aiKeyConfigured: false,
     discoveryKeyConfigured: false,
-    enrichmentProvider: 'explorium',
+    enrichmentProvider: 'built_in',
     enrichmentKeyConfigured: false,
   };
 

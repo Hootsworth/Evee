@@ -139,7 +139,7 @@ export default function LeadsPage() {
       const data = await res.json();
       if (res.ok) {
         setEnrichMessage({
-          text: `Enrichment completed: Found and verified ${data.summary?.enriched || 0} emails out of ${data.summary?.total || 0} leads using Explorium & Web Discovery!`,
+          text: `Enrichment completed: Found and verified ${data.summary?.enriched || 0} emails out of ${data.summary?.total || 0} leads using Deep Web Crawler, Gemini AI & MX verification!`,
           type: 'success',
         });
         fetchBusinesses();
@@ -216,7 +216,7 @@ export default function LeadsPage() {
           <div>
             <h1 className="text-3xl font-light tracking-tight text-[#111827] dark:text-white">Lead Explorer</h1>
             <p className="text-sm text-[#6b7280] dark:text-[#a1a1aa] mt-1 max-w-xl font-light">
-              Deduplicated small business prospects with multi-tier Explorium enrichment and qualification scores.
+              Deduplicated small business prospects with Deep Web contact crawling, Gemini AI, and MX deliverability checks.
             </p>
           </div>
 
@@ -375,7 +375,7 @@ export default function LeadsPage() {
                               onClick={() => handleEnrichSingle(b.id)}
                               disabled={isEnrichingThis || bulkEnriching}
                               className="mono-btn px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-950/40 text-[#f43f5e] dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-100 dark:hover:bg-rose-900/40 flex items-center space-x-1.5 text-[11px] font-normal transition active:scale-95 disabled:opacity-50"
-                              title="Enrich with verified email using Explorium / Web discovery"
+                              title="Enrich with verified email using Deep Web crawler & Gemini AI"
                             >
                               <Sparkles className={`w-3 h-3 ${isEnrichingThis ? 'animate-spin' : ''}`} />
                               <span>{isEnrichingThis ? 'ENRICHING...' : 'FIND EMAIL'}</span>
@@ -459,7 +459,7 @@ export default function LeadsPage() {
                     <div>• <strong>{importResult.importedCount}</strong> new business leads added to directory</div>
                     <div>• <strong>{importResult.duplicateCount}</strong> duplicates matched & deduplicated</div>
                     {importResult.enrichedCount > 0 && (
-                      <div>• <strong>{importResult.enrichedCount}</strong> contacts enriched with verified emails via Explorium / Web discovery</div>
+                      <div>• <strong>{importResult.enrichedCount}</strong> contacts enriched with verified emails via Web Inspection & Gemini AI</div>
                     )}
                   </div>
                 </div>
@@ -572,7 +572,7 @@ export default function LeadsPage() {
                             Auto-enrich missing emails on import
                           </div>
                           <div className="text-[11px] text-[#6b7280] dark:text-[#a1a1aa] font-mono font-light">
-                            Uses Explorium API & Deep Web Discovery to find decision maker emails.
+                            Uses Deep Web Crawler & Free Gemini AI with DNS MX verification.
                           </div>
                         </div>
                       </div>

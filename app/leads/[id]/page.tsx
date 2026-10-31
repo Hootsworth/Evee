@@ -121,7 +121,7 @@ export default function BusinessDetailPage() {
                 className="mono-btn bg-[#f43f5e] hover:bg-[#e11d48] text-white px-4 py-2.5 rounded-full text-xs font-normal flex items-center space-x-2 shadow-sm transition active:scale-95 disabled:opacity-50"
               >
                 <Sparkles className={`w-3.5 h-3.5 ${enriching ? 'animate-spin' : ''}`} />
-                <span>{enriching ? 'ENRICHING...' : 'ENRICH WITH EXPLORIUM'}</span>
+                <span>{enriching ? 'ENRICHING...' : 'ENRICH EMAIL (AI & WEB)'}</span>
               </button>
 
               {score && (

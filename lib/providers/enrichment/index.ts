@@ -26,8 +26,10 @@ export async function getDynamicEnrichmentProvider(): Promise<EnrichmentProvider
     }
   }
 
-  // Fallback to environment or web-inspection/AI fallback
-  return new ExploriumEnrichmentProvider();
+  // Fallback to 100% Free Built-in Web Crawler, Gemini AI & DNS MX Validation
+  return new ExploriumEnrichmentProvider({
+    provider: 'built_in',
+  });
 }
 
 export * from './interface';

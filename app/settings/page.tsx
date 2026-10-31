@@ -173,7 +173,7 @@ export default function SettingsPage() {
     { id: 'smtp', label: 'Outbound Mailer', icon: Mail, badge: smtpConfigured ? 'Connected' : 'Setup' },
     { id: 'ai', label: 'AI Reasoning', icon: Sparkles, badge: aiKeyConfigured ? 'Active' : 'Key Required' },
     { id: 'places', label: 'Places Discovery', icon: Key, badge: placesKeyConfigured ? 'Live API' : 'Simulation' },
-    { id: 'enrichment', label: 'Lead Enrichment (Explorium)', icon: Search, badge: enrichmentKeyConfigured ? 'Active' : 'Multi-Tier' },
+    { id: 'enrichment', label: 'Lead Enrichment (Free AI & Web)', icon: Search, badge: enrichmentProvider === 'built_in' ? '100% Free' : enrichmentKeyConfigured ? 'Active' : 'Setup' },
     { id: 'suppression', label: 'Suppression Registry', icon: ShieldCheck, count: suppressions.length },
   ];
 
@@ -552,36 +552,32 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* TAB: Lead Enrichment (Explorium) */}
+            {/* TAB: Lead Enrichment (Free AI & Web) */}
             {activeTab === 'enrichment' && (
               <div className="bg-white dark:bg-[#121217] border border-[#e5e7eb] dark:border-[#27272a] rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-6 border-b border-[#f3f4f6] dark:border-[#1f1f23]">
                   <div>
-                    <h2 className="text-xl font-light text-[#111827] dark:text-white">B2B Lead Enrichment & Contact Discovery</h2>
+                    <h2 className="text-xl font-light text-[#111827] dark:text-white">Lead Enrichment & Email Discovery</h2>
                     <p className="text-xs text-[#6b7280] dark:text-[#a1a1aa] font-mono mt-1 font-light">
                       Enrich discovered leads with verified decision maker emails, executive contacts, and direct phone numbers.
                     </p>
                   </div>
                   <span
-                    className={`self-start sm:self-auto text-[10px] font-mono px-3 py-1 rounded-full font-normal ${
-                      enrichmentKeyConfigured
-                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                        : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-                    }`}
+                    className="self-start sm:self-auto text-[10px] font-mono px-3 py-1 rounded-full font-normal bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
                   >
-                    {enrichmentKeyConfigured ? 'EXPLORIUM CONNECTED' : 'MULTI-TIER ACTIVE (WEB & AI)'}
+                    {enrichmentProvider === 'built_in' ? '100% FREE ACTIVE (AI + WEB + MX)' : `${enrichmentProvider.toUpperCase()} ACTIVE`}
                   </span>
                 </div>
 
                 <div className="p-4 rounded-xl bg-[#f8fafc] dark:bg-[#18181b] border border-[#e5e7eb] dark:border-[#27272a] text-xs font-mono space-y-2">
                   <div className="font-normal text-[#111827] dark:text-white flex items-center space-x-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>Multi-Tier Enrichment Architecture:</span>
+                    <span>Free Enrichment Pipeline (Methods 1, 3 & 4 Active):</span>
                   </div>
                   <ul className="list-disc list-inside space-y-1 text-[#6b7280] dark:text-[#a1a1aa] text-[11px] font-light">
-                    <li><strong className="font-normal text-[#111827] dark:text-white">Tier 1: Explorium B2B API</strong> — Queries Explorium's global database for decision maker emails and phones when your key is configured.</li>
-                    <li><strong className="font-normal text-[#111827] dark:text-white">Tier 2: Deep Web Inspection</strong> — Safely crawls the company's live website, contact page, and team directories to extract verified <code className="text-rose-500">mailto:</code> addresses.</li>
-                    <li><strong className="font-normal text-[#111827] dark:text-white">Tier 3: Domain Pattern AI Inference</strong> — Uses your active Gemini / OpenAI model to determine corporate mailbox conventions and validate DNS syntax.</li>
+                    <li><strong className="font-normal text-[#111827] dark:text-white">1. Deep Web Contact Crawler</strong> — Proactively scans the business website, <code className="text-rose-500">/contact</code>, <code className="text-rose-500">/about</code>, <code className="text-rose-500">/team</code>, and <code className="text-rose-500">/privacy-policy</code> to extract verified <code className="text-rose-500">mailto:</code> addresses.</li>
+                    <li><strong className="font-normal text-[#111827] dark:text-white">2. Gemini 1.5 Flash AI Inference</strong> — Uses your configured Gemini key to infer high-probability decision maker and inbound mailboxes based on business niche.</li>
+                    <li><strong className="font-normal text-[#111827] dark:text-white">3. DNS MX Deliverability Checks</strong> — Resolves real mail exchangers (Google Workspace, Microsoft 365, Zoho) to verify deliverability without sending messages.</li>
                   </ul>
                 </div>
 
