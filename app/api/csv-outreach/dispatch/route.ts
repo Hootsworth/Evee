@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
         city: p[cityCol] || p.city || '',
       }));
 
-      const analyses = await classifyProspectBatchWithAi(formatted);
+      const { analyses } = await classifyProspectBatchWithAi(formatted);
       processedRecipients = recipients.map((p, idx) =>
         applyAiAnalysisToProspect(p, analyses[idx])
       );

@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Run AI classification with fallback heuristics
-    const analyses = await classifyProspectBatchWithAi(formatted);
+    const { analyses, meta } = await classifyProspectBatchWithAi(formatted);
 
     // Apply results back to the prospect records
     const enrichedProspects = prospects.map((prospect, idx) => {
@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
       success: true,
       count: enrichedProspects.length,
       enrichedProspects,
+      meta,
     });
   } catch (err: any) {
     return NextResponse.json(

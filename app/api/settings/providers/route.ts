@@ -16,7 +16,7 @@ export async function GET() {
     smtpConfigured: false,
     smtpUser: null,
     aiProvider: 'gemini',
-    aiModel: 'gemini-2.5-flash',
+    aiModel: 'gemini-1.5-flash',
     aiKeyConfigured: false,
     discoveryKeyConfigured: false,
   };
@@ -28,7 +28,7 @@ export async function GET() {
     } else if (c.provider === 'ai_provider_config') {
       const meta = c.scopes as any;
       summary.aiProvider = meta?.provider || 'gemini';
-      summary.aiModel = meta?.model || 'gemini-2.5-flash';
+      summary.aiModel = meta?.model || 'gemini-1.5-flash';
       summary.aiKeyConfigured = Boolean(c.encrypted_access_token);
     } else if (c.provider === 'google_places_config') {
       summary.discoveryKeyConfigured = Boolean(c.encrypted_access_token);
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
           encrypted_access_token: encryptedKey,
           scopes: {
             provider: body.aiProvider,
-            model: body.aiModel || 'gemini-2.5-flash',
+            model: body.aiModel || 'gemini-1.5-flash',
           } as any,
         },
         { onConflict: 'provider' }

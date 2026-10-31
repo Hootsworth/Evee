@@ -63,6 +63,12 @@ export default function CsvOutreachPage() {
   // AI Enrichment state
   const [enriching, setEnriching] = useState(false);
   const [enriched, setEnriched] = useState(false);
+  const [aiMeta, setAiMeta] = useState<{
+    source: 'live' | 'heuristic';
+    provider: string;
+    model: string;
+    error?: string;
+  } | null>(null);
 
   // Preview State
   const [previewContactIdx, setPreviewContactIdx] = useState(0);
@@ -140,6 +146,9 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
             rows: data.enrichedProspects,
           };
         });
+        if (data.meta) {
+          setAiMeta(data.meta);
+        }
         setEnriched(true);
       }
     } catch (err) {
@@ -182,6 +191,9 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
             rows: data.enrichedProspects,
           };
         });
+        if (data.meta) {
+          setAiMeta(data.meta);
+        }
         setEnriched(true);
       } else {
         alert(data.error || 'Failed to enrich prospects with AI.');
@@ -413,9 +425,21 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                           <Sparkles className="w-4 h-4" />
                         </div>
                         <div>
-                          <div className="text-xs font-normal text-[#111827] dark:text-white flex items-center space-x-2">
+                          <div className="text-xs font-normal text-[#111827] dark:text-white flex flex-wrap items-center gap-2">
                             <span>AI Company Type Classifier & Adjustment Engine</span>
-                            {enriched && (
+                            {enriched && aiMeta?.source === 'live' && (
+                              <span className="inline-flex items-center space-x-1.5 text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                <span>LIVE AI: {aiMeta.provider.toUpperCase()} ({aiMeta.model})</span>
+                              </span>
+                            )}
+                            {enriched && aiMeta?.source === 'heuristic' && (
+                              <span className="inline-flex items-center space-x-1.5 text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" title={aiMeta.error || 'Fallback to offline semantic rulebook'}>
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                <span>OFFLINE RULEBOOK (HEURISTIC)</span>
+                              </span>
+                            )}
+                            {enriched && !aiMeta && (
                               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
                                 ACTIVE
                               </span>
@@ -424,8 +448,10 @@ dr.mehta@smilecare.in,SmileCare Dental,Dr. Mehta,smilecare.in,Delhi`;
                           <div className="text-[11px] text-[#6b7280] dark:text-[#a1a1aa] font-mono font-light mt-0.5">
                             {enriching
                               ? 'Analyzing company profiles and crafting tailored adjustments with AI...'
-                              : enriched
-                              ? `All ${csvResult.rows.length} companies classified with customized pitch angles.`
+                              : enriched && aiMeta?.source === 'live'
+                              ? `All ${csvResult.rows.length} companies classified via live ${aiMeta.provider.toUpperCase()} (${aiMeta.model}) with custom pitches.`
+                              : enriched && aiMeta?.source === 'heuristic'
+                              ? `All ${csvResult.rows.length} companies classified using high-reliability semantic heuristics${aiMeta.error ? ` (${aiMeta.error})` : ''}.`
                               : 'Uses your AI API key to identify company types and adjust copy per contact.'}
                           </div>
                         </div>

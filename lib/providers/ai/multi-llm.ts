@@ -46,10 +46,14 @@ export class MultiLlmProvider implements ResearchProvider, DraftProvider {
     const raw = this.config.model?.toLowerCase() || '';
 
     if (this.config.provider === 'gemini') {
-      if (raw.includes('3.6') || raw.includes('flash') || raw.includes('2.5')) {
-        return 'gemini-2.5-flash';
+      if (raw.includes('2.0') || raw.includes('2-flash')) {
+        return 'gemini-2.0-flash';
       }
-      return 'gemini-2.5-pro';
+      if (raw.includes('pro') && !raw.includes('flash')) {
+        return 'gemini-1.5-pro';
+      }
+      // Standard stable Gemini fast model
+      return 'gemini-1.5-flash';
     }
 
     if (this.config.provider === 'meta') {

@@ -152,6 +152,16 @@ export function classifyCompanyHeuristic(
   };
 }
 
+export interface ClassificationResult {
+  analyses: CompanyAiAnalysis[];
+  meta: {
+    source: 'live' | 'heuristic';
+    provider: string;
+    model: string;
+    error?: string;
+  };
+}
+
 // 2. Multi-prospect Batch AI Classifier
 export async function classifyProspectBatchWithAi(
   prospects: Array<{
@@ -160,13 +170,28 @@ export async function classifyProspectBatchWithAi(
     city?: string;
     raw?: Record<string, any>;
   }>
-): Promise<CompanyAiAnalysis[]> {
-  if (!prospects || prospects.length === 0) return [];
+): Promise<ClassificationResult> {
+  if (!prospects || prospects.length === 0) {
+    return {
+      analyses: [],
+      meta: {
+        source: 'heuristic',
+        provider: 'heuristic-rules',
+        model: 'semantic-classifier',
+      },
+    };
+  }
 
   // Default results computed using intelligent heuristic
   const results: CompanyAiAnalysis[] = prospects.map((p) =>
     classifyCompanyHeuristic(p.companyName, p.website)
   );
+
+  const meta: ClassificationResult['meta'] = {
+    source: 'heuristic',
+    provider: 'heuristic-rules',
+    model: 'semantic-classifier',
+  };
 
   try {
     const aiProvider = await getDynamicAiProvider();
@@ -177,6 +202,8 @@ export async function classifyProspectBatchWithAi(
       if (config && config.apiKey) {
         const baseUrl = (aiProvider as any).getEffectiveBaseUrl();
         const model = (aiProvider as any).getEffectiveModel();
+        meta.provider = config.provider || 'gemini';
+        meta.model = model;
 
         const promptList = prospects.map((p, idx) => ({
           id: idx,
@@ -242,15 +269,25 @@ Return strictly valid JSON matching this schema:
                 };
               }
             });
+            meta.source = 'live';
           }
+        } else {
+          const errText = await response.text();
+          console.error(`[CSV AI Classifier] Provider returned HTTP ${response.status}:`, errText);
+          meta.error = `HTTP ${response.status}: ${errText.slice(0, 100)}`;
         }
+      } else {
+        meta.error = 'No active API key in settings';
       }
+    } else {
+      meta.error = 'Mock provider active (set API key in settings)';
     }
-  } catch (err) {
+  } catch (err: any) {
     console.warn('AI provider error during batch classification, fell back to heuristic:', err);
+    meta.error = err.message || 'Error executing AI classification';
   }
 
-  return results;
+  return { analyses: results, meta };
 }
 
 // 3. Single Prospect Helper
@@ -259,8 +296,8 @@ export async function classifySingleProspectWithAi(prospect: {
   website?: string;
   city?: string;
 }): Promise<CompanyAiAnalysis> {
-  const [analysis] = await classifyProspectBatchWithAi([prospect]);
-  return analysis || classifyCompanyHeuristic(prospect.companyName, prospect.website);
+  const { analyses } = await classifyProspectBatchWithAi([prospect]);
+  return analyses[0] || classifyCompanyHeuristic(prospect.companyName, prospect.website);
 }
 
 // 4. Utility to enrich raw CSV prospect objects

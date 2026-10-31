@@ -20,7 +20,7 @@ export async function getDynamicAiProvider(): Promise<ResearchProvider & DraftPr
       const meta = record.scopes as any;
       return new MultiLlmProvider({
         provider: meta?.provider || 'gemini',
-        model: meta?.model || 'gemini-2.5-flash',
+        model: meta?.model || 'gemini-1.5-flash',
         apiKey,
       });
     } catch (e) {
@@ -40,7 +40,7 @@ export async function getDynamicAiProvider(): Promise<ResearchProvider & DraftPr
     const prov = (process.env.AI_PROVIDER || (process.env.OPENAI_API_KEY ? 'openai' : 'gemini')) as any;
     return new MultiLlmProvider({
       provider: prov === 'openai' || prov === 'meta' ? prov : 'gemini',
-      model: process.env.AI_MODEL || (prov === 'openai' ? 'gpt-4o-mini' : 'gemini-2.5-flash'),
+      model: process.env.AI_MODEL || (prov === 'openai' ? 'gpt-4o-mini' : 'gemini-1.5-flash'),
       apiKey: envKey,
     });
   }
