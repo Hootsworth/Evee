@@ -31,6 +31,17 @@ import {
   Info,
   Archive,
   RotateCcw,
+  Building2,
+  Globe,
+  MapPin,
+  MailCheck,
+  PenLine,
+  Layers,
+  Cpu,
+  Hash,
+  Server,
+  ShieldAlert,
+  Users,
 } from 'lucide-react';
 import { parseAndAnalyzeCsv, CsvColumnMapping, replaceTemplateVariables } from '@/lib/csv/parser';
 
@@ -986,38 +997,52 @@ export default function LeadsPage() {
           <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.12] rounded-[4px] w-full max-w-5xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 space-y-6">
             <div className="brand-gradient-h -mx-6 -mt-6 sm:-mx-8 sm:-mt-8 mb-6" />
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08] gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08] gap-4">
               <div>
-                <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
-                  <span>UNIFIED OUTREACH PIPELINE</span>
-                  <span>•</span>
-                  <span className="text-[#ef2cc1]">AI ADAPTATION ENGINE</span>
+                <div className="flex items-center gap-2 text-[10px] font-mono tracking-wider uppercase mb-1 whitespace-nowrap">
+                  <span className="inline-flex items-center gap-1 text-[#959494] font-medium">
+                    <Send className="w-2.5 h-2.5 text-[#ef2cc1]" />
+                    OUTREACH PIPELINE
+                  </span>
+                  <span className="text-[#959494]/40">•</span>
+                  <span className="inline-flex items-center gap-1 text-[#ef2cc1] font-semibold">
+                    <Sparkles className="w-2.5 h-2.5" />
+                    AI ENGINE
+                  </span>
                 </div>
-                <h3 className="text-xl font-medium tracking-tight text-black dark:text-white">
-                  Direct Outreach to Leads
-                </h3>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h3 className="text-xl font-medium tracking-tight text-black dark:text-white whitespace-nowrap">
+                    Direct Outreach to Leads
+                  </h3>
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#f8fafc] dark:bg-white/[0.06] border border-[#ebebeb] dark:border-white/[0.08] text-[#959494] inline-flex items-center gap-1 whitespace-nowrap">
+                    <Users className="w-3 h-3 text-[#959494]" />
+                    {activeRecipients.length} ready
+                  </span>
+                </div>
               </div>
 
-              <div className="flex items-center space-x-3">
-                {/* Stepper Pill Indicator (Matches CSV Outreach) */}
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+                {/* Stepper Pill Indicator with Icons */}
                 <div className="flex items-center space-x-1 bg-[#f8fafc] dark:bg-[#313641]/40 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-1 text-xs font-mono">
                   {[
-                    { id: 'recipients', label: '1. CANDIDATES' },
-                    { id: 'template', label: '2. COMPOSE' },
-                    { id: 'test_sent', label: '3. PRE-FLIGHT TEST' },
-                    { id: 'dispatched', label: '4. DISPATCHED' },
+                    { id: 'recipients', icon: Users, label: 'Candidates' },
+                    { id: 'template', icon: PenLine, label: 'Compose' },
+                    { id: 'test_sent', icon: ShieldCheck, label: 'Test' },
+                    { id: 'dispatched', icon: Send, label: 'Dispatched' },
                   ].map((s) => {
                     const active = outreachStep === s.id;
+                    const StepIcon = s.icon;
                     return (
                       <span
                         key={s.id}
-                        className={`px-2 py-0.5 rounded-[3px] text-[11px] transition ${
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[3px] text-[11px] font-mono whitespace-nowrap transition ${
                           active
-                            ? 'bg-black dark:bg-white text-white dark:text-black font-semibold'
+                            ? 'bg-black dark:bg-white text-white dark:text-black font-semibold shadow-sm'
                             : 'text-[#959494]'
                         }`}
                       >
-                        {s.label}
+                        <StepIcon className="w-3 h-3 shrink-0" />
+                        <span>{s.label}</span>
                       </span>
                     );
                   })}
@@ -1027,15 +1052,16 @@ export default function LeadsPage() {
                   type="button"
                   onClick={handleOpenInFullCsvOutreach}
                   title="Open in Full-Screen CSV Outreach Page"
-                  className="mono-btn hidden md:flex items-center space-x-1 text-xs text-[#ef2cc1] hover:underline font-mono"
+                  className="mono-btn hidden md:inline-flex items-center gap-1 text-xs text-[#ef2cc1] hover:underline font-mono px-2 py-1 rounded hover:bg-[#ef2cc1]/10 transition whitespace-nowrap"
                 >
-                  <span>Full Pipeline</span>
-                  <ExternalLink className="w-3 h-3" />
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Full Page</span>
                 </button>
 
                 <button
                   onClick={() => setShowOutreachModal(false)}
-                  className="text-[#959494] hover:text-black dark:hover:text-white p-1"
+                  className="text-[#959494] hover:text-black dark:hover:text-white p-1 rounded hover:bg-neutral-100 dark:hover:bg-white/[0.08] transition"
+                  aria-label="Close dialog"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1044,32 +1070,48 @@ export default function LeadsPage() {
 
             {/* STEP 1: CANDIDATES & AI CLASSIFICATION */}
             {outreachStep === 'recipients' && (
-              <div className="space-y-6 font-mono text-xs">
+              <div className="space-y-5 font-mono text-xs">
                 {/* Stats Breakdown */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="p-3 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
-                    <div className="text-[#959494] text-[10px] uppercase font-semibold">TOTAL CANDIDATES</div>
-                    <div className="text-xl font-semibold text-black dark:text-white mt-0.5">
+                    <div className="flex items-center justify-between text-[#959494] text-[10px] uppercase font-semibold">
+                      <span className="flex items-center gap-1.5">
+                        <Users className="w-3 h-3 text-[#959494]" />
+                        Candidates
+                      </span>
+                    </div>
+                    <div className="text-xl font-semibold text-black dark:text-white mt-1">
                       {outreachCandidates.length}
                     </div>
                   </div>
                   <div className="p-3 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
-                    <div className="text-[#959494] text-[10px] uppercase font-semibold">VALID EMAILS READY</div>
-                    <div className="text-xl font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    <div className="flex items-center justify-between text-[#959494] text-[10px] uppercase font-semibold">
+                      <span className="flex items-center gap-1.5">
+                        <MailCheck className="w-3 h-3 text-emerald-500" />
+                        Valid Emails
+                      </span>
+                    </div>
+                    <div className="text-xl font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
                       {activeRecipients.length}
                     </div>
                   </div>
                   <div className="p-3 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
-                    <div className="text-[#959494] text-[10px] uppercase font-semibold">MISSING EMAIL</div>
-                    <div className="text-xl font-semibold text-amber-600 dark:text-amber-400 mt-0.5 flex items-center justify-between">
+                    <div className="flex items-center justify-between text-[#959494] text-[10px] uppercase font-semibold">
+                      <span className="flex items-center gap-1.5">
+                        <AlertCircle className="w-3 h-3 text-amber-500" />
+                        Missing Email
+                      </span>
+                    </div>
+                    <div className="text-xl font-semibold text-amber-600 dark:text-amber-400 mt-1 flex items-center justify-between">
                       <span>{outreachCandidates.length - activeRecipients.length}</span>
                       {outreachCandidates.length - activeRecipients.length > 0 && (
                         <button
                           onClick={() => handleBulkEnrich(selectedMissingEmail.map((b) => b.id))}
                           disabled={bulkEnriching}
-                          className="mono-btn text-[10px] px-2 py-0.5 rounded-[3px] bg-black dark:bg-white text-white dark:text-black uppercase font-semibold disabled:opacity-50"
+                          className="mono-btn text-[10px] px-2 py-0.5 rounded-[3px] bg-black dark:bg-white text-white dark:text-black uppercase font-semibold disabled:opacity-50 inline-flex items-center gap-1 whitespace-nowrap"
                         >
-                          {bulkEnriching ? 'ENRICHING...' : 'ENRICH NOW'}
+                          <Sparkles className="w-2.5 h-2.5" />
+                          <span>{bulkEnriching ? 'Enriching...' : 'Enrich'}</span>
                         </button>
                       )}
                     </div>
@@ -1088,14 +1130,16 @@ export default function LeadsPage() {
                   )}
 
                   <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-1.5 flex-1">
+                    <div className="space-y-1.5 flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="mono-eyebrow text-[#959494] text-[10px] tracking-[0.55px] uppercase font-semibold">
+                        <span className="mono-eyebrow text-[#959494] text-[10px] tracking-[0.55px] uppercase font-semibold flex items-center gap-1.5">
+                          <Sparkles className="w-3 h-3 text-[#ef2cc1]" />
                           AI REASONING & COPY ADAPTATION
                         </span>
                         {aiEnrichingModal && (
-                          <span className="ai-flat-pill text-black dark:text-white border-[#ebebeb] dark:border-white/[0.12]">
-                            <span>SYNTHESIZING PROFILES...</span>
+                          <span className="ai-flat-pill text-black dark:text-white border-[#ebebeb] dark:border-white/[0.12] inline-flex items-center gap-1">
+                            <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                            <span>SYNTHESIZING...</span>
                           </span>
                         )}
                       </div>
@@ -1108,10 +1152,24 @@ export default function LeadsPage() {
                           : 'Uses neural reasoning to deduce company verticals, friction points, and bespoke value props per prospect.'}
                       </div>
 
-                      <div className="text-[11px] text-[#959494] font-mono flex items-center space-x-3 pt-0.5">
-                        <span>INPUT: {activeRecipients.length} VALID PROSPECTS</span>
+                      <div className="text-[11px] text-[#959494] font-mono flex flex-wrap items-center gap-2 pt-0.5">
+                        <span className="inline-flex items-center gap-1">
+                          <Users className="w-3 h-3 text-[#959494]" />
+                          {activeRecipients.length} prospects
+                        </span>
                         <span>•</span>
-                        <span>OUTPUT: {`{company_type}, {pain_point}, {value_prop}, {personalized_pitch}`}</span>
+                        <span className="inline-flex items-center gap-1 text-[#ef2cc1] font-semibold">
+                          <Cpu className="w-3 h-3" />
+                          Deduces:
+                        </span>
+                        {['vertical', 'pain_point', 'value_prop', 'pitch'].map((tag) => (
+                          <span
+                            key={tag}
+                            className="px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/[0.06] text-[10px] font-mono text-black dark:text-white whitespace-nowrap"
+                          >
+                            +{tag}
+                          </span>
+                        ))}
                       </div>
                     </div>
 
@@ -1121,7 +1179,7 @@ export default function LeadsPage() {
                         type="button"
                         onClick={handleEnrichModalWithAi}
                         disabled={aiEnrichingModal || activeRecipients.length === 0}
-                        className={`mono-btn px-4 py-2 rounded-[4px] text-xs font-mono font-medium uppercase tracking-wider flex items-center space-x-2 transition ${
+                        className={`mono-btn px-4 py-2 rounded-[4px] text-xs font-mono font-medium uppercase tracking-wider flex items-center space-x-2 transition whitespace-nowrap ${
                           aiEnrichingModal
                             ? 'bg-neutral-100 dark:bg-white/[0.08] text-neutral-400 cursor-not-allowed border border-[#ebebeb] dark:border-white/[0.08]'
                             : aiEnrichedModal
@@ -1130,11 +1188,14 @@ export default function LeadsPage() {
                         }`}
                       >
                         {aiEnrichingModal ? (
-                          <span>INFERENCE IN PROGRESS...</span>
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>INFERRING...</span>
+                          </>
                         ) : aiEnrichedModal ? (
                           <>
-                            <span>RE-RUN AI ENRICHMENT</span>
-                            <span>↺</span>
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>RE-ENRICH ALL</span>
                           </>
                         ) : (
                           <>
@@ -1150,11 +1211,13 @@ export default function LeadsPage() {
                 {/* Candidate Preview Table */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="mono-eyebrow text-[#6b7280] dark:text-[#959494] font-semibold text-[11px]">
-                      CANDIDATE LEADS WITH AI CLASSIFICATION
+                    <span className="mono-eyebrow text-[#6b7280] dark:text-[#959494] font-semibold text-[11px] flex items-center gap-1.5">
+                      <Layers className="w-3 h-3 text-[#959494]" />
+                      CANDIDATE LEADS PREVIEW
                     </span>
-                    <span className="text-[11px] text-[#959494]">
-                      Showing {activeRecipients.length} valid email recipients
+                    <span className="text-[11px] text-[#959494] flex items-center gap-1 font-mono">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                      {activeRecipients.length} valid email recipients
                     </span>
                   </div>
 
@@ -1162,34 +1225,64 @@ export default function LeadsPage() {
                     <table className="w-full text-left text-xs font-mono">
                       <thead className="bg-[#f8fafc] dark:bg-[#313641]/30 border-b border-[#ebebeb] dark:border-white/[0.08] text-[#959494] sticky top-0 bg-opacity-95">
                         <tr>
-                          <th className="py-2 px-3">#</th>
-                          <th className="py-2 px-3 text-[#ef2cc1]">AI IDENTIFIED TYPE</th>
-                          <th className="py-2 px-3">COMPANY NAME</th>
-                          <th className="py-2 px-3">EMAIL</th>
-                          <th className="py-2 px-3">CITY</th>
-                          <th className="py-2 px-3">WEBSITE</th>
+                          <th className="py-2 px-3 whitespace-nowrap">#</th>
+                          <th className="py-2 px-3 text-[#ef2cc1] whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1">
+                              <Sparkles className="w-3 h-3" />
+                              AI TYPE
+                            </span>
+                          </th>
+                          <th className="py-2 px-3 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1">
+                              <Building2 className="w-3 h-3 text-[#959494]" />
+                              COMPANY
+                            </span>
+                          </th>
+                          <th className="py-2 px-3 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1">
+                              <Mail className="w-3 h-3 text-[#959494]" />
+                              EMAIL
+                            </span>
+                          </th>
+                          <th className="py-2 px-3 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-[#959494]" />
+                              CITY
+                            </span>
+                          </th>
+                          <th className="py-2 px-3 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1">
+                              <Globe className="w-3 h-3 text-[#959494]" />
+                              WEBSITE
+                            </span>
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#ebebeb] dark:divide-white/[0.06]">
                         {outreachCandidates.slice(0, 15).map((row, idx) => (
                           <tr key={idx} className="hover:bg-[#f8fafc] dark:hover:bg-white/[0.02]">
-                            <td className="py-2 px-3 text-[#959494]">{idx + 1}</td>
-                            <td className="py-2 px-3">
+                            <td className="py-2 px-3 text-[#959494] whitespace-nowrap">{idx + 1}</td>
+                            <td className="py-2 px-3 whitespace-nowrap">
                               <span className="ai-flat-pill animate-ios-swish text-[10px]">
                                 <span className="w-1 h-1 rounded-[1px] bg-[#ef2cc1]" />
                                 <span>{row.ai_company_type || row.company_type || 'Commercial Enterprise'}</span>
                               </span>
                             </td>
-                            <td className="py-2 px-3 text-black dark:text-white font-medium">{row.company_name}</td>
-                            <td className="py-2 px-3">
+                            <td className="py-2 px-3 text-black dark:text-white font-medium whitespace-nowrap truncate max-w-[160px]">
+                              {row.company_name}
+                            </td>
+                            <td className="py-2 px-3 whitespace-nowrap">
                               {row.email ? (
                                 <span className="text-emerald-600 dark:text-emerald-400">{row.email}</span>
                               ) : (
-                                <span className="text-rose-500 text-[10px]">Missing Email</span>
+                                <span className="text-rose-500 text-[10px] inline-flex items-center gap-1">
+                                  <AlertCircle className="w-2.5 h-2.5" />
+                                  Missing Email
+                                </span>
                               )}
                             </td>
-                            <td className="py-2 px-3 text-[#959494]">{row.city || '—'}</td>
-                            <td className="py-2 px-3 text-[#959494] truncate max-w-xs">{row.website || '—'}</td>
+                            <td className="py-2 px-3 text-[#959494] whitespace-nowrap">{row.city || '—'}</td>
+                            <td className="py-2 px-3 text-[#959494] truncate max-w-xs whitespace-nowrap">{row.website || '—'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1202,17 +1295,18 @@ export default function LeadsPage() {
                   <button
                     type="button"
                     onClick={() => setShowOutreachModal(false)}
-                    className="text-xs font-mono text-[#959494] hover:text-black dark:hover:text-white"
+                    className="text-xs font-mono text-[#959494] hover:text-black dark:hover:text-white inline-flex items-center gap-1"
                   >
-                    Cancel
+                    <X className="w-3.5 h-3.5" />
+                    <span>Cancel</span>
                   </button>
 
                   <button
                     onClick={() => setOutreachStep('template')}
                     disabled={activeRecipients.length === 0}
-                    className="mono-btn bg-black dark:bg-white text-white dark:text-black px-6 py-2.5 rounded-[4px] text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition active:scale-95 disabled:opacity-50"
+                    className="mono-btn bg-black dark:bg-white text-white dark:text-black px-5 py-2.5 rounded-[4px] text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition active:scale-95 disabled:opacity-50 whitespace-nowrap"
                   >
-                    <span>NEXT: COMPOSE TEMPLATE ({activeRecipients.length})</span>
+                    <span>Compose Template ({activeRecipients.length})</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -1227,19 +1321,22 @@ export default function LeadsPage() {
                   <div className="lg:col-span-7 bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-5 space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-[#ebebeb] dark:border-white/[0.08]">
                       <div>
-                        <h4 className="text-sm font-semibold text-black dark:text-white">
-                          Compose Outreach Template
-                        </h4>
+                        <div className="flex items-center gap-1.5">
+                          <PenLine className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                          <h4 className="text-sm font-semibold text-black dark:text-white">
+                            Compose Outreach Template
+                          </h4>
+                        </div>
                         <p className="text-[11px] text-[#959494] font-mono mt-0.5">
-                          Click dynamic variable chips to insert personalized tokens.
+                          Click dynamic chips to insert personalized tokens
                         </p>
                       </div>
                       <button
                         onClick={() => setOutreachStep('recipients')}
-                        className="mono-btn text-xs text-[#6b7280] dark:text-[#959494] hover:text-black dark:hover:text-white flex items-center space-x-1"
+                        className="mono-btn text-xs text-[#6b7280] dark:text-[#959494] hover:text-black dark:hover:text-white flex items-center space-x-1 whitespace-nowrap"
                       >
                         <ArrowLeft className="w-3 h-3" />
-                        <span>Candidates</span>
+                        <span>Back</span>
                       </button>
                     </div>
 
@@ -1248,32 +1345,32 @@ export default function LeadsPage() {
                       <div className="brand-gradient-h w-full" />
                       <div className="p-3.5 space-y-2.5">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2 text-black dark:text-white font-mono text-xs font-semibold">
-                            <span className="w-1.5 h-1.5 rounded-[1px] bg-[#ef2cc1]" />
+                          <div className="flex items-center space-x-1.5 text-black dark:text-white font-mono text-xs font-semibold">
+                            <Sparkles className="w-3 h-3 text-[#ef2cc1]" />
                             <span>AI ADAPTATION TOKENS</span>
                           </div>
-                          <span className="text-[10px] font-mono text-[#959494]">
+                          <span className="text-[10px] font-mono text-[#959494] hidden sm:inline">
                             Dynamically evaluated per lead
                           </span>
                         </div>
 
                         <div className="flex flex-wrap gap-1.5">
                           {[
-                            { token: 'company_type', label: '{company_type}', desc: 'Identified Business Type' },
-                            { token: 'personalized_pitch', label: '{personalized_pitch}', desc: 'Tailored Industry Pitch' },
-                            { token: 'pain_point', label: '{pain_point}', desc: 'Industry Specific Bottleneck' },
-                            { token: 'value_prop', label: '{value_prop}', desc: 'Tailored Solution' },
-                            { token: 'industry', label: '{industry}', desc: 'High-Level Industry' },
+                            { token: 'company_type', label: 'company_type', desc: 'Identified Business Type' },
+                            { token: 'personalized_pitch', label: 'pitch', desc: 'Tailored Industry Pitch' },
+                            { token: 'pain_point', label: 'pain_point', desc: 'Industry Specific Bottleneck' },
+                            { token: 'value_prop', label: 'value_prop', desc: 'Tailored Solution' },
+                            { token: 'industry', label: 'industry', desc: 'High-Level Industry' },
                           ].map((v) => (
                             <button
                               key={v.token}
                               type="button"
                               onClick={() => handleInsertVariable(v.token)}
-                              className="mono-btn text-[11px] font-mono px-2.5 py-1 rounded-[3px] bg-[#f8fafc] dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.12] text-black dark:text-white hover:border-black dark:hover:border-white transition flex items-center space-x-1.5"
+                              className="mono-btn text-[11px] font-mono px-2.5 py-1 rounded-[3px] bg-[#f8fafc] dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.12] text-black dark:text-white hover:border-[#ef2cc1] transition inline-flex items-center gap-1 whitespace-nowrap"
                               title={v.desc}
                             >
-                              <span>+{v.label}</span>
-                              <span className="text-[9px] text-[#ef2cc1] font-mono uppercase font-semibold">[AI]</span>
+                              <Sparkles className="w-2.5 h-2.5 text-[#ef2cc1]" />
+                              <span>+{`{${v.token}}`}</span>
                             </button>
                           ))}
                         </div>
@@ -1282,27 +1379,39 @@ export default function LeadsPage() {
 
                     {/* Standard Contact Variables */}
                     <div>
-                      <div className="mono-eyebrow text-[#6b7280] dark:text-[#959494] mb-1.5 text-[10px] font-semibold">
-                        STANDARD CONTACT VARIABLES
+                      <div className="mono-eyebrow text-[#6b7280] dark:text-[#959494] mb-1.5 text-[10px] font-semibold flex items-center gap-1">
+                        <Users className="w-2.5 h-2.5 text-[#959494]" />
+                        <span>STANDARD CONTACT VARIABLES</span>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
-                        {['first_name', 'company_name', 'website', 'city', 'email'].map((v) => (
-                          <button
-                            key={v}
-                            type="button"
-                            onClick={() => handleInsertVariable(v)}
-                            className="mono-btn text-[11px] px-2 py-0.5 rounded-[3px] bg-[#f8fafc] dark:bg-[#313641]/30 border border-[#ebebeb] dark:border-white/[0.08] text-black dark:text-white hover:border-black dark:hover:border-white transition"
-                          >
-                            +{`{${v}}`}
-                          </button>
-                        ))}
+                        {[
+                          { token: 'first_name', icon: User },
+                          { token: 'company_name', icon: Building2 },
+                          { token: 'website', icon: Globe },
+                          { token: 'city', icon: MapPin },
+                          { token: 'email', icon: Mail },
+                        ].map((v) => {
+                          const VIcon = v.icon;
+                          return (
+                            <button
+                              key={v.token}
+                              type="button"
+                              onClick={() => handleInsertVariable(v.token)}
+                              className="mono-btn text-[11px] px-2 py-0.5 rounded-[3px] bg-[#f8fafc] dark:bg-[#313641]/30 border border-[#ebebeb] dark:border-white/[0.08] text-black dark:text-white hover:border-black dark:hover:border-white transition inline-flex items-center gap-1 whitespace-nowrap"
+                            >
+                              <VIcon className="w-2.5 h-2.5 text-[#959494]" />
+                              <span>+{`{${v.token}}`}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
                     {/* Subject Line Input */}
                     <div>
-                      <label className="mono-eyebrow text-[#6b7280] dark:text-[#959494] block mb-1 text-[11px]">
-                        SUBJECT LINE
+                      <label className="mono-eyebrow text-[#6b7280] dark:text-[#959494] flex items-center gap-1 mb-1 text-[11px]">
+                        <Mail className="w-3 h-3 text-[#959494]" />
+                        <span>SUBJECT LINE</span>
                       </label>
                       <input
                         type="text"
@@ -1315,8 +1424,9 @@ export default function LeadsPage() {
 
                     {/* Body Textarea */}
                     <div>
-                      <label className="mono-eyebrow text-[#6b7280] dark:text-[#959494] block mb-1 text-[11px]">
-                        EMAIL BODY TEMPLATE
+                      <label className="mono-eyebrow text-[#6b7280] dark:text-[#959494] flex items-center gap-1 mb-1 text-[11px]">
+                        <FileText className="w-3 h-3 text-[#959494]" />
+                        <span>EMAIL BODY TEMPLATE</span>
                       </label>
                       <textarea
                         ref={outreachTextareaRef}
@@ -1337,26 +1447,27 @@ export default function LeadsPage() {
                     )}
 
                     {/* Send Test to Myself Safety Gate */}
-                    <div className="pt-3 border-t border-[#ebebeb] dark:border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <div className="text-xs font-mono text-[#6b7280] dark:text-[#959494] flex items-center space-x-1.5">
-                        <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                        <span>Safety Gate: Tests must be verified by you first</span>
+                    <div className="pt-3 border-t border-[#ebebeb] dark:border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="text-xs font-mono text-[#6b7280] dark:text-[#959494] flex items-center space-x-1.5 whitespace-nowrap">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        <span>Pre-flight verification required</span>
                       </div>
 
                       <button
                         onClick={handleSendTestToSelf}
                         disabled={testSending || !outreachSubject || !outreachBody}
-                        className="mono-btn bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 px-5 py-2.5 rounded-[4px] text-xs font-semibold flex items-center space-x-2 shadow-sm transition active:scale-95 disabled:opacity-50"
+                        className="mono-btn bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 px-4 py-2 rounded-[4px] text-xs font-semibold flex items-center space-x-2 shadow-sm transition active:scale-95 disabled:opacity-50 whitespace-nowrap"
                       >
                         {testSending ? (
                           <>
                             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                            <span>DISPATCHING TEST TO YOU...</span>
+                            <span>SENDING TEST...</span>
                           </>
                         ) : (
                           <>
                             <Mail className="w-3.5 h-3.5" />
-                            <span>SEND TEST EMAIL TO MYSELF →</span>
+                            <span>SEND TEST TO MYSELF</span>
+                            <ArrowRight className="w-3 h-3" />
                           </>
                         )}
                       </button>
@@ -1369,7 +1480,7 @@ export default function LeadsPage() {
                       <div className="flex items-center space-x-2">
                         <Eye className="w-3.5 h-3.5 text-[#ef2cc1]" />
                         <span className="mono-eyebrow text-black dark:text-white font-semibold text-[11px]">
-                          LIVE RENDERED PREVIEW
+                          LIVE PREVIEW
                         </span>
                       </div>
 
@@ -1379,11 +1490,11 @@ export default function LeadsPage() {
                           <select
                             value={previewLeadIdx}
                             onChange={(e) => setPreviewLeadIdx(Number(e.target.value))}
-                            className="appearance-none text-[11px] font-mono border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[3px] pl-2.5 pr-7 py-1 text-black dark:text-white focus:outline-none focus:border-black cursor-pointer"
+                            className="appearance-none text-[11px] font-mono border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[3px] pl-2.5 pr-7 py-1 text-black dark:text-white focus:outline-none focus:border-black cursor-pointer max-w-[180px] truncate"
                           >
                             {activeRecipients.slice(0, 20).map((r, i) => (
                               <option key={i} value={i}>
-                                Contact #{i + 1} ({r.company_name})
+                                #{i + 1} {r.company_name}
                               </option>
                             ))}
                           </select>
@@ -1397,32 +1508,41 @@ export default function LeadsPage() {
                       <div className="brand-gradient-h w-full" />
                       <div className="p-3.5 space-y-2">
                         <div className="flex items-center justify-between pb-2 border-b border-[#ebebeb] dark:border-white/[0.06]">
-                          <div className="flex items-center space-x-2 text-black dark:text-white text-xs font-mono font-semibold">
-                            <span className="w-1.5 h-1.5 rounded-[1px] bg-[#ef2cc1]" />
-                            <span>AI INFERENCE PROFILE</span>
+                          <div className="flex items-center space-x-1.5 text-black dark:text-white text-xs font-mono font-semibold">
+                            <Sparkles className="w-3 h-3 text-[#ef2cc1]" />
+                            <span>AI PROFILE</span>
                           </div>
-                          <span className="ai-flat-pill text-[9px]">
+                          <span className="ai-flat-pill text-[9px] truncate max-w-[140px]">
                             {sampleCandidate.ai_industry || sampleCandidate.industry || 'Commercial Services'}
                           </span>
                         </div>
                         <div>
-                          <span className="text-[9px] font-mono uppercase text-[#959494] block">IDENTIFIED VERTICAL</span>
-                          <div className="text-xs font-semibold text-black dark:text-white font-mono">
+                          <span className="text-[9px] font-mono uppercase text-[#959494] flex items-center gap-1">
+                            <Building2 className="w-2.5 h-2.5" />
+                            VERTICAL
+                          </span>
+                          <div className="text-xs font-semibold text-black dark:text-white font-mono mt-0.5">
                             {sampleCandidate.ai_company_type || sampleCandidate.company_type || 'Growing Business'}
                           </div>
                         </div>
                         {sampleCandidate.ai_pain_point && (
                           <div className="pt-1.5 border-t border-[#ebebeb] dark:border-white/[0.06]">
-                            <span className="text-[9px] font-mono uppercase text-[#959494] block">OPERATIONAL FRICTION</span>
-                            <div className="text-[11px] font-mono text-black dark:text-white leading-snug">
+                            <span className="text-[9px] font-mono uppercase text-[#959494] flex items-center gap-1">
+                              <AlertTriangle className="w-2.5 h-2.5 text-amber-500" />
+                              OPERATIONAL FRICTION
+                            </span>
+                            <div className="text-[11px] font-mono text-black dark:text-white leading-snug mt-0.5">
                               {sampleCandidate.ai_pain_point}
                             </div>
                           </div>
                         )}
                         {sampleCandidate.ai_personalized_pitch && (
                           <div className="pt-1.5 border-t border-[#ebebeb] dark:border-white/[0.06]">
-                            <span className="text-[9px] font-mono uppercase text-[#959494] block">BESPOKE PITCH ANGLE</span>
-                            <div className="text-[11px] font-mono text-black dark:text-white leading-snug">
+                            <span className="text-[9px] font-mono uppercase text-[#959494] flex items-center gap-1">
+                              <Sparkles className="w-2.5 h-2.5 text-[#ef2cc1]" />
+                              BESPOKE PITCH
+                            </span>
+                            <div className="text-[11px] font-mono text-black dark:text-white leading-snug mt-0.5">
                               {sampleCandidate.ai_personalized_pitch}
                             </div>
                           </div>
@@ -1431,15 +1551,16 @@ export default function LeadsPage() {
                     </div>
 
                     <div className="bg-[#f8fafc] dark:bg-[#313641]/20 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] p-3.5 text-xs font-mono space-y-2.5">
-                      <div>
-                        <span className="text-[#959494] block text-[10px] font-semibold">TO RECIPIENT:</span>
-                        <span className="text-black dark:text-white">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <Mail className="w-3 h-3 text-[#959494] shrink-0" />
+                        <span className="text-[#959494] text-[10px] font-semibold">TO:</span>
+                        <span className="text-black dark:text-white truncate">
                           {sampleCandidate.email || 'recipient@domain.com'}
                         </span>
                       </div>
 
                       <div className="pt-2 border-t border-[#ebebeb] dark:border-white/[0.06]">
-                        <span className="text-[#959494] block text-[10px] font-semibold">SUBJECT:</span>
+                        <span className="text-[#959494] block text-[10px] font-semibold mb-0.5">SUBJECT:</span>
                         <span className="text-black dark:text-white font-medium">{renderedSubject}</span>
                       </div>
 
@@ -1451,15 +1572,14 @@ export default function LeadsPage() {
                       </div>
                     </div>
 
-                    <div className="p-3 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] text-[11px] font-mono text-[#6b7280] dark:text-[#959494] space-y-1">
-                      <div className="flex items-center space-x-1.5 text-black dark:text-white font-semibold">
-                        <Info className="w-3.5 h-3.5" />
-                        <span>Pre-Flight Destination</span>
+                    <div className="p-2.5 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] text-[11px] font-mono text-[#6b7280] dark:text-[#959494] flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <Info className="w-3.5 h-3.5 text-[#959494] shrink-0" />
+                        <span className="text-[#959494] whitespace-nowrap">Test destination:</span>
+                        <strong className="text-black dark:text-white truncate">
+                          {operatorEmail || 'logged-in email'}
+                        </strong>
                       </div>
-                      <p>
-                        Test draft will be delivered to:{' '}
-                        <strong className="text-black dark:text-white">{operatorEmail || 'your logged-in email'}</strong>.
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -1468,68 +1588,78 @@ export default function LeadsPage() {
 
             {/* STEP 3: PRE-FLIGHT TEST VERIFICATION REVIEW */}
             {outreachStep === 'test_sent' && (
-              <div className="max-w-3xl mx-auto space-y-6 font-mono text-xs">
+              <div className="max-w-2xl mx-auto space-y-5 font-mono text-xs">
                 <div className="border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-6 space-y-5">
-                  <div className="flex items-start space-x-3.5 mb-4">
+                  <div className="flex items-start space-x-3.5 mb-2">
                     <div className="w-8 h-8 rounded-[4px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center shrink-0">
                       <CheckCircle2 className="w-5 h-5" />
                     </div>
                     <div>
                       <h4 className="text-base font-semibold text-black dark:text-white">
-                        Verification Test Email Dispatched Successfully
+                        Test Email Dispatched Successfully
                       </h4>
                       <p className="text-xs text-[#959494] font-mono mt-0.5">
-                        Delivered a rendered preview copy to <strong className="text-black dark:text-white">{operatorEmail}</strong>.
+                        Delivered rendered copy to <strong className="text-black dark:text-white">{operatorEmail}</strong>
                       </p>
                     </div>
                   </div>
 
-                  <div className="bg-[#f8fafc] dark:bg-[#313641]/20 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] p-4 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-[#959494]">DELIVERY PROVIDER:</span>
+                  <div className="bg-[#f8fafc] dark:bg-[#313641]/20 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] p-3.5 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#959494] flex items-center gap-1.5">
+                        <Server className="w-3.5 h-3.5 text-[#959494]" />
+                        PROVIDER
+                      </span>
                       <span className="text-black dark:text-white font-semibold">AUTHENTICATED SMTP</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#959494]">MESSAGE ID:</span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#959494] flex items-center gap-1.5">
+                        <Hash className="w-3.5 h-3.5 text-[#959494]" />
+                        MESSAGE ID
+                      </span>
                       <span className="text-emerald-600 dark:text-emerald-400 font-mono">
                         {testResult?.messageId || 'smtp_verified'}
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#959494]">SAMPLE TEST COMPANY:</span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#959494] flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-[#959494]" />
+                        SAMPLE LEAD
+                      </span>
                       <span className="text-black dark:text-white font-semibold">{sampleCandidate.company_name}</span>
                     </div>
                   </div>
 
                   <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-[4px] text-amber-700 dark:text-amber-400 space-y-1">
                     <div className="font-semibold flex items-center space-x-1.5">
-                      <ShieldCheck className="w-4 h-4 shrink-0" />
+                      <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-500" />
                       <span>Ready for Live Dispatch</span>
                     </div>
                     <p className="text-[11px] leading-relaxed">
                       Confirming will immediately queue and transmit emails to all{' '}
-                      <strong>{activeRecipients.length}</strong> selected businesses. Suppressed contacts will be automatically bypassed.
+                      <strong>{activeRecipients.length}</strong> selected businesses.
                     </p>
                   </div>
 
                   <div className="pt-4 border-t border-[#ebebeb] dark:border-white/[0.08] flex items-center justify-between">
                     <button
                       onClick={() => setOutreachStep('template')}
-                      className="mono-btn text-xs text-[#959494] hover:text-black dark:hover:text-white"
+                      className="mono-btn text-xs text-[#959494] hover:text-black dark:hover:text-white flex items-center gap-1"
                     >
-                      ← Back to Edit Template
+                      <ArrowLeft className="w-3 h-3" />
+                      <span>Edit Template</span>
                     </button>
 
                     <button
                       onClick={handleDispatchOutreach}
                       disabled={dispatching}
-                      className="mono-btn bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 px-6 py-2.5 rounded-[4px] text-xs font-semibold flex items-center space-x-2 shadow-md transition active:scale-95 disabled:opacity-50"
+                      className="mono-btn bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 px-5 py-2.5 rounded-[4px] text-xs font-semibold flex items-center space-x-2 shadow-md transition active:scale-95 disabled:opacity-50 whitespace-nowrap"
                     >
                       <Send className={`w-3.5 h-3.5 ${dispatching ? 'animate-spin' : ''}`} />
                       <span>
                         {dispatching
-                          ? 'DISPATCHING LIVE SEQUENCE...'
-                          : `APPROVE & DISPATCH TO ${activeRecipients.length} LEADS`}
+                          ? 'DISPATCHING LIVE...'
+                          : `APPROVE & DISPATCH (${activeRecipients.length})`}
                       </span>
                     </button>
                   </div>
@@ -1539,7 +1669,7 @@ export default function LeadsPage() {
 
             {/* STEP 4: DISPATCHED SUMMARY */}
             {outreachStep === 'dispatched' && (
-              <div className="max-w-3xl mx-auto space-y-6 font-mono text-xs">
+              <div className="max-w-2xl mx-auto space-y-5 font-mono text-xs">
                 <div className="border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-6 space-y-5">
                   <div className="flex items-center space-x-3 mb-2">
                     <div className="w-8 h-8 rounded-[4px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center shrink-0">
@@ -1558,20 +1688,29 @@ export default function LeadsPage() {
                   {/* Summary Metric Cards */}
                   <div className="grid grid-cols-3 gap-3">
                     <div className="p-3 rounded-[4px] bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08]">
-                      <span className="text-[#959494] block text-[10px]">TOTAL DISPATCHED</span>
-                      <span className="text-base font-semibold text-emerald-600 dark:text-emerald-400">
+                      <span className="text-[#959494] flex items-center gap-1 text-[10px] whitespace-nowrap">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                        DISPATCHED
+                      </span>
+                      <span className="text-base font-semibold text-emerald-600 dark:text-emerald-400 mt-1 block">
                         {dispatchSummary?.sent || 0}
                       </span>
                     </div>
                     <div className="p-3 rounded-[4px] bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08]">
-                      <span className="text-[#959494] block text-[10px]">SUPPRESSED / OPTED-OUT</span>
-                      <span className="text-base font-semibold text-amber-600 dark:text-amber-400">
+                      <span className="text-[#959494] flex items-center gap-1 text-[10px] whitespace-nowrap">
+                        <ShieldAlert className="w-3 h-3 text-amber-500" />
+                        SUPPRESSED
+                      </span>
+                      <span className="text-base font-semibold text-amber-600 dark:text-amber-400 mt-1 block">
                         {dispatchSummary?.suppressed || 0}
                       </span>
                     </div>
                     <div className="p-3 rounded-[4px] bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08]">
-                      <span className="text-[#959494] block text-[10px]">FAILED / ERRORS</span>
-                      <span className="text-base font-semibold text-rose-600 dark:text-rose-400">
+                      <span className="text-[#959494] flex items-center gap-1 text-[10px] whitespace-nowrap">
+                        <AlertTriangle className="w-3 h-3 text-rose-500" />
+                        FAILED
+                      </span>
+                      <span className="text-base font-semibold text-rose-600 dark:text-rose-400 mt-1 block">
                         {dispatchSummary?.failed || 0}
                       </span>
                     </div>
@@ -1583,21 +1722,31 @@ export default function LeadsPage() {
                       <table className="w-full text-left text-xs font-mono">
                         <thead className="bg-[#f8fafc] dark:bg-[#313641]/30 border-b border-[#ebebeb] dark:border-white/[0.08] text-[#959494]">
                           <tr>
-                            <th className="py-2 px-3">RECIPIENT</th>
-                            <th className="py-2 px-3 text-[#ef2cc1]">AI IDENTIFIED TYPE</th>
-                            <th className="py-2 px-3">STATUS</th>
+                            <th className="py-2 px-3 whitespace-nowrap">
+                              <span className="flex items-center gap-1">
+                                <Mail className="w-3 h-3" />
+                                RECIPIENT
+                              </span>
+                            </th>
+                            <th className="py-2 px-3 text-[#ef2cc1] whitespace-nowrap">
+                              <span className="flex items-center gap-1">
+                                <Sparkles className="w-3 h-3" />
+                                AI TYPE
+                              </span>
+                            </th>
+                            <th className="py-2 px-3 whitespace-nowrap">STATUS</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#ebebeb] dark:divide-white/[0.06]">
                           {dispatchResults.map((r, i) => (
                             <tr key={i}>
-                              <td className="py-2 px-3 text-black dark:text-white">{r.email}</td>
-                              <td className="py-2 px-3">
+                              <td className="py-2 px-3 text-black dark:text-white whitespace-nowrap">{r.email}</td>
+                              <td className="py-2 px-3 whitespace-nowrap">
                                 <span className="ai-flat-pill text-[10px]">
                                   {r.companyType || 'Classified'}
                                 </span>
                               </td>
-                              <td className="py-2 px-3">
+                              <td className="py-2 px-3 whitespace-nowrap">
                                 <span
                                   className={`px-1.5 py-0.5 rounded-[2px] text-[10px] font-semibold uppercase ${
                                     r.status === 'sent'
@@ -1622,7 +1771,7 @@ export default function LeadsPage() {
                       href="/outreach"
                       className="mono-btn px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-[4px] text-xs font-semibold inline-flex items-center space-x-1.5"
                     >
-                      <span>VIEW OUTREACH LOGS</span>
+                      <span>VIEW LOGS</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
 

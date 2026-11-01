@@ -19,6 +19,8 @@ import {
   Info,
   Check,
   X,
+  Users,
+  PenLine,
 } from 'lucide-react';
 import {
   parseCsvFile,
@@ -364,22 +366,24 @@ export default function CsvOutreachPage() {
           {/* Stepper Pill Indicator */}
           <div className="flex items-center space-x-1 bg-[#313641]/40 border border-white/[0.08] rounded-[4px] p-1 text-xs font-mono">
             {[
-              { id: 'upload', label: '1. CSV MAPPING' },
-              { id: 'template', label: '2. COMPOSE' },
-              { id: 'test_sent', label: '3. PRE-FLIGHT TEST' },
-              { id: 'dispatched', label: '4. DISPATCHED' },
+              { id: 'upload', icon: Users, label: 'Mapping' },
+              { id: 'template', icon: PenLine, label: 'Compose' },
+              { id: 'test_sent', icon: ShieldCheck, label: 'Test' },
+              { id: 'dispatched', icon: Send, label: 'Dispatched' },
             ].map((s) => {
               const active = step === s.id;
+              const StepIcon = s.icon;
               return (
                 <span
                   key={s.id}
-                  className={`px-2.5 py-1 rounded-[3px] transition ${
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[3px] transition whitespace-nowrap ${
                     active
                       ? 'bg-black dark:bg-white text-white dark:text-black font-semibold'
                       : 'text-[#959494]'
                   }`}
                 >
-                  {s.label}
+                  <StepIcon className="w-3 h-3 shrink-0" />
+                  <span>{s.label}</span>
                 </span>
               );
             })}
