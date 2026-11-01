@@ -29,6 +29,8 @@ import {
   Eye,
   AlertTriangle,
   Info,
+  Archive,
+  RotateCcw,
 } from 'lucide-react';
 import { parseAndAnalyzeCsv, CsvColumnMapping, replaceTemplateVariables } from '@/lib/csv/parser';
 
@@ -44,7 +46,8 @@ export default function LeadsPage() {
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'all' | 'missing_email' | 'archived' | 'suppressed'>('active');
+  const [archiving, setArchiving] = useState(false);
 
   // Multi-selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -131,11 +134,117 @@ export default function LeadsPage() {
       b.business_type.toLowerCase().includes(search.toLowerCase()) ||
       (b.general_business_email && b.general_business_email.toLowerCase().includes(search.toLowerCase()));
 
-    if (statusFilter === 'all') return matchesSearch;
-    return matchesSearch && b.record_status === statusFilter;
+    if (!matchesSearch) return false;
+
+    if (statusFilter === 'all') return true;
+    if (statusFilter === 'missing_email') {
+      return (!b.general_business_email || b.general_business_email.trim() === '') && b.record_status === 'active';
+    }
+    if (statusFilter === 'archived') {
+      return b.record_status === 'archived';
+    }
+    if (statusFilter === 'suppressed') {
+      return b.record_status === 'suppressed';
+    }
+    return b.record_status === 'active';
   });
 
-  const missingEmailCount = businesses.filter((b) => !b.general_business_email).length;
+  const activeBusinesses = businesses.filter((b) => b.record_status === 'active');
+  const missingEmailCount = activeBusinesses.filter((b) => !b.general_business_email || b.general_business_email.trim() === '').length;
+  const archivedCount = businesses.filter((b) => b.record_status === 'archived').length;
+
+  // Archival handlers
+  const handleArchive = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    setArchiving(true);
+    try {
+      const res = await fetch('/api/leads/archive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, action: 'archive' }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEnrichMessage({
+          text: `Archived ${data.count} ${data.count === 1 ? 'lead' : 'leads'}.`,
+          type: 'success',
+        });
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          ids.forEach((id) => next.delete(id));
+          return next;
+        });
+        fetchBusinesses();
+      } else {
+        setEnrichMessage({ text: data.error || 'Failed to archive leads', type: 'error' });
+      }
+    } catch (e: any) {
+      setEnrichMessage({ text: e.message || 'Network error while archiving', type: 'error' });
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  const handleUnarchive = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    setArchiving(true);
+    try {
+      const res = await fetch('/api/leads/archive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, action: 'unarchive' }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEnrichMessage({
+          text: `Restored ${data.count} ${data.count === 1 ? 'lead' : 'leads'} to active list.`,
+          type: 'success',
+        });
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          ids.forEach((id) => next.delete(id));
+          return next;
+        });
+        fetchBusinesses();
+      } else {
+        setEnrichMessage({ text: data.error || 'Failed to restore leads', type: 'error' });
+      }
+    } catch (e: any) {
+      setEnrichMessage({ text: e.message || 'Network error while restoring', type: 'error' });
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  const handleArchiveAllMissingEmail = async () => {
+    if (missingEmailCount === 0) return;
+    if (!confirm(`Archive all ${missingEmailCount} active leads that currently lack an email address? They can be viewed and restored from the 'Archived' tab anytime.`)) {
+      return;
+    }
+    setArchiving(true);
+    try {
+      const res = await fetch('/api/leads/archive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ allMissingEmail: true, action: 'archive' }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEnrichMessage({
+          text: `Archived ${data.count} leads with missing emails. Outreach directory refined!`,
+          type: 'success',
+        });
+        setSelectedIds(new Set());
+        fetchBusinesses();
+      } else {
+        setEnrichMessage({ text: data.error || 'Failed to archive leads', type: 'error' });
+      }
+    } catch (e: any) {
+      setEnrichMessage({ text: e.message || 'Network error while archiving', type: 'error' });
+    } finally {
+      setArchiving(false);
+    }
+  };
 
   // Selection handlers
   const handleToggleSelect = (id: string) => {
@@ -512,6 +621,18 @@ export default function LeadsPage() {
               </span>
             </button>
 
+            {missingEmailCount > 0 && (
+              <button
+                onClick={handleArchiveAllMissingEmail}
+                disabled={archiving}
+                title="Archive active leads that don't have an email address"
+                className="mono-btn bg-[#313641] hover:bg-[#3d4352] text-white border border-white/[0.12] px-3.5 py-2 rounded-[4px] text-xs font-mono font-medium uppercase tracking-[0.05em] transition flex items-center space-x-2 disabled:opacity-50"
+              >
+                <Archive className={`w-3.5 h-3.5 text-[#ef2cc1] ${archiving ? 'animate-spin' : ''}`} />
+                <span>ARCHIVE NO-EMAIL ({missingEmailCount})</span>
+              </button>
+            )}
+
             <button
               onClick={() => {
                 if (selectedIds.size === 0) {
@@ -573,19 +694,25 @@ export default function LeadsPage() {
             />
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className="mono-eyebrow text-[#959494] text-[11px] font-mono mr-1">STATUS:</span>
-            {['all', 'active', 'suppressed'].map((st) => (
+            {[
+              { id: 'active', label: `ACTIVE (${activeBusinesses.length})` },
+              { id: 'missing_email', label: `NO EMAIL (${missingEmailCount})` },
+              { id: 'archived', label: `ARCHIVED (${archivedCount})` },
+              { id: 'all', label: `ALL (${businesses.length})` },
+              { id: 'suppressed', label: 'SUPPRESSED' },
+            ].map((st) => (
               <button
-                key={st}
-                onClick={() => setStatusFilter(st)}
-                className={`mono-btn text-xs px-3.5 py-1.5 rounded-[4px] transition font-mono uppercase tracking-wider ${
-                  statusFilter === st
-                    ? 'bg-[#000000] dark:bg-white text-white dark:text-[#000000]'
+                key={st.id}
+                onClick={() => setStatusFilter(st.id as any)}
+                className={`mono-btn text-xs px-3 py-1.5 rounded-[4px] transition font-mono uppercase tracking-wider ${
+                  statusFilter === st.id
+                    ? 'bg-[#000000] dark:bg-white text-white dark:text-[#000000] font-semibold'
                     : 'bg-white dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.08] text-[#959494] hover:text-[#000000] dark:hover:text-white'
                 }`}
               >
-                {st}
+                {st.label}
               </button>
             ))}
           </div>
@@ -727,6 +854,8 @@ export default function LeadsPage() {
                             className={`px-2 py-0.5 rounded-[4px] font-mono text-[10px] uppercase tracking-wider ${
                               b.record_status === 'active'
                                 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                : b.record_status === 'archived'
+                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
                                 : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
                             }`}
                           >
@@ -736,13 +865,39 @@ export default function LeadsPage() {
 
                         {/* Actions */}
                         <td className="py-3.5 px-4 text-right font-mono">
-                          <Link
-                            href={`/leads/${b.id}`}
-                            className="mono-btn bg-white dark:bg-[#14161f] hover:bg-[#f4f4f5] dark:hover:bg-[#1c1d27] border border-[#ebebeb] dark:border-white/[0.08] text-[#000000] dark:text-white px-3 py-1 rounded-[4px] text-[11px] font-mono inline-flex items-center space-x-1"
-                          >
-                            <span>EVIDENCE</span>
-                            <ChevronRight className="w-3 h-3" />
-                          </Link>
+                          <div className="inline-flex items-center space-x-1.5">
+                            {b.record_status === 'archived' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleUnarchive([b.id])}
+                                disabled={archiving}
+                                title="Restore lead to active directory"
+                                className="mono-btn bg-white dark:bg-[#14161f] hover:bg-emerald-50 dark:hover:bg-emerald-950/20 border border-[#ebebeb] dark:border-white/[0.08] text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-[4px] text-[11px] font-mono inline-flex items-center space-x-1 transition"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                <span>RESTORE</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleArchive([b.id])}
+                                disabled={archiving}
+                                title="Archive lead (removes from active outreach)"
+                                className="mono-btn bg-white dark:bg-[#14161f] hover:bg-amber-50 dark:hover:bg-amber-950/20 border border-[#ebebeb] dark:border-white/[0.08] text-[#959494] hover:text-amber-600 dark:hover:text-amber-400 px-2.5 py-1 rounded-[4px] text-[11px] font-mono inline-flex items-center space-x-1 transition"
+                              >
+                                <Archive className="w-3 h-3" />
+                                <span>ARCHIVE</span>
+                              </button>
+                            )}
+
+                            <Link
+                              href={`/leads/${b.id}`}
+                              className="mono-btn bg-white dark:bg-[#14161f] hover:bg-[#f4f4f5] dark:hover:bg-[#1c1d27] border border-[#ebebeb] dark:border-white/[0.08] text-[#000000] dark:text-white px-3 py-1 rounded-[4px] text-[11px] font-mono inline-flex items-center space-x-1"
+                            >
+                              <span>EVIDENCE</span>
+                              <ChevronRight className="w-3 h-3" />
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -773,6 +928,26 @@ export default function LeadsPage() {
             >
               <Sparkles className="w-3 h-3 text-[#bdbbff]" />
               <span>ENRICH ({selectedMissingEmail.length})</span>
+            </button>
+          )}
+
+          {statusFilter === 'archived' ? (
+            <button
+              onClick={() => handleUnarchive(Array.from(selectedIds))}
+              disabled={archiving}
+              className="mono-btn bg-[#313641] hover:bg-emerald-950/40 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-[4px] text-xs font-mono font-medium uppercase tracking-wider flex items-center space-x-1.5 transition disabled:opacity-50"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>RESTORE ({selectedIds.size})</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => handleArchive(Array.from(selectedIds))}
+              disabled={archiving}
+              className="mono-btn bg-[#313641] hover:bg-rose-950/40 text-rose-300 border border-rose-500/30 px-3 py-1.5 rounded-[4px] text-xs font-mono font-medium uppercase tracking-wider flex items-center space-x-1.5 transition disabled:opacity-50"
+            >
+              <Archive className="w-3 h-3 text-[#ef2cc1]" />
+              <span>ARCHIVE ({selectedIds.size})</span>
             </button>
           )}
 

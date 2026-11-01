@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ExternalLink, CheckCircle2, AlertTriangle, ArrowLeft, ShieldCheck, Mail, Sparkles, ChevronRight, X } from 'lucide-react';
+import { ExternalLink, CheckCircle2, AlertTriangle, ArrowLeft, ShieldCheck, Mail, Sparkles, ChevronRight, X, Archive, RotateCcw } from 'lucide-react';
 
 export default function BusinessDetailPage() {
   const { id } = useParams();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [enriching, setEnriching] = useState(false);
+  const [archiving, setArchiving] = useState(false);
   const [enrichStatus, setEnrichStatus] = useState<string | null>(null);
 
   const loadBusiness = () => {
@@ -44,6 +45,33 @@ export default function BusinessDetailPage() {
       setEnrichStatus(`Error: ${err.message}`);
     } finally {
       setEnriching(false);
+    }
+  };
+
+  const handleToggleArchive = async () => {
+    if (!data?.business?.id) return;
+    const isCurrentlyArchived = data.business.record_status === 'archived';
+    setArchiving(true);
+    try {
+      const res = await fetch('/api/leads/archive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: [data.business.id],
+          action: isCurrentlyArchived ? 'unarchive' : 'archive',
+        }),
+      });
+      const resData = await res.json();
+      if (res.ok && resData.success) {
+        setEnrichStatus(isCurrentlyArchived ? 'Lead restored to active status.' : 'Lead archived successfully.');
+        loadBusiness();
+      } else {
+        setEnrichStatus(resData.error || 'Failed to update lead archival state.');
+      }
+    } catch (e: any) {
+      setEnrichStatus(`Error: ${e.message}`);
+    } finally {
+      setArchiving(false);
     }
   };
 
@@ -112,8 +140,27 @@ export default function BusinessDetailPage() {
               </div>
             </div>
 
-            {/* Enrich Action & Score Card Callout */}
+            {/* Enrich Action, Archive & Score Card Callout */}
             <div className="flex flex-col sm:flex-row items-center gap-3">
+              <button
+                type="button"
+                onClick={handleToggleArchive}
+                disabled={archiving}
+                className="mono-btn bg-white dark:bg-[#18181b] hover:bg-[#f4f4f5] dark:hover:bg-[#27272a] border border-[#e5e7eb] dark:border-[#27272a] text-[#111827] dark:text-white px-4 py-2.5 rounded-full text-xs font-normal flex items-center space-x-2 shadow-sm transition active:scale-95 disabled:opacity-50"
+              >
+                {business.record_status === 'archived' ? (
+                  <>
+                    <RotateCcw className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>RESTORE LEAD</span>
+                  </>
+                ) : (
+                  <>
+                    <Archive className="w-3.5 h-3.5 text-amber-500" />
+                    <span>ARCHIVE LEAD</span>
+                  </>
+                )}
+              </button>
+
               <button
                 type="button"
                 onClick={handleEnrichLead}
