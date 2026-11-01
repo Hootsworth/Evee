@@ -246,13 +246,15 @@ export default function DraftsApprovalPage() {
       <div className="brand-gradient-h w-full" />
 
       {/* Hero Band: Canvas Dark #010120 */}
-      <section className="bg-[#010120] text-white border-b border-white/[0.08] px-6 py-8">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <section className="bg-[#010120] text-white border-b border-white/[0.08] px-6 py-8 relative overflow-hidden v2-grid-bg">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4 relative z-10">
           <div>
             <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
               <span>OUTREACH INTELLIGENCE // RAPID APPROVAL REVIEWER</span>
               <span>•</span>
-              <span className="text-[#ef2cc1]">HUMAN-IN-THE-LOOP</span>
+              <span className="v2-badge text-emerald-400 bg-emerald-500/10 border-emerald-500/20">
+                v2.0 REVIEWER
+              </span>
             </div>
             <h1 className="text-3xl font-medium tracking-tight text-white">
               Draft Approval Queue

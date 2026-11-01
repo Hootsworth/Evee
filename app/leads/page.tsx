@@ -579,11 +579,15 @@ export default function LeadsPage() {
       <div className="brand-gradient-h w-full" />
 
       {/* Hero Band: Together AI style Canvas Dark (#010120) */}
-      <section className="bg-[#010120] text-white border-b border-white/[0.08] px-6 py-12 sm:py-16">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <section className="bg-[#010120] text-white border-b border-white/[0.08] px-6 py-12 sm:py-16 relative overflow-hidden v2-grid-bg">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
           <div>
-            <div className="mono-eyebrow text-[#959494] font-mono text-[11px] font-medium tracking-[0.55px] uppercase mb-2">
-              PROSPECT INTELLIGENCE & DISPATCH
+            <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-2">
+              <span>PROSPECT INTELLIGENCE & DISPATCH</span>
+              <span>•</span>
+              <span className="v2-badge text-emerald-400 bg-emerald-500/10 border-emerald-500/20">
+                v2.0 DIRECTORY
+              </span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-medium tracking-tight text-white">
               Lead Explorer

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Logo from '@/components/Logo';
-import { LogOut, Plus, Moon, Sun } from 'lucide-react';
+import { LogOut, Plus, Moon, Sun, Cpu, Search } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 
 export default function NavBar() {
@@ -52,6 +52,7 @@ export default function NavBar() {
       href: '/drafts',
       badge: metrics?.pendingDrafts > 0 ? metrics.pendingDrafts : undefined,
     },
+    { label: 'CONNECTORS', href: '/settings?tab=connectors' },
     { label: 'SETTINGS', href: '/settings' },
   ];
 
@@ -69,8 +70,13 @@ export default function NavBar() {
 
       <div className="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between">
         {/* Brand Logo & Clean Monospace Navigation */}
-        <div className="flex items-center space-x-8">
-          <Logo height={26} showSubtitle={false} />
+        <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-2">
+            <Logo height={26} showSubtitle={false} />
+            <span className="text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded-[2px] bg-black/5 dark:bg-white/10 text-black dark:text-white border border-[#ebebeb] dark:border-white/10">
+              v2.0
+            </span>
+          </div>
 
           {/* Navigation Links with 4px border radius and mono caps */}
           <nav className="hidden md:flex items-center space-x-1">
@@ -104,8 +110,18 @@ export default function NavBar() {
           </nav>
         </div>
 
-        {/* Right Actions: Dark Mode Toggle, New Campaign, User Profile */}
-        <div className="flex items-center space-x-3">
+        {/* Right Actions: Quick Find, Dark Mode Toggle, New Campaign, User Profile */}
+        <div className="flex items-center space-x-2.5">
+          <button
+            onClick={() => router.push('/leads')}
+            className="hidden xl:flex items-center space-x-2 px-2.5 py-1.5 rounded-[4px] bg-[#f8fafc] dark:bg-white/[0.04] border border-[#ebebeb] dark:border-white/[0.08] text-[#959494] hover:text-black dark:hover:text-white transition text-[10px] font-mono"
+            title="Search Leads (Jump to Explorer)"
+          >
+            <Search className="w-3 h-3 text-[#ef2cc1]" />
+            <span>QUICK FIND</span>
+            <kbd className="px-1 py-0.2 rounded-[2px] bg-black/5 dark:bg-white/10 text-[9px] font-mono">⌘K</kbd>
+          </button>
+
           {/* Dark / Light Mode Toggle Button */}
           <button
             onClick={toggleTheme}

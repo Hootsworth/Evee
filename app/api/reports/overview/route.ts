@@ -33,6 +33,9 @@ export async function GET() {
   const monthlyTarget = 100;
   const targetProgress = Math.min(Math.round((qualifiedLeadsCount / monthlyTarget) * 100), 100);
 
+  const activeBusinessesCount = businesses.filter((b) => b.record_status === 'active').length;
+  const archivedBusinessesCount = businesses.filter((b) => b.record_status === 'archived').length;
+
   const pendingDrafts = drafts.filter((d) => d.approval_status === 'pending').length;
   const approvedDrafts = drafts.filter((d) => d.approval_status === 'approved').length;
   const sentMessages = messages.filter((m) => m.status === 'sent').length;
@@ -101,6 +104,8 @@ export async function GET() {
   return NextResponse.json({
     metrics: {
       totalDiscovered: businesses.length,
+      activeLeads: activeBusinessesCount,
+      archivedLeads: archivedBusinessesCount,
       qualifiedLeadsMonth: qualifiedLeadsCount,
       monthlyTarget,
       targetProgressPercentage: targetProgress,

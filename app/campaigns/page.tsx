@@ -110,13 +110,15 @@ export default function CampaignsPage() {
       <div className="brand-gradient-h w-full" />
 
       {/* Hero Band: Canvas Dark #010120 */}
-      <section className="bg-[#010120] text-white pt-8 pb-10 px-6 border-b border-white/[0.08]">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <section className="bg-[#010120] text-white pt-8 pb-10 px-6 border-b border-white/[0.08] relative overflow-hidden v2-grid-bg">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
           <div>
             <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
               <span>TARGETING // CAMPAIGN MANAGER</span>
               <span>•</span>
-              <span className="text-[#ef2cc1]">AUTONOMOUS TARGETING</span>
+              <span className="v2-badge text-emerald-400 bg-emerald-500/10 border-emerald-500/20">
+                v2.0 MESH
+              </span>
             </div>
             <h1 className="text-3xl font-medium tracking-tight text-white mb-1">
               Campaigns Hub

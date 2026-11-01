@@ -259,3 +259,58 @@
 .animate-flat-scan {
   animation: flat-scan 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
+
+/* ==========================================================================
+   v2.0 Flat Developer Design Evolution
+   High-density engineering aesthetic: hairline dividers, 4px radius,
+   subtle structural grid lines, and monochromatic telemetry tags.
+   ========================================================================== */
+
+.v2-surface {
+  background-color: #ffffff;
+  border: 1px solid #ebebeb;
+  border-radius: 4px;
+  transition: border-color 0.15s ease;
+}
+
+.dark .v2-surface {
+  background-color: #070814 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.v2-surface:hover {
+  border-color: #000000;
+}
+
+.dark .v2-surface:hover {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.v2-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background-color: #f4f4f5;
+  border: 1px solid #ebebeb;
+  color: #18181b;
+}
+
+.dark .v2-badge {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #f4f4f5 !important;
+}
+
+.v2-grid-bg {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+}
