@@ -24,13 +24,26 @@ import {
   Cpu,
   MapPin,
   Building2,
+  CheckCircle2,
+  Zap,
 } from 'lucide-react';
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'smtp' | 'ai' | 'places' | 'enrichment' | 'suppression' | 'dns' | 'webhooks' | 'audit'>('smtp');
+  const [activeTab, setActiveTab] = useState<'smtp' | 'ai' | 'places' | 'enrichment' | 'connectors' | 'suppression' | 'dns' | 'webhooks' | 'audit'>('smtp');
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  // Connectors & Integrations Hub state
+  const [integrationsList, setIntegrationsList] = useState<any[]>([]);
+  const [loadingIntegrations, setLoadingIntegrations] = useState(false);
+  const [integrationCategory, setIntegrationCategory] = useState<'all' | 'crm' | 'outreach_engine' | 'enrichment' | 'notifications'>('all');
+  const [integrationFormState, setIntegrationFormState] = useState<Record<string, Record<string, string>>>({});
+  const [showIntegrationSecret, setShowIntegrationSecret] = useState<Record<string, boolean>>({});
+  const [testingIntegration, setTestingIntegration] = useState<string | null>(null);
+  const [syncingIntegration, setSyncingIntegration] = useState<string | null>(null);
+  const [savingIntegration, setSavingIntegration] = useState<string | null>(null);
+  const [integrationStatusMsg, setIntegrationStatusMsg] = useState<{ id: string; text: string; success: boolean } | null>(null);
 
   // Show/Hide password toggles
   const [showSmtpPass, setShowSmtpPass] = useState(false);
@@ -123,6 +136,123 @@ export default function SettingsPage() {
       console.error(e);
     } finally {
       setLoadingAudit(false);
+    }
+  };
+
+  const fetchIntegrations = async () => {
+    setLoadingIntegrations(true);
+    try {
+      const res = await fetch('/api/integrations');
+      const data = await res.json();
+      if (res.ok && data.integrations) {
+        setIntegrationsList(data.integrations);
+        // Prepopulate form state with public configs
+        const initialForm: Record<string, Record<string, string>> = {};
+        for (const integ of data.integrations) {
+          initialForm[integ.id] = { ...(integ.config || {}) };
+        }
+        setIntegrationFormState(initialForm);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingIntegrations(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'connectors') {
+      fetchIntegrations();
+    }
+  }, [activeTab]);
+
+  const handleSaveIntegration = async (providerId: string) => {
+    setSavingIntegration(providerId);
+    setIntegrationStatusMsg(null);
+    try {
+      const formValues = integrationFormState[providerId] || {};
+      const res = await fetch('/api/integrations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          providerId,
+          config: formValues,
+          enabled: true,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setIntegrationStatusMsg({ id: providerId, text: 'Configuration encrypted and saved.', success: true });
+        fetchIntegrations();
+      } else {
+        setIntegrationStatusMsg({ id: providerId, text: data.error || 'Failed to save configuration', success: false });
+      }
+    } catch (err: any) {
+      setIntegrationStatusMsg({ id: providerId, text: err.message || 'Network error', success: false });
+    } finally {
+      setSavingIntegration(null);
+    }
+  };
+
+  const handleTestIntegration = async (providerId: string) => {
+    setTestingIntegration(providerId);
+    setIntegrationStatusMsg(null);
+    try {
+      const formValues = integrationFormState[providerId] || {};
+      const res = await fetch(`/api/integrations/${providerId}/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secret: Object.values(formValues)[0] || '',
+          config: formValues,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIntegrationStatusMsg({
+          id: providerId,
+          text: `Verified (${data.latencyMs}ms): ${data.message}`,
+          success: true,
+        });
+        fetchIntegrations();
+      } else {
+        setIntegrationStatusMsg({
+          id: providerId,
+          text: `Test failed: ${data.error || 'Connection error'}`,
+          success: false,
+        });
+      }
+    } catch (err: any) {
+      setIntegrationStatusMsg({ id: providerId, text: `Test error: ${err.message}`, success: false });
+    } finally {
+      setTestingIntegration(null);
+    }
+  };
+
+  const handleSyncIntegration = async (providerId: string) => {
+    setSyncingIntegration(providerId);
+    setIntegrationStatusMsg(null);
+    try {
+      const res = await fetch(`/api/integrations/${providerId}/sync`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIntegrationStatusMsg({
+          id: providerId,
+          text: data.message || `Synced ${data.syncedCount} leads successfully!`,
+          success: true,
+        });
+        fetchIntegrations();
+      } else {
+        setIntegrationStatusMsg({
+          id: providerId,
+          text: `Sync error: ${data.error || 'Failed to sync'}`,
+          success: false,
+        });
+      }
+    } catch (err: any) {
+      setIntegrationStatusMsg({ id: providerId, text: `Sync error: ${err.message}`, success: false });
+    } finally {
+      setSyncingIntegration(null);
     }
   };
 
@@ -335,6 +465,7 @@ export default function SettingsPage() {
   const tabs = [
     { id: 'smtp', label: 'Outbound Mailer', icon: Mail, badge: smtpConfigured ? 'Connected' : 'Setup' },
     { id: 'ai', label: 'AI Engine (Multi-LLM)', icon: Sparkles, badge: aiKeyConfigured ? `${aiProvider.toUpperCase()}` : 'Key Required' },
+    { id: 'connectors', label: 'Connectors & Integrations', icon: Cpu, badge: 'Hub' },
     { id: 'dns', label: 'DNS & Deliverability', icon: Globe, badge: 'Pre-Flight' },
     { id: 'webhooks', label: 'Webhooks & Inbound', icon: Radio, badge: 'Automated' },
     { id: 'places', label: 'Places Discovery', icon: Key, badge: placesKeyConfigured ? 'Live API' : 'Simulation' },
@@ -719,6 +850,229 @@ export default function SettingsPage() {
                     {saving ? 'ENCRYPTING & SAVING...' : 'SAVE AI CONFIGURATION'}
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* TAB: Connectors & Integrations Hub */}
+            {activeTab === 'connectors' && (
+              <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-6 space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#ebebeb] dark:border-white/[0.08]">
+                  <div>
+                    <h2 className="text-base font-semibold text-black dark:text-white flex items-center space-x-2">
+                      <Cpu className="w-4 h-4 text-[#ef2cc1]" />
+                      <span>Connectors & External Integrations Hub</span>
+                    </h2>
+                    <p className="text-xs text-[#959494] font-mono mt-0.5">
+                      Two-way CRM syncing, dedicated cold email delivery engines, executive data enrichment, and webhook alerts.
+                    </p>
+                  </div>
+
+                  {/* Category Pills */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {[
+                      { id: 'all', label: `ALL (${integrationsList.length})` },
+                      { id: 'crm', label: 'CRMs' },
+                      { id: 'outreach_engine', label: 'OUTREACH' },
+                      { id: 'enrichment', label: 'INTELLIGENCE' },
+                      { id: 'notifications', label: 'NOTIFICATIONS' },
+                    ].map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setIntegrationCategory(cat.id as any)}
+                        className={`text-[10px] font-mono uppercase px-2.5 py-1 rounded-[3px] border transition ${
+                          integrationCategory === cat.id
+                            ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white font-semibold'
+                            : 'bg-white dark:bg-[#14161f] border-[#ebebeb] dark:border-white/[0.08] text-[#6b7280] dark:text-[#959494] hover:text-black dark:hover:text-white'
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {loadingIntegrations ? (
+                  <div className="py-20 text-center font-mono text-xs text-[#959494] flex items-center justify-center space-x-2">
+                    <RefreshCw className="w-4 h-4 animate-spin text-[#ef2cc1]" />
+                    <span>LOADING CONNECTORS REGISTRY...</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {integrationsList
+                      .filter((i) => integrationCategory === 'all' || i.category === integrationCategory)
+                      .map((integ) => {
+                        const statusMsg = integrationStatusMsg?.id === integ.id ? integrationStatusMsg : null;
+                        const isSaving = savingIntegration === integ.id;
+                        const isTesting = testingIntegration === integ.id;
+                        const isSyncing = syncingIntegration === integ.id;
+
+                        return (
+                          <div
+                            key={integ.id}
+                            className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-4 bg-[#fafafa] dark:bg-[#070814] flex flex-col justify-between space-y-4"
+                          >
+                            <div className="space-y-3">
+                              {/* Header & Badges */}
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <div className="flex items-center space-x-2">
+                                    <h3 className="font-semibold text-xs text-black dark:text-white font-mono">
+                                      {integ.name}
+                                    </h3>
+                                    <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 rounded-[2px] bg-black/5 dark:bg-white/10 text-[#6b7280] dark:text-[#959494]">
+                                      {integ.category.replace('_', ' ')}
+                                    </span>
+                                  </div>
+                                  <a
+                                    href={integ.websiteUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-[10px] font-mono text-[#ef2cc1] hover:underline inline-flex items-center space-x-1 mt-0.5"
+                                  >
+                                    <span>Documentation & API</span>
+                                    <ExternalLink className="w-2.5 h-2.5" />
+                                  </a>
+                                </div>
+
+                                <span
+                                  className={`text-[9px] font-mono px-2 py-0.5 rounded-[2px] font-semibold uppercase ${
+                                    integ.configured
+                                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                      : 'bg-neutral-500/10 text-neutral-500 dark:text-neutral-400 border border-neutral-500/20'
+                                  }`}
+                                >
+                                  {integ.configured ? 'CONNECTED' : 'NOT CONFIGURED'}
+                                </span>
+                              </div>
+
+                              <p className="text-[11px] text-[#6b7280] dark:text-[#959494] leading-relaxed">
+                                {integ.description}
+                              </p>
+
+                              {/* Form Fields */}
+                              <div className="space-y-2.5 pt-1">
+                                {integ.fields.map((field: any) => {
+                                  const fieldKey = `${integ.id}_${field.key}`;
+                                  const showSecret = showIntegrationSecret[fieldKey] || false;
+                                  const currentValue =
+                                    integrationFormState[integ.id]?.[field.key] ??
+                                    (field.isSecret && integ.configured ? '••••••••••••••••••••' : '');
+
+                                  return (
+                                    <div key={field.key} className="space-y-1">
+                                      <label className="text-[10px] font-mono uppercase text-[#959494] block">
+                                        {field.label}:
+                                      </label>
+                                      <div className="relative">
+                                        <input
+                                          type={field.isSecret && !showSecret ? 'password' : 'text'}
+                                          value={currentValue}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            setIntegrationFormState((prev) => ({
+                                              ...prev,
+                                              [integ.id]: {
+                                                ...(prev[integ.id] || {}),
+                                                [field.key]: val,
+                                              },
+                                            }));
+                                          }}
+                                          placeholder={field.placeholder}
+                                          className="w-full text-xs font-mono p-2 border border-[#ebebeb] dark:border-white/[0.08] rounded-[3px] bg-white dark:bg-[#010120] text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white pr-8"
+                                        />
+                                        {field.isSecret && (
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setShowIntegrationSecret((prev) => ({
+                                                ...prev,
+                                                [fieldKey]: !showSecret,
+                                              }))
+                                            }
+                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#959494] hover:text-black dark:hover:text-white"
+                                          >
+                                            {showSecret ? (
+                                              <EyeOff className="w-3.5 h-3.5" />
+                                            ) : (
+                                              <Eye className="w-3.5 h-3.5" />
+                                            )}
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Status Feedback Message */}
+                              {statusMsg && (
+                                <div
+                                  className={`p-2 rounded-[3px] text-[11px] font-mono border flex items-center space-x-1.5 ${
+                                    statusMsg.success
+                                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                      : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                                  }`}
+                                >
+                                  {statusMsg.success ? (
+                                    <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                  ) : (
+                                    <AlertCircle className="w-3 h-3 shrink-0" />
+                                  )}
+                                  <span className="truncate">{statusMsg.text}</span>
+                                </div>
+                              )}
+
+                              {/* Telemetry info */}
+                              {integ.lastSyncAt && (
+                                <div className="text-[10px] font-mono text-[#959494]">
+                                  Last synced: {new Date(integ.lastSyncAt).toLocaleTimeString()} ({integ.syncedRecordsCount} records)
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center justify-between pt-3 border-t border-[#ebebeb] dark:border-white/[0.06] gap-2">
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveIntegration(integ.id)}
+                                  disabled={isSaving}
+                                  className="mono-btn bg-black dark:bg-white text-white dark:text-black px-3 py-1 rounded-[3px] text-[10px] font-mono font-semibold flex items-center space-x-1 hover:opacity-90 disabled:opacity-50"
+                                >
+                                  {isSaving ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                                  <span>SAVE</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleTestIntegration(integ.id)}
+                                  disabled={isTesting}
+                                  className="mono-btn bg-white dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.08] text-black dark:text-white px-3 py-1 rounded-[3px] text-[10px] font-mono hover:border-black dark:hover:border-white flex items-center space-x-1 disabled:opacity-50"
+                                >
+                                  {isTesting ? <RefreshCw className="w-3 h-3 animate-spin text-[#ef2cc1]" /> : <Zap className="w-3 h-3 text-[#ef2cc1]" />}
+                                  <span>TEST PING</span>
+                                </button>
+                              </div>
+
+                              {(integ.category === 'crm' || integ.category === 'outreach_engine') && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSyncIntegration(integ.id)}
+                                  disabled={isSyncing || !integ.configured}
+                                  className="mono-btn bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-[3px] text-[10px] font-mono font-semibold flex items-center space-x-1 disabled:opacity-40"
+                                  title="Push active qualified leads to this service"
+                                >
+                                  {isSyncing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                                  <span>SYNC LEADS</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
               </div>
             )}
 

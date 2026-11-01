@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { dispatchHotLeadAlert } from '@/lib/notifications/dispatcher';
 
 export async function POST(req: Request) {
   try {
@@ -68,6 +69,17 @@ export async function POST(req: Request) {
 
     const supabase = createAdminClient();
 
+    // Find matching business if exists
+    let businessName: string | undefined;
+    try {
+      const { data: business } = await supabase
+        .from('businesses')
+        .select('display_name')
+        .ilike('general_business_email', cleanEmail)
+        .maybeSingle();
+      if (business) businessName = business.display_name;
+    } catch {}
+
     // Auto-suppress if UNSUBSCRIBE or NOT_INTERESTED
     if (sentiment === 'UNSUBSCRIBE' || sentiment === 'NOT_INTERESTED') {
       try {
@@ -82,6 +94,37 @@ export async function POST(req: Request) {
         );
       } catch {}
     }
+
+    // Trigger instant Slack / Discord / Zapier alerts for Hot Leads
+    if (sentiment === 'INTERESTED') {
+      try {
+        await dispatchHotLeadAlert({
+          prospectEmail: cleanEmail,
+          businessName,
+          sentiment,
+          subject,
+          replySnippet: textBody,
+          rationale,
+        });
+      } catch (alertErr) {
+        console.warn('Hot lead alert dispatch failed:', alertErr);
+      }
+    }
+
+    // Record audit event
+    try {
+      await supabase.from('audit_events').insert({
+        event_type: `INBOUND_REPLY_${sentiment}`,
+        entity_type: 'inbound_replies',
+        details: {
+          sender: cleanEmail,
+          businessName,
+          subject,
+          sentiment,
+          rationale,
+        },
+      });
+    } catch {}
 
     return NextResponse.json({
       status: 'processed',

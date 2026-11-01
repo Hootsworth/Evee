@@ -8,6 +8,7 @@ import {
   classifyProspectBatchWithAi,
   applyAiAnalysisToProspect,
 } from '@/lib/csv/classifier';
+import { dispatchCampaignFinishedAlert } from '@/lib/notifications/dispatcher';
 
 export async function POST(req: NextRequest) {
   try {
@@ -94,6 +95,16 @@ export async function POST(req: NextRequest) {
         results.push({ email, status: 'failed', companyType, error: res.error });
       }
     }
+
+    // Dispatch Slack / Discord alert on campaign completion
+    try {
+      const validRate = recipients.length > 0 ? `${Math.round((sentCount / recipients.length) * 100)}%` : '100%';
+      await dispatchCampaignFinishedAlert({
+        campaignName: template.subject,
+        dispatchedCount: sentCount,
+        validRate,
+      });
+    } catch {}
 
     return NextResponse.json({
       success: true,

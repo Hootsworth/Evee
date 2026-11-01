@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getDynamicEnrichmentProvider } from '@/lib/providers/enrichment';
 import { normalizeEmail } from '@/lib/compliance/suppression';
 import { calculateLeadScore } from '@/lib/scoring/engine';
+import { detectTechStack } from '@/lib/enrichment/tech-detector';
 
 export async function POST(req: NextRequest) {
   try {
@@ -122,6 +123,26 @@ export async function POST(req: NextRequest) {
               last_verified_at: new Date().toISOString(),
             });
           }
+        }
+
+        // Tech stack discovery & empirical evidence generation
+        if (business.official_website_url) {
+          try {
+            const techResult = detectTechStack(
+              `${business.display_name} ${business.business_type} ${business.official_website_url}`,
+              business.official_website_url
+            );
+            for (const f of techResult.findings) {
+              await admin.from('evidence_items').insert({
+                business_id: bId,
+                finding_type: f.type,
+                claim_text: f.claim,
+                confidence: 0.9,
+                source_url: business.official_website_url,
+                observed_at: new Date().toISOString(),
+              });
+            }
+          } catch {}
         }
 
         // 3. Recalculate lead score with new contactability point
