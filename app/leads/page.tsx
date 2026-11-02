@@ -53,6 +53,11 @@ import {
   DuplicateLeadGroup,
   DuplicateContactGroup,
 } from '@/lib/normalization/deduplication';
+import {
+  scanLeadsEmailQuality,
+  FlaggedLeadEmail,
+  EmailAuditReport,
+} from '@/lib/services/email-quality';
 
 const SAMPLE_LEADS_CSV = `Company Name,Website,Contact Name,Email,Phone,City,Category
 Artisan Flour Bakery,artisanflour.com,Siddharth Rao,,+91 98765 43210,Bengaluru,Artisan Bakery
@@ -66,7 +71,7 @@ export default function LeadsPage() {
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'active' | 'all' | 'missing_email' | 'archived' | 'suppressed' | 'duplicates'>('active');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'all' | 'missing_email' | 'archived' | 'suppressed' | 'duplicates' | 'flagged_emails'>('active');
   const [archiving, setArchiving] = useState(false);
 
   // Multi-selection state
@@ -77,6 +82,12 @@ export default function LeadsPage() {
   const [deletingDuplicates, setDeletingDuplicates] = useState(false);
   const [deletingLeadId, setDeletingLeadId] = useState<string | null>(null);
   const [duplicateActiveTab, setDuplicateActiveTab] = useState<'leads' | 'contacts'>('leads');
+
+  // AI Email Quality & Proxy Cleaner state
+  const [showEmailAuditModal, setShowEmailAuditModal] = useState(false);
+  const [selectedFlaggedIds, setSelectedFlaggedIds] = useState<Set<string>>(new Set());
+  const [cleaningFlagged, setCleaningFlagged] = useState(false);
+  const [auditCategoryFilter, setAuditCategoryFilter] = useState<string>('all');
 
   // Enrichment state
   const [bulkEnriching, setBulkEnriching] = useState(false);
@@ -186,6 +197,21 @@ export default function LeadsPage() {
     return duplicateContactGroups.reduce((acc, grp) => acc + grp.duplicates.length, 0);
   }, [duplicateContactGroups]);
 
+  // Derived AI email quality audit report
+  const emailAuditReport: EmailAuditReport = useMemo(() => {
+    return scanLeadsEmailQuality(businesses.filter((b) => b.record_status === 'active'));
+  }, [businesses]);
+
+  const flaggedEmailsMap = useMemo(() => {
+    const map = new Map<string, FlaggedLeadEmail>();
+    for (const item of emailAuditReport.flaggedLeads) {
+      map.set(item.leadId, item);
+    }
+    return map;
+  }, [emailAuditReport]);
+
+  const totalFlaggedEmailsCount = emailAuditReport.totalFlagged;
+
   // Filtered list
   const filtered = businesses.filter((b) => {
     const matchesSearch =
@@ -199,6 +225,9 @@ export default function LeadsPage() {
     if (statusFilter === 'all') return true;
     if (statusFilter === 'duplicates') {
       return allDuplicateClusterIds.has(b.id);
+    }
+    if (statusFilter === 'flagged_emails') {
+      return flaggedEmailsMap.has(b.id);
     }
     if (statusFilter === 'missing_email') {
       return (!b.general_business_email || b.general_business_email.trim() === '') && b.record_status === 'active';
@@ -306,6 +335,109 @@ export default function LeadsPage() {
       setEnrichMessage({ text: e.message || 'Network error while archiving', type: 'error' });
     } finally {
       setArchiving(false);
+    }
+  };
+
+  const handleArchiveFlagged = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    setCleaningFlagged(true);
+    try {
+      const res = await fetch('/api/leads/email-audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'archive', leadIds: ids }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEnrichMessage({
+          text: `Archived ${data.count} flagged fake/proxy ${data.count === 1 ? 'lead' : 'leads'}.`,
+          type: 'success',
+        });
+        setSelectedFlaggedIds((prev) => {
+          const next = new Set(prev);
+          ids.forEach((id) => next.delete(id));
+          return next;
+        });
+        fetchBusinesses();
+      } else {
+        setEnrichMessage({ text: data.error || 'Failed to archive flagged leads', type: 'error' });
+      }
+    } catch (e: any) {
+      setEnrichMessage({ text: e.message || 'Network error while archiving', type: 'error' });
+    } finally {
+      setCleaningFlagged(false);
+    }
+  };
+
+  const handleArchiveAllFlagged = async () => {
+    if (totalFlaggedEmailsCount === 0) return;
+    if (
+      !confirm(
+        `Archive all ${totalFlaggedEmailsCount} leads with fake, proxy (@swiggy.com, @redirect.foursquare.com), social (@instagram.com), or duplicate emails? You can restore them anytime from the Archived tab.`
+      )
+    ) {
+      return;
+    }
+    setCleaningFlagged(true);
+    try {
+      const res = await fetch('/api/leads/email-audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'archive', archiveAllFlagged: true }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEnrichMessage({
+          text: `Cleaned directory: archived ${data.count} leads with fake, proxy, or duplicate emails.`,
+          type: 'success',
+        });
+        setSelectedFlaggedIds(new Set());
+        fetchBusinesses();
+      } else {
+        setEnrichMessage({ text: data.error || 'Failed to archive flagged leads', type: 'error' });
+      }
+    } catch (e: any) {
+      setEnrichMessage({ text: e.message || 'Network error while archiving', type: 'error' });
+    } finally {
+      setCleaningFlagged(false);
+    }
+  };
+
+  const handleDeleteFlagged = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    if (
+      !confirm(
+        `Permanently delete ${ids.length} selected leads? This will delete associated contacts and drafts and cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setCleaningFlagged(true);
+    try {
+      const res = await fetch('/api/leads/email-audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', leadIds: ids }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEnrichMessage({
+          text: `Permanently deleted ${data.count} ${data.count === 1 ? 'lead' : 'leads'}.`,
+          type: 'success',
+        });
+        setSelectedFlaggedIds((prev) => {
+          const next = new Set(prev);
+          ids.forEach((id) => next.delete(id));
+          return next;
+        });
+        fetchBusinesses();
+      } else {
+        setEnrichMessage({ text: data.error || 'Failed to delete leads', type: 'error' });
+      }
+    } catch (e: any) {
+      setEnrichMessage({ text: e.message || 'Network error while deleting leads', type: 'error' });
+    } finally {
+      setCleaningFlagged(false);
     }
   };
 
@@ -845,6 +977,23 @@ export default function LeadsPage() {
             </button>
 
             <button
+              onClick={() => setShowEmailAuditModal(true)}
+              className={`mono-btn px-3.5 py-2 rounded-[4px] text-xs font-mono font-medium uppercase tracking-[0.05em] transition flex items-center space-x-2 border ${
+                totalFlaggedEmailsCount > 0
+                  ? 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border-rose-500/30'
+                  : 'bg-[#313641] hover:bg-[#3d4352] text-white border-white/[0.12]'
+              }`}
+              title="AI detect and archive fake emails, non-emails, aggregator proxies (@swiggy.com, @redirect.foursquare.com), and @instagram.com"
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+              <span>
+                {totalFlaggedEmailsCount > 0
+                  ? `CLEAN FAKE EMAILS (${totalFlaggedEmailsCount})`
+                  : 'AI EMAIL AUDIT'}
+              </span>
+            </button>
+
+            <button
               onClick={() => {
                 if (selectedIds.size === 0) {
                   // Select all filtered by default if none selected
@@ -910,6 +1059,9 @@ export default function LeadsPage() {
             {[
               { id: 'active', label: `ACTIVE (${activeBusinesses.length})` },
               { id: 'missing_email', label: `NO EMAIL (${missingEmailCount})` },
+              ...(totalFlaggedEmailsCount > 0
+                ? [{ id: 'flagged_emails', label: `FLAGGED EMAILS (${totalFlaggedEmailsCount})` }]
+                : []),
               ...(totalDuplicateLeadsCount > 0
                 ? [{ id: 'duplicates', label: `DUPLICATES (${totalDuplicateLeadsCount})` }]
                 : []),
@@ -931,6 +1083,25 @@ export default function LeadsPage() {
             ))}
           </div>
         </div>
+
+        {/* Flagged Email Banner when viewing Flagged Emails */}
+        {statusFilter === 'flagged_emails' && (
+          <div className="mb-6 p-4 rounded-[4px] border border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-300 font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-2.5">
+              <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0" />
+              <div>
+                <span className="font-semibold">Showing {totalFlaggedEmailsCount} leads with fake, proxy (@swiggy.com, @redirect.foursquare.com), social (@instagram.com), or duplicate emails.</span>
+                <span className="text-[11px] opacity-80 block sm:inline sm:ml-2">Outreach to these leads will bounce or fail to reach founders.</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowEmailAuditModal(true)}
+              className="mono-btn bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-1.5 rounded-[4px] text-xs font-mono uppercase tracking-wider whitespace-nowrap"
+            >
+              Open Email Cleaner
+            </button>
+          </div>
+        )}
 
         {/* Duplicate Banner when viewing Duplicates */}
         {statusFilter === 'duplicates' && (
@@ -1053,9 +1224,18 @@ export default function LeadsPage() {
                         <td className="py-3.5 px-4 font-mono">
                           {hasEmail ? (
                             <div>
-                              <div className="flex items-center space-x-1.5 text-[#000000] dark:text-white font-normal">
-                                <Mail className="w-3 h-3 text-[#959494]" />
+                              <div className="flex items-center space-x-1.5 flex-wrap gap-y-1 text-[#000000] dark:text-white font-normal">
+                                <Mail className="w-3 h-3 text-[#959494] shrink-0" />
                                 <span>{b.general_business_email}</span>
+                                {flaggedEmailsMap.has(b.id) && (
+                                  <span
+                                    title={flaggedEmailsMap.get(b.id)!.flag.reason}
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-mono bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 font-semibold uppercase shrink-0"
+                                  >
+                                    <ShieldAlert className="w-2.5 h-2.5" />
+                                    <span>{flaggedEmailsMap.get(b.id)!.flag.categoryLabel}</span>
+                                  </span>
+                                )}
                               </div>
                               {contactName && (
                                 <div className="text-[11px] text-[#959494] mt-0.5">
@@ -2516,6 +2696,261 @@ export default function LeadsPage() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* AI Email Quality & Proxy Cleaner Modal */}
+      {showEmailAuditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.12] rounded-[4px] w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6">
+            <div className="brand-gradient-h -mx-6 -mt-6 sm:-mx-8 sm:-mt-8 mb-6" />
+
+            {/* Modal Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08] gap-4">
+              <div>
+                <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
+                  <span className="flex items-center gap-1 text-[#ef2cc1]">
+                    <ShieldAlert className="w-3 h-3 text-[#ef2cc1]" />
+                    AI EMAIL QUALITY & DELIVERABILITY AUDIT
+                  </span>
+                  <span>•</span>
+                  <span>INBOX HYGIENE</span>
+                </div>
+                <h3 className="text-xl font-medium tracking-tight text-black dark:text-white">
+                  Fake, Proxy & Duplicate Email Cleaner
+                </h3>
+                <p className="text-xs text-[#959494] font-mono mt-0.5">
+                  Filters aggregator delivery proxies (@swiggy.com, @redirect.foursquare.com), social profile handles (@instagram.com), fake placeholders, and duplicates.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                {totalFlaggedEmailsCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleArchiveAllFlagged}
+                    disabled={cleaningFlagged}
+                    className="mono-btn bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-1.5 rounded-[4px] text-xs font-mono uppercase tracking-wider flex items-center space-x-1.5 disabled:opacity-50"
+                  >
+                    <Archive className={`w-3.5 h-3.5 ${cleaningFlagged ? 'animate-spin' : ''}`} />
+                    <span>ARCHIVE ALL FLAGGED ({totalFlaggedEmailsCount})</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setShowEmailAuditModal(false)}
+                  className="p-1 text-[#959494] hover:text-black dark:hover:text-white transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* KPI Metric Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
+              <div className="p-3.5 bg-neutral-50 dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
+                <div className="text-[10px] text-[#959494] uppercase tracking-wider">Total Flagged</div>
+                <div className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-1">
+                  {totalFlaggedEmailsCount}
+                </div>
+                <div className="text-[10px] text-[#959494] mt-0.5">Active leads affected</div>
+              </div>
+
+              <div className="p-3.5 bg-neutral-50 dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
+                <div className="text-[10px] text-[#959494] uppercase tracking-wider">Aggregator Proxies</div>
+                <div className="text-xl font-bold text-amber-500 mt-1">
+                  {emailAuditReport.flaggedByCategory.aggregator_proxy}
+                </div>
+                <div className="text-[10px] text-[#959494] mt-0.5">Swiggy, 4sq, Zomato</div>
+              </div>
+
+              <div className="p-3.5 bg-neutral-50 dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
+                <div className="text-[10px] text-[#959494] uppercase tracking-wider">Social Handles</div>
+                <div className="text-xl font-bold text-purple-400 mt-1">
+                  {emailAuditReport.flaggedByCategory.social_platform}
+                </div>
+                <div className="text-[10px] text-[#959494] mt-0.5">@instagram.com, FB</div>
+              </div>
+
+              <div className="p-3.5 bg-neutral-50 dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
+                <div className="text-[10px] text-[#959494] uppercase tracking-wider">Fake / Duplicates</div>
+                <div className="text-xl font-bold text-blue-400 mt-1">
+                  {emailAuditReport.flaggedByCategory.placeholder_fake + emailAuditReport.flaggedByCategory.duplicate_email + emailAuditReport.flaggedByCategory.non_email}
+                </div>
+                <div className="text-[10px] text-[#959494] mt-0.5">Test, malformed, shared</div>
+              </div>
+            </div>
+
+            {/* Filter Pills & Selection Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs pt-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { id: 'all', label: `ALL (${totalFlaggedEmailsCount})` },
+                  { id: 'aggregator_proxy', label: `PROXIES (${emailAuditReport.flaggedByCategory.aggregator_proxy})` },
+                  { id: 'social_platform', label: `SOCIAL (${emailAuditReport.flaggedByCategory.social_platform})` },
+                  { id: 'placeholder_fake', label: `FAKE / TEST (${emailAuditReport.flaggedByCategory.placeholder_fake})` },
+                  { id: 'duplicate_email', label: `DUPLICATES (${emailAuditReport.flaggedByCategory.duplicate_email})` },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setAuditCategoryFilter(tab.id)}
+                    className={`px-3 py-1 rounded-[4px] transition uppercase tracking-wider text-[11px] ${
+                      auditCategoryFilter === tab.id
+                        ? 'bg-black dark:bg-white text-white dark:text-black font-semibold'
+                        : 'bg-neutral-100 dark:bg-white/[0.04] text-[#959494] hover:text-black dark:hover:text-white'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {selectedFlaggedIds.size > 0 && (
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => handleArchiveFlagged(Array.from(selectedFlaggedIds))}
+                    disabled={cleaningFlagged}
+                    className="mono-btn px-3 py-1 bg-neutral-800 text-white dark:bg-white dark:text-black rounded-[4px] text-[11px] font-semibold flex items-center space-x-1"
+                  >
+                    <Archive className="w-3 h-3" />
+                    <span>ARCHIVE SELECTED ({selectedFlaggedIds.size})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteFlagged(Array.from(selectedFlaggedIds))}
+                    disabled={cleaningFlagged}
+                    className="mono-btn px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-[4px] text-[11px] flex items-center space-x-1"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>DELETE</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* List of Flagged Records */}
+            <div className="space-y-3 font-mono text-xs">
+              {emailAuditReport.flaggedLeads.length === 0 ? (
+                <div className="text-center py-12 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
+                  <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+                  <div className="text-sm font-semibold text-black dark:text-white">
+                    Zero Fake or Proxy Emails Found
+                  </div>
+                  <div className="text-[11px] text-[#959494] mt-1">
+                    All business emails in your active directory appear to be direct, verified inboxes.
+                  </div>
+                </div>
+              ) : (
+                (() => {
+                  const filteredFlagged = emailAuditReport.flaggedLeads.filter((item) => {
+                    if (auditCategoryFilter === 'all') return true;
+                    return item.flag.category === auditCategoryFilter;
+                  });
+
+                  if (filteredFlagged.length === 0) {
+                    return (
+                      <div className="text-center py-8 text-neutral-500 text-xs">
+                        No flagged emails match this specific category.
+                      </div>
+                    );
+                  }
+
+                  return filteredFlagged.map((item) => {
+                    const isSelected = selectedFlaggedIds.has(item.leadId);
+                    return (
+                      <div
+                        key={item.leadId}
+                        className={`border rounded-[4px] p-4 transition ${
+                          isSelected
+                            ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-500/40'
+                            : 'bg-[#f8fafc]/50 dark:bg-[#14161f]/50 border-[#ebebeb] dark:border-white/[0.08]'
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-start space-x-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedFlaggedIds((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(item.leadId)) next.delete(item.leadId);
+                                  else next.add(item.leadId);
+                                  return next;
+                                });
+                              }}
+                              className="mt-1 text-neutral-400 hover:text-black dark:hover:text-white"
+                            >
+                              {isSelected ? (
+                                <CheckSquare className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                              ) : (
+                                <Square className="w-4 h-4" />
+                              )}
+                            </button>
+
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-sm text-black dark:text-white">
+                                  {item.displayName}
+                                </span>
+                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 font-semibold uppercase">
+                                  {item.flag.categoryLabel}
+                                </span>
+                                {item.city && (
+                                  <span className="text-[10px] text-neutral-500">• {item.city}</span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center space-x-2 text-xs">
+                                <span className="px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-700 dark:text-rose-300 font-bold border border-rose-500/30">
+                                  {item.email}
+                                </span>
+                                {item.officialWebsiteUrl && (
+                                  <span className="text-[11px] text-neutral-400 truncate max-w-xs">
+                                    {item.officialWebsiteUrl}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="text-[11px] text-[#959494] mt-1 flex items-start gap-1.5">
+                                <Info className="w-3.5 h-3.5 text-[#ef2cc1] shrink-0 mt-0.5" />
+                                <span>{item.flag.reason}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
+                            <button
+                              type="button"
+                              onClick={() => handleArchiveFlagged([item.leadId])}
+                              disabled={cleaningFlagged}
+                              className="mono-btn px-2.5 py-1 rounded-[3px] bg-neutral-200 dark:bg-white/10 hover:bg-neutral-300 dark:hover:bg-white/20 text-black dark:text-white flex items-center space-x-1 text-[11px] transition"
+                              title="Archive this lead to clean up active outreach directory"
+                            >
+                              <Archive className="w-3 h-3" />
+                              <span>ARCHIVE</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteFlagged([item.leadId])}
+                              disabled={cleaningFlagged}
+                              className="mono-btn px-2.5 py-1 rounded-[3px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center space-x-1 text-[11px] transition"
+                              title="Permanently delete lead"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>DELETE</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()
+              )}
+            </div>
           </div>
         </div>
       )}
