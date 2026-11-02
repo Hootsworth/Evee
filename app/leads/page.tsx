@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -42,8 +42,17 @@ import {
   Server,
   ShieldAlert,
   Users,
+  Trash2,
+  CopyX,
+  Check,
 } from 'lucide-react';
 import { parseAndAnalyzeCsv, CsvColumnMapping, replaceTemplateVariables } from '@/lib/csv/parser';
+import {
+  identifyDuplicateLeads,
+  identifyDuplicateContacts,
+  DuplicateLeadGroup,
+  DuplicateContactGroup,
+} from '@/lib/normalization/deduplication';
 
 const SAMPLE_LEADS_CSV = `Company Name,Website,Contact Name,Email,Phone,City,Category
 Artisan Flour Bakery,artisanflour.com,Siddharth Rao,,+91 98765 43210,Bengaluru,Artisan Bakery
@@ -57,11 +66,17 @@ export default function LeadsPage() {
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'active' | 'all' | 'missing_email' | 'archived' | 'suppressed'>('active');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'all' | 'missing_email' | 'archived' | 'suppressed' | 'duplicates'>('active');
   const [archiving, setArchiving] = useState(false);
 
   // Multi-selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Duplicate identification and management state
+  const [showDuplicatesModal, setShowDuplicatesModal] = useState(false);
+  const [deletingDuplicates, setDeletingDuplicates] = useState(false);
+  const [deletingLeadId, setDeletingLeadId] = useState<string | null>(null);
+  const [duplicateActiveTab, setDuplicateActiveTab] = useState<'leads' | 'contacts'>('leads');
 
   // Enrichment state
   const [bulkEnriching, setBulkEnriching] = useState(false);
@@ -137,6 +152,40 @@ export default function LeadsPage() {
       .catch(() => {});
   }, []);
 
+  // Derived duplicate groups using normalized deduplication engine
+  const duplicateLeadGroups: DuplicateLeadGroup[] = useMemo(() => {
+    return identifyDuplicateLeads(businesses);
+  }, [businesses]);
+
+  const duplicateContactGroups: DuplicateContactGroup[] = useMemo(() => {
+    return identifyDuplicateContacts(businesses);
+  }, [businesses]);
+
+  const allDuplicateLeadIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const grp of duplicateLeadGroups) {
+      for (const d of grp.duplicates) {
+        ids.add(d.id);
+      }
+    }
+    return ids;
+  }, [duplicateLeadGroups]);
+
+  const allDuplicateClusterIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const grp of duplicateLeadGroups) {
+      for (const item of grp.all) {
+        ids.add(item.id);
+      }
+    }
+    return ids;
+  }, [duplicateLeadGroups]);
+
+  const totalDuplicateLeadsCount = allDuplicateLeadIds.size;
+  const totalDuplicateContactsCount = useMemo(() => {
+    return duplicateContactGroups.reduce((acc, grp) => acc + grp.duplicates.length, 0);
+  }, [duplicateContactGroups]);
+
   // Filtered list
   const filtered = businesses.filter((b) => {
     const matchesSearch =
@@ -148,6 +197,9 @@ export default function LeadsPage() {
     if (!matchesSearch) return false;
 
     if (statusFilter === 'all') return true;
+    if (statusFilter === 'duplicates') {
+      return allDuplicateClusterIds.has(b.id);
+    }
     if (statusFilter === 'missing_email') {
       return (!b.general_business_email || b.general_business_email.trim() === '') && b.record_status === 'active';
     }
@@ -254,6 +306,133 @@ export default function LeadsPage() {
       setEnrichMessage({ text: e.message || 'Network error while archiving', type: 'error' });
     } finally {
       setArchiving(false);
+    }
+  };
+
+  const handleDeleteLead = async (id: string, name?: string) => {
+    const displayName = name || 'this lead';
+    if (!confirm(`Permanently delete ${displayName}? This will also delete associated contacts and cannot be undone.`)) {
+      return;
+    }
+    setDeletingLeadId(id);
+    try {
+      const res = await fetch('/api/leads/duplicates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_leads', leadIds: [id] }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEnrichMessage({
+          text: `Permanently deleted ${displayName}.`,
+          type: 'success',
+        });
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+        fetchBusinesses();
+      } else {
+        setEnrichMessage({ text: data.error || 'Failed to delete lead', type: 'error' });
+      }
+    } catch (e: any) {
+      setEnrichMessage({ text: e.message || 'Network error while deleting lead', type: 'error' });
+    } finally {
+      setDeletingLeadId(null);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    const count = selectedIds.size;
+    if (!confirm(`Permanently delete all ${count} selected leads? This cannot be undone.`)) {
+      return;
+    }
+    setDeletingDuplicates(true);
+    try {
+      const res = await fetch('/api/leads/duplicates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_leads', leadIds: Array.from(selectedIds) }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEnrichMessage({
+          text: `Permanently deleted ${data.deletedLeadsCount} ${data.deletedLeadsCount === 1 ? 'lead' : 'leads'}.`,
+          type: 'success',
+        });
+        setSelectedIds(new Set());
+        fetchBusinesses();
+      } else {
+        setEnrichMessage({ text: data.error || 'Failed to delete selected leads', type: 'error' });
+      }
+    } catch (e: any) {
+      setEnrichMessage({ text: e.message || 'Network error while deleting leads', type: 'error' });
+    } finally {
+      setDeletingDuplicates(false);
+    }
+  };
+
+  const handleDeleteAllDuplicates = async () => {
+    const totalToClean = totalDuplicateLeadsCount + totalDuplicateContactsCount;
+    if (totalToClean === 0) return;
+    if (
+      !confirm(
+        `Purge all ${totalDuplicateLeadsCount} duplicate leads and ${totalDuplicateContactsCount} duplicate contacts? Primary/canonical records will be safely preserved.`
+      )
+    ) {
+      return;
+    }
+    setDeletingDuplicates(true);
+    try {
+      const res = await fetch('/api/leads/duplicates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ autoCleanAll: true }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEnrichMessage({
+          text: `Directory cleaned: purged ${data.deletedLeadsCount} duplicate leads and ${data.deletedContactsCount} duplicate contacts.`,
+          type: 'success',
+        });
+        setSelectedIds(new Set());
+        fetchBusinesses();
+        setShowDuplicatesModal(false);
+      } else {
+        setEnrichMessage({ text: data.error || 'Failed to clean duplicates', type: 'error' });
+      }
+    } catch (e: any) {
+      setEnrichMessage({ text: e.message || 'Network error while cleaning duplicates', type: 'error' });
+    } finally {
+      setDeletingDuplicates(false);
+    }
+  };
+
+  const handleDeleteContact = async (contactId: string) => {
+    if (!confirm('Permanently delete this duplicate contact?')) return;
+    setDeletingDuplicates(true);
+    try {
+      const res = await fetch('/api/leads/duplicates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_contacts', contactIds: [contactId] }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEnrichMessage({
+          text: 'Permanently deleted duplicate contact.',
+          type: 'success',
+        });
+        fetchBusinesses();
+      } else {
+        setEnrichMessage({ text: data.error || 'Failed to delete contact', type: 'error' });
+      }
+    } catch (e: any) {
+      setEnrichMessage({ text: e.message || 'Network error while deleting contact', type: 'error' });
+    } finally {
+      setDeletingDuplicates(false);
     }
   };
 
@@ -597,7 +776,7 @@ export default function LeadsPage() {
               <span>PROSPECT INTELLIGENCE & DISPATCH</span>
               <span>•</span>
               <span className="v2-badge text-emerald-400 bg-emerald-500/10 border-emerald-500/20">
-                v2.0 DIRECTORY
+                EVEE AI DIRECTORY
               </span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-medium tracking-tight text-white">
@@ -647,6 +826,23 @@ export default function LeadsPage() {
                 <span>ARCHIVE NO-EMAIL ({missingEmailCount})</span>
               </button>
             )}
+
+            <button
+              onClick={() => setShowDuplicatesModal(true)}
+              className={`mono-btn px-3.5 py-2 rounded-[4px] text-xs font-mono font-medium uppercase tracking-[0.05em] transition flex items-center space-x-2 border ${
+                totalDuplicateLeadsCount > 0
+                  ? 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/30'
+                  : 'bg-[#313641] hover:bg-[#3d4352] text-white border-white/[0.12]'
+              }`}
+              title="Identify and delete duplicate leads & redundant contacts"
+            >
+              <CopyX className="w-3.5 h-3.5 text-amber-400" />
+              <span>
+                {totalDuplicateLeadsCount > 0
+                  ? `DUPLICATES (${totalDuplicateLeadsCount})`
+                  : 'DEDUPLICATE'}
+              </span>
+            </button>
 
             <button
               onClick={() => {
@@ -714,6 +910,9 @@ export default function LeadsPage() {
             {[
               { id: 'active', label: `ACTIVE (${activeBusinesses.length})` },
               { id: 'missing_email', label: `NO EMAIL (${missingEmailCount})` },
+              ...(totalDuplicateLeadsCount > 0
+                ? [{ id: 'duplicates', label: `DUPLICATES (${totalDuplicateLeadsCount})` }]
+                : []),
               { id: 'archived', label: `ARCHIVED (${archivedCount})` },
               { id: 'all', label: `ALL (${businesses.length})` },
               { id: 'suppressed', label: 'SUPPRESSED' },
@@ -732,6 +931,25 @@ export default function LeadsPage() {
             ))}
           </div>
         </div>
+
+        {/* Duplicate Banner when viewing Duplicates */}
+        {statusFilter === 'duplicates' && (
+          <div className="mb-6 p-4 rounded-[4px] border border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300 font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-2.5">
+              <CopyX className="w-4 h-4 text-amber-500 shrink-0" />
+              <div>
+                <span className="font-semibold">Showing {duplicateLeadGroups.length} duplicate clusters ({totalDuplicateLeadsCount} redundant leads).</span>
+                <span className="text-[11px] opacity-80 block sm:inline sm:ml-2">Primary records are highlighted below.</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowDuplicatesModal(true)}
+              className="mono-btn bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-1.5 rounded-[4px] text-xs font-mono uppercase tracking-wider whitespace-nowrap"
+            >
+              Open Duplicate Manager
+            </button>
+          </div>
+        )}
 
         {/* Lead Table / List: Canonical Together AI data-table style */}
         {loading ? (
@@ -809,13 +1027,21 @@ export default function LeadsPage() {
 
                         {/* Business Name */}
                         <td className="py-3.5 px-4 font-sans">
-                          <Link
-                            href={`/leads/${b.id}`}
-                            className="font-medium text-sm text-[#000000] dark:text-white hover:underline flex items-center space-x-1.5"
-                          >
-                            <span>{b.display_name}</span>
-                            <ChevronRight className="w-3.5 h-3.5 text-[#959494] group-hover:translate-x-0.5 transition-transform" />
-                          </Link>
+                          <div className="flex items-center space-x-1.5 flex-wrap">
+                            <Link
+                              href={`/leads/${b.id}`}
+                              className="font-medium text-sm text-[#000000] dark:text-white hover:underline flex items-center space-x-1.5"
+                            >
+                              <span>{b.display_name}</span>
+                              <ChevronRight className="w-3.5 h-3.5 text-[#959494] group-hover:translate-x-0.5 transition-transform" />
+                            </Link>
+                            {allDuplicateLeadIds.has(b.id) && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-semibold uppercase">
+                                <CopyX className="w-2.5 h-2.5" />
+                                Duplicate
+                              </span>
+                            )}
+                          </div>
                           {b.official_website_url && (
                             <span className="text-[11px] text-[#959494] font-mono block mt-0.5 truncate max-w-xs">
                               {b.official_website_url}
@@ -912,6 +1138,16 @@ export default function LeadsPage() {
                               <span>EVIDENCE</span>
                               <ChevronRight className="w-3 h-3" />
                             </Link>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteLead(b.id, b.display_name)}
+                              disabled={deletingLeadId === b.id}
+                              title="Delete lead permanently"
+                              className="mono-btn bg-white dark:bg-[#14161f] hover:bg-rose-50 dark:hover:bg-rose-950/20 border border-[#ebebeb] dark:border-white/[0.08] text-[#959494] hover:text-rose-600 dark:hover:text-rose-400 p-1.5 rounded-[4px] text-[11px] font-mono inline-flex items-center transition"
+                            >
+                              <Trash2 className={`w-3 h-3 ${deletingLeadId === b.id ? 'animate-spin' : ''}`} />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -965,6 +1201,15 @@ export default function LeadsPage() {
               <span>ARCHIVE ({selectedIds.size})</span>
             </button>
           )}
+
+          <button
+            onClick={handleDeleteSelected}
+            disabled={deletingDuplicates}
+            className="mono-btn bg-[#313641] hover:bg-rose-950/40 text-rose-300 border border-rose-500/30 px-3 py-1.5 rounded-[4px] text-xs font-mono font-medium uppercase tracking-wider flex items-center space-x-1.5 transition disabled:opacity-50"
+          >
+            <Trash2 className="w-3 h-3 text-rose-400" />
+            <span>DELETE ({selectedIds.size})</span>
+          </button>
 
           <button
             onClick={() => {
@@ -1978,6 +2223,296 @@ export default function LeadsPage() {
                       </button>
                     </div>
                   </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Duplicate Leads & Contacts Manager Modal */}
+      {showDuplicatesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.12] rounded-[4px] w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6">
+            <div className="brand-gradient-h -mx-6 -mt-6 sm:-mx-8 sm:-mt-8 mb-6" />
+
+            {/* Modal Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08] gap-4">
+              <div>
+                <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
+                  <span className="flex items-center gap-1 text-[#ef2cc1]">
+                    <Sparkles className="w-3 h-3" />
+                    EVEE AI DEDUPLICATION ENGINE
+                  </span>
+                  <span>•</span>
+                  <span>DIRECTORY INTEGRITY</span>
+                </div>
+                <h3 className="text-xl font-medium tracking-tight text-black dark:text-white">
+                  Duplicate Leads & Contacts Manager
+                </h3>
+                <p className="text-xs text-[#959494] font-mono mt-0.5">
+                  Cluster-based identity matching by canonical domain, general email, company name & city.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                {totalDuplicateLeadsCount + totalDuplicateContactsCount > 0 && (
+                  <button
+                    onClick={handleDeleteAllDuplicates}
+                    disabled={deletingDuplicates}
+                    className="mono-btn bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-1.5 rounded-[4px] text-xs font-mono font-medium uppercase tracking-wider flex items-center space-x-1.5 transition active:scale-95 disabled:opacity-50"
+                  >
+                    <Trash2 className={`w-3.5 h-3.5 ${deletingDuplicates ? 'animate-spin' : ''}`} />
+                    <span>PURGE ALL DUPLICATES ({totalDuplicateLeadsCount + totalDuplicateContactsCount})</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setShowDuplicatesModal(false)}
+                  className="text-[#959494] hover:text-black dark:hover:text-white p-1"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Metric KPI cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono">
+              <div className="p-3 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
+                <div className="text-[10px] uppercase font-semibold text-[#959494] flex items-center gap-1.5">
+                  <CopyX className="w-3 h-3 text-amber-500" />
+                  <span>DUPLICATE LEADS</span>
+                </div>
+                <div className="text-xl font-semibold text-amber-600 dark:text-amber-400 mt-1">
+                  {totalDuplicateLeadsCount}
+                </div>
+              </div>
+
+              <div className="p-3 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
+                <div className="text-[10px] uppercase font-semibold text-[#959494] flex items-center gap-1.5">
+                  <User className="w-3 h-3 text-rose-500" />
+                  <span>REDUNDANT CONTACTS</span>
+                </div>
+                <div className="text-xl font-semibold text-rose-600 dark:text-rose-400 mt-1">
+                  {totalDuplicateContactsCount}
+                </div>
+              </div>
+
+              <div className="p-3 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
+                <div className="text-[10px] uppercase font-semibold text-[#959494] flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                  <span>CLEAN PROSPECTS</span>
+                </div>
+                <div className="text-xl font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
+                  {businesses.length - totalDuplicateLeadsCount}
+                </div>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex items-center space-x-2 border-b border-[#ebebeb] dark:border-white/[0.08] pb-2 text-xs font-mono">
+              <button
+                onClick={() => setDuplicateActiveTab('leads')}
+                className={`px-3 py-1.5 rounded-[4px] transition ${
+                  duplicateActiveTab === 'leads'
+                    ? 'bg-black dark:bg-white text-white dark:text-black font-semibold'
+                    : 'text-[#959494] hover:text-black dark:hover:text-white'
+                }`}
+              >
+                Duplicate Leads ({duplicateLeadGroups.length} groups)
+              </button>
+              <button
+                onClick={() => setDuplicateActiveTab('contacts')}
+                className={`px-3 py-1.5 rounded-[4px] transition ${
+                  duplicateActiveTab === 'contacts'
+                    ? 'bg-black dark:bg-white text-white dark:text-black font-semibold'
+                    : 'text-[#959494] hover:text-black dark:hover:text-white'
+                }`}
+              >
+                Duplicate Contacts ({duplicateContactGroups.length} groups)
+              </button>
+            </div>
+
+            {/* Leads tab */}
+            {duplicateActiveTab === 'leads' && (
+              <div className="space-y-4 font-mono text-xs">
+                {duplicateLeadGroups.length === 0 ? (
+                  <div className="text-center py-12 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
+                    <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+                    <div className="text-sm font-semibold text-black dark:text-white">
+                      Zero Duplicate Leads Detected
+                    </div>
+                    <div className="text-[11px] text-[#959494] mt-1">
+                      Every business in your directory has a unique domain, email, and identity.
+                    </div>
+                  </div>
+                ) : (
+                  duplicateLeadGroups.map((group) => (
+                    <div
+                      key={group.id}
+                      className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-4 bg-[#f8fafc]/50 dark:bg-[#14161f]/50 space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="ai-flat-pill text-[10px]">
+                            {group.reasonLabel}
+                          </span>
+                          <span className="text-[11px] text-[#959494]">
+                            {group.all.length} matching records
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        {/* Primary Record */}
+                        <div className="p-3 bg-white dark:bg-[#010120] border border-emerald-500/30 rounded-[4px] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-black dark:text-white">
+                                {group.primary.display_name}
+                              </span>
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
+                                KEEP (PRIMARY)
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-[#959494] flex flex-wrap items-center gap-2">
+                              {group.primary.general_business_email && (
+                                <span className="text-emerald-600 dark:text-emerald-400">
+                                  {group.primary.general_business_email}
+                                </span>
+                              )}
+                              {group.primary.official_website_url && (
+                                <span>{group.primary.official_website_url}</span>
+                              )}
+                              {group.primary.city && <span>• {group.primary.city}</span>}
+                            </div>
+                          </div>
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase">
+                            Most Complete
+                          </span>
+                        </div>
+
+                        {/* Duplicate Records */}
+                        {group.duplicates.map((dup) => (
+                          <div
+                            key={dup.id}
+                            className="p-3 bg-white dark:bg-[#010120] border border-rose-500/20 rounded-[4px] flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                          >
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-black dark:text-white">
+                                  {dup.display_name}
+                                </span>
+                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 font-semibold border border-rose-500/20">
+                                  DUPLICATE
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-[#959494] flex flex-wrap items-center gap-2">
+                                {dup.general_business_email ? (
+                                  <span>{dup.general_business_email}</span>
+                                ) : (
+                                  <span className="text-rose-400">No Email</span>
+                                )}
+                                {dup.official_website_url && <span>{dup.official_website_url}</span>}
+                                {dup.city && <span>• {dup.city}</span>}
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteLead(dup.id, dup.display_name)}
+                              disabled={deletingLeadId === dup.id}
+                              className="mono-btn px-2.5 py-1 rounded-[3px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center space-x-1 text-[11px] transition self-start sm:self-auto"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>DELETE</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* Contacts tab */}
+            {duplicateActiveTab === 'contacts' && (
+              <div className="space-y-4 font-mono text-xs">
+                {duplicateContactGroups.length === 0 ? (
+                  <div className="text-center py-12 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
+                    <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+                    <div className="text-sm font-semibold text-black dark:text-white">
+                      Zero Duplicate Contacts Detected
+                    </div>
+                    <div className="text-[11px] text-[#959494] mt-1">
+                      No redundant email addresses detected across contacts.
+                    </div>
+                  </div>
+                ) : (
+                  duplicateContactGroups.map((group) => (
+                    <div
+                      key={group.id}
+                      className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-4 bg-[#f8fafc]/50 dark:bg-[#14161f]/50 space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-semibold text-black dark:text-white">
+                            {group.businessName}
+                          </span>
+                          <span className="text-[#959494] text-[11px] ml-2">
+                            Matching Contact Email: {group.matchValue}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        {/* Primary contact */}
+                        <div className="p-3 bg-white dark:bg-[#010120] border border-emerald-500/30 rounded-[4px] flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-black dark:text-white">
+                                {group.primary.contact_name || 'Unnamed Contact'}
+                              </span>
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">
+                                KEEP
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-[#959494]">{group.primary.contact_email}</div>
+                          </div>
+                        </div>
+
+                        {/* Duplicate contacts */}
+                        {group.duplicates.map((dup) => (
+                          <div
+                            key={dup.id}
+                            className="p-3 bg-white dark:bg-[#010120] border border-rose-500/20 rounded-[4px] flex items-center justify-between"
+                          >
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-black dark:text-white">
+                                  {dup.contact_name || 'Unnamed Contact'}
+                                </span>
+                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 font-semibold">
+                                  DUPLICATE
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-[#959494]">{dup.contact_email}</div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteContact(dup.id)}
+                              className="mono-btn px-2.5 py-1 rounded-[3px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center space-x-1 text-[11px] transition"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>DELETE</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
                 )}
               </div>
             )}

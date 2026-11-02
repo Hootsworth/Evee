@@ -28,7 +28,7 @@ export default function Logo({
       <div className="relative flex items-center">
         <Image
           src="/logo.png"
-          alt="Evee Logo"
+          alt="Evee AI Logo"
           width={width}
           height={height}
           priority

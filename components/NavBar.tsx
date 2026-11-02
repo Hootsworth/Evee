@@ -73,8 +73,11 @@ export default function NavBar() {
         <div className="flex items-center space-x-6">
           <div className="flex items-center space-x-2">
             <Logo height={26} showSubtitle={false} />
-            <span className="text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded-[2px] bg-black/5 dark:bg-white/10 text-black dark:text-white border border-[#ebebeb] dark:border-white/10">
-              v2.0
+            <span
+              title="Evee AI"
+              className="text-[10px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded-[2px] bg-black/5 dark:bg-white/10 text-black dark:text-white border border-[#ebebeb] dark:border-white/10"
+            >
+              AI
             </span>
           </div>
 
