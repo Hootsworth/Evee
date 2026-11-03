@@ -1,15 +1,20 @@
-// Evee - Lead Enrichment Endpoint (Explorium & Multi-Tier Contact Discovery)
-// Enriches single or batch leads with verified emails, executive names, and phone numbers
-
+// Evee - Lead Enrichment Endpoint (Tenant-Isolated)
+// Enriches single or batch leads with verified emails, executive names, and phone numbers strictly within organization scope
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getDynamicEnrichmentProvider } from '@/lib/providers/enrichment';
 import { normalizeEmail } from '@/lib/compliance/suppression';
 import { calculateLeadScore } from '@/lib/scoring/engine';
 import { detectTechStack } from '@/lib/enrichment/tech-detector';
+import { getUserContext } from '@/lib/auth/context';
+import { assertAuthenticated, assertAuthorized } from '@/lib/auth/rbac';
 
 export async function POST(req: NextRequest) {
   try {
+    const userCtx = await getUserContext();
+    assertAuthenticated(userCtx);
+    assertAuthorized(userCtx, 'operator');
+
     const body = await req.json();
     const { businessId, businessIds, enrichAllMissing } = body as {
       businessId?: string;
@@ -18,8 +23,9 @@ export async function POST(req: NextRequest) {
     };
 
     const admin = createAdminClient();
+    const orgId = userCtx.organizationId;
 
-    // Determine target business IDs
+    // Determine target business IDs strictly belonging to this organization
     let targetIds: string[] = [];
 
     if (businessId) {
@@ -27,10 +33,10 @@ export async function POST(req: NextRequest) {
     } else if (Array.isArray(businessIds) && businessIds.length > 0) {
       targetIds = businessIds;
     } else if (enrichAllMissing) {
-      // Find all active businesses without a verified general business email
       const { data: missing } = await admin
         .from('businesses')
         .select('id')
+        .eq('organization_id', orgId)
         .is('general_business_email', null)
         .limit(50);
 
@@ -46,7 +52,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const provider = await getDynamicEnrichmentProvider();
+    const provider = await getDynamicEnrichmentProvider(orgId);
     const results: Array<{
       businessId: string;
       businessName: string;
@@ -64,6 +70,7 @@ export async function POST(req: NextRequest) {
         .from('businesses')
         .select('*')
         .eq('id', bId)
+        .eq('organization_id', orgId)
         .maybeSingle();
 
       if (!business) continue;
@@ -94,13 +101,16 @@ export async function POST(req: NextRequest) {
           updatePayload.public_business_phone = enrichedOutput.phone;
         }
 
-        await admin.from('businesses').update(updatePayload).eq('id', bId);
+        await admin
+          .from('businesses')
+          .update(updatePayload)
+          .eq('id', bId)
+          .eq('organization_id', orgId);
 
         // 2. Insert discovered contacts into contacts table
         for (const contact of enrichedOutput.contacts) {
           const norm = normalizeEmail(contact.email);
 
-          // Check if contact already exists
           const { data: existingContact } = await admin
             .from('contacts')
             .select('id')
@@ -222,8 +232,8 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err: unknown) {
-    const error = err as Error;
-    console.error('Lead enrichment route error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to enrich leads' }, { status: 500 });
+    const error = err as any;
+    const status = error.statusCode || (error.message?.includes('Unauthenticated') ? 401 : error.message?.includes('Unauthorized') ? 403 : 500);
+    return NextResponse.json({ error: error.message || 'Failed to enrich leads' }, { status });
   }
 }

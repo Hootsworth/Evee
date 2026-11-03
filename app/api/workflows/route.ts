@@ -1,44 +1,68 @@
-// Evee - Workflows API Handler
+// Evee - Workflows API Handler (Tenant-Isolated)
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getUserContext } from '@/lib/auth/context';
+import { assertAuthenticated, assertAuthorized } from '@/lib/auth/rbac';
 
 export async function GET() {
-  const admin = createAdminClient();
-  const { data: workflows, error } = await admin
-    .from('outreach_workflows')
-    .select('*')
-    .order('created_at', { ascending: false });
+  try {
+    const userCtx = await getUserContext();
+    assertAuthenticated(userCtx);
 
-  if (error) {
-    return NextResponse.json({ workflows: [] });
+    const admin = createAdminClient();
+    const orgId = userCtx.organizationId;
+
+    const { data: workflows, error } = await admin
+      .from('outreach_workflows')
+      .select('*')
+      .or(`organization_id.eq.${orgId},organization_id.is.null`)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return NextResponse.json({ workflows: [] });
+    }
+
+    return NextResponse.json({ workflows });
+  } catch (err: any) {
+    const status = err.statusCode || (err.message?.includes('Unauthenticated') ? 401 : 500);
+    return NextResponse.json({ error: err.message }, { status });
   }
-
-  return NextResponse.json({ workflows });
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const admin = createAdminClient();
+  try {
+    const userCtx = await getUserContext();
+    assertAuthenticated(userCtx);
+    assertAuthorized(userCtx, 'operator');
 
-  const { data: workflow, error } = await admin
-    .from('outreach_workflows')
-    .insert({
-      name: body.name || 'Default Controlled Outreach',
-      version: 1,
-      status: 'pending_approval',
-      configuration: body.configuration || {
-        daily_limit: 5,
-        monthly_limit: 100,
-        followup_intervals_days: [4, 9],
-        require_manual_review_for_uncertain_evidence: true,
-        require_contact_verification: true,
-        auto_send_enabled: false,
-      },
-    })
-    .select()
-    .single();
+    const body = await req.json();
+    const admin = createAdminClient();
+    const orgId = userCtx.organizationId;
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    const { data: workflow, error } = await admin
+      .from('outreach_workflows')
+      .insert({
+        organization_id: orgId,
+        name: body.name || 'Default Controlled Outreach',
+        version: 1,
+        status: 'pending_approval',
+        configuration: body.configuration || {
+          daily_limit: 5,
+          monthly_limit: 100,
+          followup_intervals_days: [4, 9],
+          require_manual_review_for_uncertain_evidence: true,
+          require_contact_verification: true,
+          auto_send_enabled: false,
+        },
+      })
+      .select()
+      .single();
 
-  return NextResponse.json({ workflow }, { status: 201 });
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+    return NextResponse.json({ workflow }, { status: 201 });
+  } catch (err: any) {
+    const status = err.statusCode || (err.message?.includes('Unauthenticated') ? 401 : err.message?.includes('Unauthorized') ? 403 : 500);
+    return NextResponse.json({ error: err.message }, { status });
+  }
 }

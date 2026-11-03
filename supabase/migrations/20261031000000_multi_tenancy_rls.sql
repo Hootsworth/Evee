@@ -112,46 +112,56 @@ ALTER TABLE background_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_events ENABLE ROW LEVEL SECURITY;
 
 -- 7. RLS Policies: Organizations
+DROP POLICY IF EXISTS "Users can view organizations they belong to" ON organizations;
 CREATE POLICY "Users can view organizations they belong to"
   ON organizations FOR SELECT
   USING (id IN (SELECT organization_id FROM get_user_organizations()));
 
+DROP POLICY IF EXISTS "Admins can update their organization" ON organizations;
 CREATE POLICY "Admins can update their organization"
   ON organizations FOR UPDATE
   USING (current_user_has_role(id, 'admin'));
 
 -- 8. RLS Policies: Campaigns
+DROP POLICY IF EXISTS "Members can view campaigns in their organization" ON campaigns;
 CREATE POLICY "Members can view campaigns in their organization"
   ON campaigns FOR SELECT
   USING (organization_id IN (SELECT organization_id FROM get_user_organizations()));
 
+DROP POLICY IF EXISTS "Operators and admins can create/update campaigns" ON campaigns;
 CREATE POLICY "Operators and admins can create/update campaigns"
   ON campaigns FOR ALL
   USING (current_user_has_role(organization_id, 'operator'));
 
 -- 9. RLS Policies: Businesses & Leads
+DROP POLICY IF EXISTS "Members can view businesses in their organization" ON businesses;
 CREATE POLICY "Members can view businesses in their organization"
   ON businesses FOR SELECT
   USING (organization_id IN (SELECT organization_id FROM get_user_organizations()));
 
+DROP POLICY IF EXISTS "Operators and admins can insert/update businesses" ON businesses;
 CREATE POLICY "Operators and admins can insert/update businesses"
   ON businesses FOR ALL
   USING (current_user_has_role(organization_id, 'operator'));
 
 -- 10. RLS Policies: Email Drafts
+DROP POLICY IF EXISTS "Members can view email drafts in their organization" ON email_drafts;
 CREATE POLICY "Members can view email drafts in their organization"
   ON email_drafts FOR SELECT
   USING (organization_id IN (SELECT organization_id FROM get_user_organizations()));
 
+DROP POLICY IF EXISTS "Operators and admins can approve or edit drafts" ON email_drafts;
 CREATE POLICY "Operators and admins can approve or edit drafts"
   ON email_drafts FOR ALL
   USING (current_user_has_role(organization_id, 'operator'));
 
 -- 11. RLS Policies: Audit Events
+DROP POLICY IF EXISTS "Members can view audit logs for their organization" ON audit_events;
 CREATE POLICY "Members can view audit logs for their organization"
   ON audit_events FOR SELECT
   USING (organization_id IN (SELECT organization_id FROM get_user_organizations()));
 
+DROP POLICY IF EXISTS "System can record audit logs" ON audit_events;
 CREATE POLICY "System can record audit logs"
   ON audit_events FOR INSERT
   WITH CHECK (true);

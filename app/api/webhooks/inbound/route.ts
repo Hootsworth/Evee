@@ -1,10 +1,41 @@
+// Evee - Inbound Email Webhook Handler (Fail-Closed Cryptographic Verification)
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { dispatchHotLeadAlert } from '@/lib/notifications/dispatcher';
+import { verifyInboundWebhook } from '@/lib/compliance/webhooks';
+import { normalizeEmail } from '@/lib/compliance/suppression';
 
 export async function POST(req: Request) {
   try {
-    const payload = await req.json();
+    const rawBody = await req.text();
+
+    // 1. Fail-closed: Inbound webhook secret MUST be configured
+    const webhookSecret = process.env.INBOUND_WEBHOOK_SECRET;
+    if (!webhookSecret || webhookSecret.trim() === '') {
+      return NextResponse.json(
+        { error: 'Webhook misconfigured: INBOUND_WEBHOOK_SECRET is not configured on the server.' },
+        { status: 500 }
+      );
+    }
+
+    // 2. Authenticate inbound webhook credentials
+    const signature = req.headers.get('x-webhook-signature') || req.headers.get('x-inbound-signature');
+    const secretToken = req.headers.get('x-webhook-secret');
+
+    const isValid = verifyInboundWebhook(rawBody, { signature, secretToken }, webhookSecret);
+    if (!isValid) {
+      return NextResponse.json(
+        { error: 'Invalid or missing inbound webhook credentials' },
+        { status: 401 }
+      );
+    }
+
+    let payload: any;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: 'Malformed JSON payload' }, { status: 400 });
+    }
 
     const fromAddress = payload.from || payload.sender || payload.from_email || '';
     const subject = payload.subject || '';
@@ -14,7 +45,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing sender address' }, { status: 400 });
     }
 
-    const cleanEmail = fromAddress.match(/<([^>]+)>/)?.[1] || fromAddress.trim();
+    const rawEmail = fromAddress.match(/<([^>]+)>/)?.[1] || fromAddress.trim();
+    const cleanEmail = normalizeEmail(rawEmail);
 
     // Analyze reply sentiment
     let sentiment: 'INTERESTED' | 'NOT_INTERESTED' | 'UNSUBSCRIBE' | 'OUT_OF_OFFICE' | 'NEUTRAL' = 'NEUTRAL';
@@ -69,30 +101,39 @@ export async function POST(req: Request) {
 
     const supabase = createAdminClient();
 
-    // Find matching business if exists
+    // Find matching business if exists to link organization and business IDs
     let businessName: string | undefined;
+    let businessId: string | null = null;
+    let organizationId: string | null = null;
+
     try {
       const { data: business } = await supabase
         .from('businesses')
-        .select('display_name')
+        .select('id, organization_id, display_name')
         .ilike('general_business_email', cleanEmail)
         .maybeSingle();
-      if (business) businessName = business.display_name;
+
+      if (business) {
+        businessName = business.display_name;
+        businessId = business.id;
+        organizationId = business.organization_id || null;
+      }
     } catch {}
 
-    // Auto-suppress if UNSUBSCRIBE or NOT_INTERESTED
+    // Auto-suppress if UNSUBSCRIBE or NOT_INTERESTED into suppression_entries
     if (sentiment === 'UNSUBSCRIBE' || sentiment === 'NOT_INTERESTED') {
       try {
-        await supabase.from('suppression_list').upsert(
-          {
-            email_address: cleanEmail.toLowerCase(),
-            reason: sentiment === 'UNSUBSCRIBE' ? 'unsubscribed' : 'opt_out',
-            notes: `Inbound reply classification: ${rationale}`,
-            created_at: new Date().toISOString(),
-          },
-          { onConflict: 'email_address' }
-        );
-      } catch {}
+        await supabase.from('suppression_entries').insert({
+          normalized_email: cleanEmail,
+          reason: 'opt_out',
+          source: 'inbound_reply',
+          channel: 'email',
+          business_id: businessId,
+          organization_id: organizationId,
+        });
+      } catch (err) {
+        console.warn('Failed to insert opt-out into suppression_entries:', err);
+      }
     }
 
     // Trigger instant Slack / Discord / Zapier alerts for Hot Leads
@@ -116,6 +157,7 @@ export async function POST(req: Request) {
       await supabase.from('audit_events').insert({
         event_type: `INBOUND_REPLY_${sentiment}`,
         entity_type: 'inbound_replies',
+        organization_id: organizationId,
         details: {
           sender: cleanEmail,
           businessName,

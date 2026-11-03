@@ -1,6 +1,5 @@
-// Evee - CSV Leads Import Endpoint
+// Evee - CSV Leads Import Endpoint (Tenant-Isolated)
 // Ingests CSV leads into the database with deduplication, contact creation, and optional auto-enrichment
-
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { CsvColumnMapping } from '@/lib/csv/parser';
@@ -12,9 +11,15 @@ import {
 import { normalizeEmail } from '@/lib/compliance/suppression';
 import { calculateLeadScore } from '@/lib/scoring/engine';
 import { getDynamicEnrichmentProvider } from '@/lib/providers/enrichment';
+import { getUserContext } from '@/lib/auth/context';
+import { assertAuthenticated, assertAuthorized } from '@/lib/auth/rbac';
 
 export async function POST(req: NextRequest) {
   try {
+    const userCtx = await getUserContext();
+    assertAuthenticated(userCtx);
+    assertAuthorized(userCtx, 'operator');
+
     const body = await req.json();
     const { leads, mapping, autoEnrich } = body as {
       leads: Array<Record<string, any>>;
@@ -27,11 +32,13 @@ export async function POST(req: NextRequest) {
     }
 
     const admin = createAdminClient();
+    const orgId = userCtx.organizationId;
 
-    // Fetch existing businesses for deduplication
+    // Fetch existing businesses for deduplication strictly within this organization
     const { data: existingBusinesses } = await admin
       .from('businesses')
-      .select('id, normalized_name, canonical_domain, city, public_business_phone');
+      .select('id, normalized_name, canonical_domain, city, public_business_phone')
+      .eq('organization_id', orgId);
 
     const companyCol = mapping?.companyName || 'company_name';
     const websiteCol = mapping?.website || 'website';
@@ -78,13 +85,14 @@ export async function POST(req: NextRequest) {
 
       if (duplicate) {
         duplicateCount++;
-        // If existing record has no email but imported row has email, backfill it
+        // If existing record has no email but imported row has email, backfill it within this tenant
         if (email && email.includes('@')) {
           const normEmail = normalizeEmail(email);
           await admin
             .from('businesses')
             .update({ general_business_email: normEmail })
             .eq('id', duplicate.id)
+            .eq('organization_id', orgId)
             .is('general_business_email', null);
 
           const { data: hasContact } = await admin
@@ -110,11 +118,12 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Insert new business
+      // Insert new business strictly scoped to organization
       const canonicalDomain = extractCanonicalDomain(website);
       const { data: newBusiness, error: insErr } = await admin
         .from('businesses')
         .insert({
+          organization_id: orgId,
           normalized_name: normalizeBusinessName(name),
           display_name: name.trim(),
           business_type: category.trim(),
@@ -151,7 +160,6 @@ export async function POST(req: NextRequest) {
           contact_eligibility: 'eligible',
         });
       } else if (autoEnrich) {
-        // Tag for auto-enrichment if no email was present
         insertedIdsForEnrichment.push(newBusiness.id);
       }
 
@@ -192,12 +200,18 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Auto-enrich missing emails if requested
+    // Auto-enrich missing emails if requested (using organization's enrichment provider)
     let enrichedCount = 0;
     if (autoEnrich && insertedIdsForEnrichment.length > 0) {
-      const provider = await getDynamicEnrichmentProvider();
+      const provider = await getDynamicEnrichmentProvider(orgId);
       for (const bId of insertedIdsForEnrichment.slice(0, 20)) {
-        const { data: b } = await admin.from('businesses').select('*').eq('id', bId).single();
+        const { data: b } = await admin
+          .from('businesses')
+          .select('*')
+          .eq('id', bId)
+          .eq('organization_id', orgId)
+          .single();
+
         if (b) {
           const res = await provider.enrichBusiness({
             name: b.display_name,
@@ -208,7 +222,12 @@ export async function POST(req: NextRequest) {
           });
 
           if (res.generalEmail) {
-            await admin.from('businesses').update({ general_business_email: res.generalEmail }).eq('id', bId);
+            await admin
+              .from('businesses')
+              .update({ general_business_email: res.generalEmail })
+              .eq('id', bId)
+              .eq('organization_id', orgId);
+
             await admin.from('contacts').insert({
               business_id: bId,
               contact_name: res.contacts[0]?.fullName || `${b.display_name} Contact`,
@@ -233,8 +252,8 @@ export async function POST(req: NextRequest) {
       totalReceived: leads.length,
     });
   } catch (err: unknown) {
-    const error = err as Error;
-    console.error('CSV Leads import error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to import CSV leads' }, { status: 500 });
+    const error = err as any;
+    const status = error.statusCode || (error.message?.includes('Unauthenticated') ? 401 : error.message?.includes('Unauthorized') ? 403 : 500);
+    return NextResponse.json({ error: error.message || 'Failed to import CSV leads' }, { status });
   }
 }

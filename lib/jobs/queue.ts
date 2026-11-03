@@ -6,6 +6,7 @@ import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
 
 export interface QueueJob {
   id: string;
+  organization_id?: string | null;
   job_type: 'lead_discovery' | 'lead_enrichment' | 'website_inspection' | 'outreach_drafting' | 'email_dispatch';
   status: 'queued' | 'processing' | 'succeeded' | 'failed';
   payload: Record<string, any>;
@@ -24,16 +25,19 @@ const memoryQueue: Map<string, QueueJob> = new Map();
 export async function enqueueJob(
   jobType: QueueJob['job_type'],
   payload: Record<string, any>,
-  maxAttempts = 3
+  maxAttempts = 3,
+  organizationId?: string
 ): Promise<QueueJob> {
   const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
   const now = new Date().toISOString();
+  const effectiveOrgId = organizationId || payload.organizationId || null;
 
   const newJob: QueueJob = {
     id: jobId,
+    organization_id: effectiveOrgId,
     job_type: jobType,
     status: 'queued',
-    payload,
+    payload: { ...payload, organizationId: effectiveOrgId },
     attempts: 0,
     max_attempts: maxAttempts,
     created_at: now,
@@ -47,6 +51,7 @@ export async function enqueueJob(
         .from('background_jobs')
         .insert({
           id: newJob.id,
+          organization_id: newJob.organization_id,
           job_type: newJob.job_type,
           status: newJob.status,
           payload: newJob.payload,

@@ -1,52 +1,181 @@
-// Evee - Tenant & Auth Context Resolver
-import { UserContext, UserRole } from './rbac';
-import { createAdminClient } from '@/lib/supabase/admin';
+// Evee - Secure Tenant & Auth Context Resolver
+// Enforces cryptographic session verification and database-backed organization membership checks.
+// NEVER trusts client-supplied role or organization headers.
 
-const DEFAULT_ORG: UserContext = {
-  userId: 'usr_default_operator',
-  email: 'operator@singulr.tech',
-  displayName: 'Operator',
-  organizationId: 'org_primary_workspace',
-  organizationName: 'Primary Workspace',
-  role: 'admin',
-};
+import { UserContext, UserRole, AuthenticationError, AuthorizationError } from './rbac';
+import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
 
-export async function resolveUserContext(req?: Request): Promise<UserContext> {
-  // If request contains tenant or user headers, parse them
-  if (req) {
-    const orgHeader = req.headers.get('x-organization-id');
-    const roleHeader = req.headers.get('x-user-role') as UserRole | null;
-    const userHeader = req.headers.get('x-user-id');
-
-    if (orgHeader) {
-      return {
-        ...DEFAULT_ORG,
-        organizationId: orgHeader,
-        role: roleHeader || 'operator',
-        userId: userHeader || DEFAULT_ORG.userId,
-      };
-    }
-  }
-
-  // Check Supabase session if available
-  try {
-    const supabase = createAdminClient();
-    const { data: orgData } = await supabase
-      .from('organizations')
-      .select('id, name')
-      .limit(1)
-      .maybeSingle();
-
-    if (orgData) {
-      return {
-        ...DEFAULT_ORG,
-        organizationId: orgData.id,
-        organizationName: orgData.name,
-      };
-    }
-  } catch {
-    // Fall back to default organization context
-  }
-
-  return DEFAULT_ORG;
+export interface ResolveContextOptions {
+  requiredRole?: UserRole;
+  allowWorker?: boolean;
 }
+
+/**
+ * Resolves the authenticated user and verified organization membership.
+ * Rejects unauthenticated requests and ignores untrusted client headers.
+ * 
+ * Verification flow:
+ * 1. Validates session token via Supabase Auth (cookies or Bearer JWT).
+ * 2. Fetches user's actual memberships from `organization_members` table.
+ * 3. If a specific tenant is requested, verifies user belongs to that tenant.
+ * 4. Extracts verified role from database record (never from headers).
+ */
+export async function resolveUserContext(
+  req?: Request,
+  options?: ResolveContextOptions
+): Promise<UserContext | null> {
+  let user: any = null;
+
+  // 1. Try to extract bearer token from Authorization header if present
+  const authHeader = req?.headers.get('authorization');
+  const admin = createAdminClient();
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+    if (token) {
+      try {
+        const { data, error } = await admin.auth.getUser(token);
+        if (!error && data?.user) {
+          user = data.user;
+        }
+      } catch (err) {
+        console.warn('Bearer token verification failed:', err);
+      }
+    }
+  }
+
+  // 2. Try to extract session from cookies via server client (in Next.js runtime)
+  if (!user && typeof window === 'undefined') {
+    try {
+      const { createClient } = await import('@/lib/supabase/server');
+      const supabase = await createClient();
+      const { data, error } = await supabase.auth.getUser();
+      if (!error && data?.user) {
+        user = data.user;
+      }
+    } catch {
+      // Running in unit test or non-cookie environment; continue
+    }
+  }
+
+  // 3. Unauthenticated: NEVER return default admin context. Reject immediately.
+  if (!user) {
+    return null;
+  }
+
+  const userId = user.id;
+  const email = user.email || '';
+  const displayName =
+    user.user_metadata?.display_name ||
+    user.user_metadata?.full_name ||
+    user.user_metadata?.name ||
+    (email ? email.split('@')[0] : 'Operator');
+
+  // 4. Verify organization membership from database
+  if (isSupabaseConfigured()) {
+    try {
+      // Query user's verified organization memberships
+      const { data: memberships, error } = await admin
+        .from('organization_members')
+        .select('organization_id, role, organizations(id, name, slug)')
+        .eq('user_id', userId);
+
+      if (!error && memberships && memberships.length > 0) {
+        const requestedOrgId = req?.headers.get('x-organization-id');
+
+        let activeMembership = memberships[0];
+
+        // If client requested a specific tenant, verify they ACTUALLY belong to it
+        if (requestedOrgId) {
+          const matched = memberships.find((m) => m.organization_id === requestedOrgId);
+          if (matched) {
+            activeMembership = matched;
+          } else {
+            // Client tried to access an organization they do not belong to!
+            throw new AuthorizationError(
+              `User does not have access to requested organization "${requestedOrgId}".`
+            );
+          }
+        }
+
+        const orgRecord = (activeMembership as any).organizations;
+        const verifiedRole = activeMembership.role as UserRole;
+
+        return {
+          userId,
+          email,
+          displayName,
+          organizationId: activeMembership.organization_id,
+          organizationName: orgRecord?.name || 'Primary Workspace',
+          role: verifiedRole,
+        };
+      }
+
+      // If user has no organization yet, auto-provision personal workspace for this user
+      const defaultSlug = `ws-${userId.slice(0, 8)}`;
+      const { data: newOrg } = await admin
+        .from('organizations')
+        .insert({
+          name: `${displayName}'s Workspace`,
+          slug: defaultSlug,
+          plan: 'starter',
+        })
+        .select()
+        .single();
+
+      if (newOrg) {
+        await admin.from('organization_members').insert({
+          organization_id: newOrg.id,
+          user_id: userId,
+          role: 'admin',
+        });
+
+        return {
+          userId,
+          email,
+          displayName,
+          organizationId: newOrg.id,
+          organizationName: newOrg.name,
+          role: 'admin',
+        };
+      }
+    } catch (dbErr) {
+      if (dbErr instanceof AuthorizationError) {
+        throw dbErr;
+      }
+      console.warn('Organization lookup failed, falling back to user-isolated space:', dbErr);
+    }
+  }
+
+  // Fallback for standalone/dev environments where database is not configured
+  return {
+    userId,
+    email,
+    displayName,
+    organizationId: `org_${userId}`,
+    organizationName: `${displayName}'s Workspace`,
+    role: 'operator',
+  };
+}
+
+/**
+ * Creates an authorized context specifically for background queue workers.
+ * Workers must have an explicit organizationId to process jobs.
+ */
+export function createWorkerContext(organizationId: string, role: UserRole = 'admin'): UserContext {
+  if (!organizationId) {
+    throw new Error('Worker context requires an explicit organizationId');
+  }
+
+  return {
+    userId: 'system_background_worker',
+    email: 'worker@evee.ai',
+    displayName: 'Background Worker',
+    organizationId,
+    organizationName: 'Tenant Scope',
+    role,
+    isServiceRole: true,
+  };
+}
+
+export const getUserContext = resolveUserContext;

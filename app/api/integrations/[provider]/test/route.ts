@@ -1,32 +1,39 @@
-// Evee - Connector Handshake & Health Check Endpoint
+// Evee - Connector Handshake & Health Check Endpoint (Tenant-Isolated)
 import { NextRequest, NextResponse } from 'next/server';
 import { INTEGRATION_REGISTRY } from '@/lib/integrations/registry';
 import { IntegrationProviderId } from '@/lib/integrations/types';
 import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
 import { decryptSecret } from '@/lib/compliance/encryption';
+import { getUserContext } from '@/lib/auth/context';
+import { assertAuthenticated, assertAuthorized } from '@/lib/auth/rbac';
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ provider: string }> }
 ) {
-  const { provider } = await params;
-  const providerId = provider as IntegrationProviderId;
-
-  const definition = INTEGRATION_REGISTRY.find((d) => d.id === providerId);
-  if (!definition) {
-    return NextResponse.json({ error: `Unknown provider: ${providerId}` }, { status: 404 });
-  }
-
-  const startTime = Date.now();
-  let success = false;
-  let message = '';
-
   try {
+    const userCtx = await getUserContext();
+    assertAuthenticated(userCtx);
+    assertAuthorized(userCtx, 'admin');
+
+    const { provider } = await params;
+    const providerId = provider as IntegrationProviderId;
+    const orgId = userCtx.organizationId;
+
+    const definition = INTEGRATION_REGISTRY.find((d) => d.id === providerId);
+    if (!definition) {
+      return NextResponse.json({ error: `Unknown provider: ${providerId}` }, { status: 404 });
+    }
+
+    const startTime = Date.now();
+    let success = false;
+    let message = '';
+
     const body = await req.json().catch(() => ({}));
     let secret = body.secret;
     const config = body.config || {};
 
-    // If no secret passed directly, retrieve decrypted from storage
+    // If no secret passed directly, retrieve decrypted from storage scoped to this organization
     if (!secret && isSupabaseConfigured()) {
       try {
         const admin = createAdminClient();
@@ -34,6 +41,7 @@ export async function POST(
           .from('oauth_credentials')
           .select('encrypted_access_token')
           .eq('provider', `integration_${providerId}`)
+          .eq('organization_id', orgId)
           .maybeSingle();
 
         if (cred?.encrypted_access_token) {
@@ -48,64 +56,57 @@ export async function POST(
     if (providerId === 'slack') {
       const webhookUrl = secret || config.webhookUrl;
       if (!webhookUrl || !webhookUrl.startsWith('https://hooks.slack.com/')) {
-        throw new Error('Valid Slack Webhook URL starting with https://hooks.slack.com/ is required.');
+        return NextResponse.json({ success: false, error: 'Invalid Slack Webhook URL.' }, { status: 400 });
       }
-      // Send a test ping to Slack
       const res = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: '⚡ *Evee Outreach Platform* test alert: Slack integration successfully verified.',
-        }),
+        body: JSON.stringify({ text: 'Evee Webhook Test: Connection Verified!' }),
       });
       if (res.ok) {
         success = true;
-        message = 'Slack Webhook handshake verified. Test message posted to channel.';
+        message = 'Slack Webhook delivered test message successfully.';
       } else {
         throw new Error(`Slack returned HTTP ${res.status}`);
       }
     } else if (providerId === 'discord') {
       const webhookUrl = secret || config.webhookUrl;
       if (!webhookUrl || !webhookUrl.startsWith('https://discord.com/api/webhooks/')) {
-        throw new Error('Valid Discord Webhook URL is required.');
+        return NextResponse.json({ success: false, error: 'Invalid Discord Webhook URL.' }, { status: 400 });
       }
       const res = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: '⚡ **Evee Outreach Platform** test notification: Discord integration successfully verified.',
-        }),
+        body: JSON.stringify({ content: 'Evee Webhook Test: Connection Verified!' }),
       });
-      if (res.ok || res.status === 204) {
+      if (res.ok) {
         success = true;
-        message = 'Discord Webhook handshake verified. Test notification posted.';
+        message = 'Discord Webhook delivered test message successfully.';
       } else {
         throw new Error(`Discord returned HTTP ${res.status}`);
       }
     } else if (providerId === 'hubspot') {
-      if (!secret) throw new Error('HubSpot Private App Access Token is required.');
-      // Ping HubSpot API endpoint
+      if (!secret) throw new Error('HubSpot Private App Token is required');
       const res = await fetch('https://api.hubapi.com/crm/v3/objects/contacts?limit=1', {
         headers: { Authorization: `Bearer ${secret}` },
       });
       if (res.ok) {
         success = true;
-        message = 'HubSpot CRM connection verified. API Token authenticated successfully.';
+        message = 'HubSpot API authenticated successfully and read contact schema.';
       } else {
-        const errText = await res.text();
-        throw new Error(`HubSpot authentication failed (${res.status}): ${errText.slice(0, 80)}`);
+        throw new Error(`HubSpot returned HTTP ${res.status}`);
       }
     } else if (providerId === 'smartlead') {
-      if (!secret) throw new Error('Smartlead API Key is required.');
+      if (!secret) throw new Error('Smartlead API Key is required');
       const res = await fetch(`https://server.smartlead.ai/api/v1/campaigns?api_key=${secret}&limit=1`);
       if (res.ok) {
         success = true;
-        message = 'Smartlead.ai API connection verified. Ready for campaign lead export.';
+        message = 'Smartlead API authenticated successfully. Campaigns accessible.';
       } else {
-        throw new Error(`Smartlead returned status ${res.status}`);
+        throw new Error(`Smartlead returned HTTP ${res.status}`);
       }
     } else if (providerId === 'resend') {
-      if (!secret) throw new Error('Resend API Key is required.');
+      if (!secret) throw new Error('Resend API Key is required');
       const res = await fetch('https://api.resend.com/api_keys', {
         headers: { Authorization: `Bearer ${secret}` },
       });
@@ -127,7 +128,7 @@ export async function POST(
 
     const latencyMs = Date.now() - startTime;
 
-    // Update test status in database if configured
+    // Update test status in database scoped strictly to this organization
     if (isSupabaseConfigured()) {
       try {
         const admin = createAdminClient();
@@ -135,39 +136,44 @@ export async function POST(
           .from('oauth_credentials')
           .select('scopes')
           .eq('provider', `integration_${providerId}`)
+          .eq('organization_id', orgId)
           .maybeSingle();
 
         const currentScopes = (existing?.scopes as any) || {};
-        await admin
-          .from('oauth_credentials')
-          .update({
+
+        await admin.from('oauth_credentials').upsert(
+          {
+            organization_id: orgId,
+            provider: `integration_${providerId}`,
+            account_email: `integration@${providerId}.service`,
             scopes: {
               ...currentScopes,
               lastTestedAt: new Date().toISOString(),
               lastTestSuccess: success,
               lastTestMessage: message,
-            },
-          })
-          .eq('provider', `integration_${providerId}`);
-      } catch {}
+            } as any,
+          },
+          { onConflict: 'organization_id,provider' }
+        );
+      } catch (e) {
+        console.warn('Failed to update test status in DB:', e);
+      }
     }
 
     return NextResponse.json({
       success,
       providerId,
-      latencyMs,
       message,
+      latencyMs,
     });
-  } catch (error: any) {
-    const latencyMs = Date.now() - startTime;
+  } catch (err: any) {
+    const status = err.statusCode || (err.message?.includes('Unauthenticated') ? 401 : err.message?.includes('Unauthorized') ? 403 : 500);
     return NextResponse.json(
       {
         success: false,
-        providerId,
-        latencyMs,
-        error: error.message || 'Connection test failed',
+        error: err.message || 'Connection test failed',
       },
-      { status: 400 }
+      { status }
     );
   }
 }

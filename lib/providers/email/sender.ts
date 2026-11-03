@@ -4,21 +4,30 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { decryptSecret } from '@/lib/compliance/encryption';
 import { getEmailProvider } from '@/lib/providers/email';
-import { normalizeEmail } from '@/lib/compliance/suppression';
+import { checkSuppression, normalizeEmail } from '@/lib/compliance/suppression';
 
-export async function isSuppressed(identifier: { email?: string | null }): Promise<boolean> {
+export async function isSuppressed(
+  identifier: { email?: string | null },
+  organizationId?: string | null
+): Promise<boolean> {
   const normEmail = identifier.email ? normalizeEmail(identifier.email) : null;
   if (!normEmail) return false;
 
   try {
     const admin = createAdminClient();
-    const { data } = await admin
+    let query = admin
       .from('suppression_entries')
-      .select('id')
-      .eq('normalized_email', normEmail)
-      .limit(1);
+      .select('normalized_email, normalized_phone, reason, source, organization_id');
 
-    return !!(data && data.length > 0);
+    if (organizationId) {
+      query = query.or(`organization_id.eq.${organizationId},organization_id.is.null`);
+    }
+
+    const { data, error } = await query;
+    if (error || !data || data.length === 0) return false;
+
+    const result = checkSuppression({ email: normEmail }, data, organizationId);
+    return result.isSuppressed;
   } catch (err) {
     console.warn('Failed to query suppression_entries:', err);
     return false;
@@ -32,6 +41,7 @@ export interface DispatchEmailOptions {
   bodyHtml?: string;
   idempotencyKey?: string;
   isTestSend?: boolean;
+  organizationId?: string;
 }
 
 export interface DispatchEmailResult {
@@ -42,15 +52,20 @@ export interface DispatchEmailResult {
   suppressed?: boolean;
 }
 
-export async function getActiveEmailProvider() {
+export async function getActiveEmailProvider(organizationId?: string | null) {
   const admin = createAdminClient();
 
-  // 1. Try to load configured SMTP App Password
-  const { data: smtpCreds } = await admin
+  // 1. Try to load configured SMTP App Password for this organization (or global fallback)
+  let smtpQuery = admin
     .from('oauth_credentials')
     .select('*')
-    .eq('provider', 'smtp_app_password')
-    .maybeSingle();
+    .eq('provider', 'smtp_app_password');
+
+  if (organizationId) {
+    smtpQuery = smtpQuery.eq('organization_id', organizationId);
+  }
+
+  const { data: smtpCreds } = await smtpQuery.maybeSingle();
 
   if (smtpCreds && smtpCreds.encrypted_refresh_token) {
     try {
@@ -72,12 +87,17 @@ export async function getActiveEmailProvider() {
     }
   }
 
-  // 2. Try to load Google OAuth refresh token
-  const { data: oauthCreds } = await admin
+  // 2. Try to load Google OAuth refresh token for this organization
+  let googleQuery = admin
     .from('oauth_credentials')
     .select('*')
-    .eq('provider', 'google')
-    .maybeSingle();
+    .eq('provider', 'google');
+
+  if (organizationId) {
+    googleQuery = googleQuery.eq('organization_id', organizationId);
+  }
+
+  const { data: oauthCreds } = await googleQuery.maybeSingle();
 
   if (oauthCreds && oauthCreds.encrypted_refresh_token) {
     try {
@@ -104,20 +124,20 @@ export async function getActiveEmailProvider() {
 export async function sendEmailWithSafetyChecks(options: DispatchEmailOptions): Promise<DispatchEmailResult> {
   const recipient = options.to.trim().toLowerCase();
 
-  // Safety Gate: Global Suppression Check (bypass only for test sends to self)
+  // Safety Gate: Global & Tenant Suppression Check (bypass only for test sends to self)
   if (!options.isTestSend) {
-    const suppressed = await isSuppressed({ email: recipient });
+    const suppressed = await isSuppressed({ email: recipient }, options.organizationId);
     if (suppressed) {
       return {
         success: false,
         provider: 'safety_gate',
         suppressed: true,
-        error: `Recipient ${recipient} is blocked in the global suppression registry.`,
+        error: `Recipient ${recipient} is blocked in the suppression registry.`,
       };
     }
   }
 
-  const { provider, fromEmail, isConfigured } = await getActiveEmailProvider();
+  const { provider, fromEmail, isConfigured } = await getActiveEmailProvider(options.organizationId);
 
   const idempotencyKey = options.idempotencyKey || `csv-dispatch-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 

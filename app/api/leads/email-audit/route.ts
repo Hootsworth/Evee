@@ -1,15 +1,21 @@
-// Evee - AI & Rule Email Audit & Cleanup Endpoint
+// Evee - AI & Rule Email Audit & Cleanup Endpoint (Tenant-Isolated)
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { scanLeadsEmailQuality } from '@/lib/services/email-quality';
+import { getUserContext } from '@/lib/auth/context';
+import { assertAuthenticated, assertAuthorized } from '@/lib/auth/rbac';
 
 export async function GET(req: NextRequest) {
   try {
-    const admin = createAdminClient();
-    const { searchParams } = new URL(req.url);
-    const status = searchParams.get('status') || 'active'; // Default scan active leads
+    const userCtx = await getUserContext();
+    assertAuthenticated(userCtx);
 
-    let query = admin.from('businesses').select('*');
+    const admin = createAdminClient();
+    const orgId = userCtx.organizationId;
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get('status') || 'active';
+
+    let query = admin.from('businesses').select('*').eq('organization_id', orgId);
     if (status !== 'all') {
       query = query.eq('record_status', status);
     }
@@ -22,17 +28,21 @@ export async function GET(req: NextRequest) {
     const report = scanLeadsEmailQuality(businesses || []);
     return NextResponse.json(report);
   } catch (error: any) {
-    console.error('Email audit error:', error);
-    return NextResponse.json({ error: error?.message || 'Failed to scan leads' }, { status: 500 });
+    const status = error.statusCode || (error.message?.includes('Unauthenticated') ? 401 : 500);
+    return NextResponse.json({ error: error?.message || 'Failed to scan leads' }, { status });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
+    const userCtx = await getUserContext();
+    assertAuthenticated(userCtx);
+    assertAuthorized(userCtx, 'operator');
+
     const body = await req.json();
     const {
       leadIds,
-      action = 'archive', // 'archive' | 'delete'
+      action = 'archive',
       archiveAllFlagged = false,
       filterCategory,
     } = body as {
@@ -43,14 +53,16 @@ export async function POST(req: NextRequest) {
     };
 
     const admin = createAdminClient();
+    const orgId = userCtx.organizationId;
 
     let targetIds: string[] = [];
 
     if (archiveAllFlagged) {
-      // Fetch active businesses and scan them
+      // Fetch active businesses strictly within organization
       const { data: businesses, error } = await admin
         .from('businesses')
         .select('*')
+        .eq('organization_id', orgId)
         .eq('record_status', 'active');
 
       if (error) {
@@ -58,11 +70,13 @@ export async function POST(req: NextRequest) {
       }
 
       const report = scanLeadsEmailQuality(businesses || []);
-      let matched = report.flaggedLeads;
-      if (filterCategory) {
-        matched = matched.filter((item) => item.flag.category === filterCategory);
+      let candidates = report.flaggedLeads;
+
+      if (filterCategory && filterCategory !== 'all') {
+        candidates = candidates.filter((c) => c.flag.category === filterCategory);
       }
-      targetIds = matched.map((item) => item.leadId);
+
+      targetIds = candidates.map((c) => c.leadId);
     } else if (Array.isArray(leadIds) && leadIds.length > 0) {
       targetIds = leadIds;
     }
@@ -70,64 +84,85 @@ export async function POST(req: NextRequest) {
     if (targetIds.length === 0) {
       return NextResponse.json({
         success: true,
-        message: 'No leads matched criteria.',
+        message: 'No leads matched criteria for action.',
         count: 0,
       });
     }
 
-    if (action === 'delete') {
-      // Cascading deletion for clean integrity
-      await admin.from('outreach_jobs').delete().in('business_id', targetIds);
-      await admin.from('email_drafts').delete().in('business_id', targetIds);
-      await admin.from('lead_scores').delete().in('business_id', targetIds);
-      await admin.from('evidence_items').delete().in('business_id', targetIds);
-      await admin.from('research_runs').delete().in('business_id', targetIds);
-      await admin.from('contacts').delete().in('business_id', targetIds);
-      const { error: delErr } = await admin.from('businesses').delete().in('id', targetIds);
-      if (delErr) {
-        return NextResponse.json({ error: delErr.message }, { status: 500 });
-      }
-    } else {
-      // Archive action
-      const { error: updateErr } = await admin
+    let affectedCount = 0;
+
+    if (action === 'archive') {
+      const { data: updated, error: updateErr } = await admin
         .from('businesses')
         .update({
           record_status: 'archived',
           updated_at: new Date().toISOString(),
         })
-        .in('id', targetIds);
+        .in('id', targetIds)
+        .eq('organization_id', orgId)
+        .select('id');
 
       if (updateErr) {
         return NextResponse.json({ error: updateErr.message }, { status: 500 });
       }
+      affectedCount = updated?.length || 0;
+    } else if (action === 'delete') {
+      // Clean dependent rows scoped to tenant's businesses
+      const { data: validBusinesses } = await admin
+        .from('businesses')
+        .select('id')
+        .in('id', targetIds)
+        .eq('organization_id', orgId);
+
+      const verifiedIds = (validBusinesses || []).map((b) => b.id);
+
+      if (verifiedIds.length > 0) {
+        try {
+          await admin.from('outreach_jobs').delete().in('business_id', verifiedIds);
+          await admin.from('email_drafts').delete().in('business_id', verifiedIds).eq('organization_id', orgId);
+          await admin.from('lead_scores').delete().in('business_id', verifiedIds);
+          await admin.from('evidence_items').delete().in('business_id', verifiedIds);
+          await admin.from('contacts').delete().in('business_id', verifiedIds);
+          await admin.from('campaign_businesses').delete().in('business_id', verifiedIds);
+
+          const { error: delErr } = await admin
+            .from('businesses')
+            .delete()
+            .in('id', verifiedIds)
+            .eq('organization_id', orgId);
+
+          if (!delErr) {
+            affectedCount = verifiedIds.length;
+          }
+        } catch (e) {
+          console.warn('Error during cascaded delete:', e);
+        }
+      }
     }
 
-    // Log to audit table
+    // Record audit event
     try {
       await admin.from('audit_events').insert({
-        event_type: action === 'delete' ? 'LEADS_DELETED_EMAIL_AUDIT' : 'LEADS_ARCHIVED_EMAIL_AUDIT',
+        organization_id: orgId,
+        event_type: `LEADS_${action.toUpperCase()}_EMAIL_AUDIT`,
         entity_type: 'businesses',
-        entity_id: targetIds[0],
         details: {
-          count: targetIds.length,
+          count: affectedCount,
           action,
-          archiveAllFlagged,
-          filterCategory,
           targetIds,
+          operatorId: userCtx.userId,
         },
       });
-    } catch (auditErr) {
-      console.warn('Failed to record audit event:', auditErr);
-    }
+    } catch {}
 
     return NextResponse.json({
       success: true,
-      count: targetIds.length,
       action,
+      count: affectedCount,
       targetIds,
     });
   } catch (error: any) {
-    console.error('Email audit action error:', error);
-    return NextResponse.json({ error: error?.message || 'Operation failed' }, { status: 500 });
+    const status = error.statusCode || (error.message?.includes('Unauthenticated') ? 401 : error.message?.includes('Unauthorized') ? 403 : 500);
+    return NextResponse.json({ error: error?.message || 'Failed to process leads' }, { status });
   }
 }

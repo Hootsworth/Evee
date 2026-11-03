@@ -281,6 +281,7 @@ export interface BackgroundJob<T = Record<string, unknown>> {
     | 'score_lead'
     | 'generate_draft'
     | 'send_email'
+    | 'csv_email_dispatch'
     | 'sync_replies'
     | 'process_followups'
     | 'refresh_evidence'

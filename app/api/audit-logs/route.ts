@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import { queryAuditEvents, recordAuditEvent, AuditAction } from '@/lib/telemetry/audit';
 import { resolveUserContext } from '@/lib/auth/context';
+import { assertAuthenticated } from '@/lib/auth/rbac';
 
 export async function GET(req: Request) {
   try {
     const userCtx = await resolveUserContext(req);
+    assertAuthenticated(userCtx);
+
     const { searchParams } = new URL(req.url);
     const action = searchParams.get('action') as AuditAction | null;
     const limit = Number(searchParams.get('limit')) || 50;
@@ -23,13 +26,16 @@ export async function GET(req: Request) {
       timestamp: new Date().toISOString(),
     });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const status = err.statusCode || (err.name === 'AuthenticationError' ? 401 : 500);
+    return NextResponse.json({ error: err.message }, { status });
   }
 }
 
 export async function POST(req: Request) {
   try {
     const userCtx = await resolveUserContext(req);
+    assertAuthenticated(userCtx);
+
     const body = await req.json();
 
     if (!body.action || !body.entityType) {
@@ -48,6 +54,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ status: 'recorded', event });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const status = err.statusCode || (err.name === 'AuthenticationError' ? 401 : 500);
+    return NextResponse.json({ error: err.message }, { status });
   }
 }

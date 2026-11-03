@@ -1,6 +1,6 @@
 // Evee - HTML Parsing & Safe Evidence Extraction
 import * as cheerio from 'cheerio';
-import { validateUrlAgainstSSRF } from './ssrf';
+import { safeHttpRequest } from './ssrf';
 
 export interface ExtractedEvidence {
   findingType: string;
@@ -20,42 +20,28 @@ export interface WebsiteInspectionResult {
 }
 
 /**
- * Safely fetches a single webpage verifying SSRF protections and content size limits
+ * Safely fetches a single webpage verifying SSRF protections, IP pinning against DNS rebinding,
+ * and content size limits.
  */
 async function safeFetchHtml(targetUrl: string, timeoutMs = 8000): Promise<{ html: string; url: string } | null> {
-  const ssrfCheck = await validateUrlAgainstSSRF(targetUrl);
-  if (!ssrfCheck.isValid) {
-    throw new Error(`SSRF validation failed for ${targetUrl}: ${ssrfCheck.reason}`);
-  }
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
   try {
-    const res = await fetch(targetUrl, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; EveeBot/1.0; +https://evee.local/bot)',
-        Accept: 'text/html,application/xhtml+xml',
-      },
+    const res = await safeHttpRequest(targetUrl, {
+      timeoutMs,
+      maxRedirects: 3,
+      maxBodySizeBytes: 1500000,
     });
 
-    clearTimeout(timer);
-
-    if (!res.ok) {
+    if (res.statusCode < 200 || res.statusCode >= 300) {
       return null;
     }
 
-    const contentType = res.headers.get('content-type') || '';
+    const contentType = (res.headers['content-type'] as string) || '';
     if (!contentType.includes('text/html') && !contentType.includes('application/xhtml+xml')) {
       return null;
     }
 
-    // Limit read size to 1.5MB to prevent memory exhaustion
-    const text = await res.text();
-    return { html: text.slice(0, 1500000), url: res.url };
+    return { html: res.body, url: res.finalUrl };
   } catch (err: unknown) {
-    clearTimeout(timer);
     return null;
   }
 }

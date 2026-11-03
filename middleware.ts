@@ -33,10 +33,14 @@ export async function middleware(request: NextRequest) {
   const isAuthPage = request.nextUrl.pathname.startsWith('/auth');
   const isPublicApi =
     request.nextUrl.pathname.startsWith('/api/health') ||
-    request.nextUrl.pathname.startsWith('/api/cron');
+    request.nextUrl.pathname.startsWith('/api/cron') ||
+    request.nextUrl.pathname.startsWith('/api/webhooks');
 
-  // 1. If not authenticated and trying to access protected routes -> redirect to /auth
+  // 1. If not authenticated and trying to access protected routes -> return 401 for APIs or redirect to /auth
   if (!user && !isAuthPage && !isPublicApi) {
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthenticated: valid session required' }, { status: 401 });
+    }
     const redirectUrl = new URL('/auth', request.url);
     return NextResponse.redirect(redirectUrl);
   }

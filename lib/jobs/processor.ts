@@ -7,6 +7,7 @@ import { BackgroundJob } from '@/lib/types';
 import { getDynamicDiscoveryProvider } from '@/lib/providers/discovery';
 import { getDynamicAiProvider } from '@/lib/providers/ai';
 import { getEmailProvider } from '@/lib/providers/email';
+import { sendEmailWithSafetyChecks } from '@/lib/providers/email/sender';
 import { decryptSecret } from '@/lib/compliance/encryption';
 import { checkSuppression, normalizeEmail } from '@/lib/compliance/suppression';
 import { calculateLeadScore } from '@/lib/scoring/engine';
@@ -82,11 +83,12 @@ export async function processBackgroundJobs(batchSize = 5): Promise<JobProcessin
 
 async function executeSingleJob(job: BackgroundJob, supabase: any): Promise<void> {
   const payload = job.payload as any;
+  const orgId = (job as any).organization_id || payload.organizationId || null;
 
   switch (job.job_type) {
     case 'discover_businesses': {
       const { campaignId, geography, categories, keywords, limit } = payload;
-      const provider = await getDynamicDiscoveryProvider();
+      const provider = await getDynamicDiscoveryProvider(orgId);
       const candidates = await provider.search({
         geography: geography || 'Bengaluru',
         categories: categories || ['Small Business'],
@@ -94,10 +96,14 @@ async function executeSingleJob(job: BackgroundJob, supabase: any): Promise<void
         limit: limit || 10,
       });
 
-      // Fetch existing businesses for deduplication
-      const { data: existingBusinesses } = await supabase
+      // Fetch existing businesses for deduplication within tenant scope
+      let existingQuery = supabase
         .from('businesses')
         .select('id, normalized_name, canonical_domain, city, public_business_phone');
+      if (orgId) {
+        existingQuery = existingQuery.eq('organization_id', orgId);
+      }
+      const { data: existingBusinesses } = await existingQuery;
 
       for (const cand of candidates) {
         const duplicate = findDuplicateBusiness(
@@ -115,10 +121,11 @@ async function executeSingleJob(job: BackgroundJob, supabase: any): Promise<void
         if (duplicate) {
           businessId = duplicate.id;
         } else {
-          // Insert new business
+          // Insert new business scoped to organization
           const { data: inserted, error: insErr } = await supabase
             .from('businesses')
             .insert({
+              organization_id: orgId,
               normalized_name: normalizeBusinessName(cand.name),
               display_name: cand.name,
               business_type: cand.category || 'General',
@@ -173,8 +180,9 @@ async function executeSingleJob(job: BackgroundJob, supabase: any): Promise<void
 
           // Enqueue research job automatically
           await supabase.from('background_jobs').insert({
+            organization_id: orgId,
             job_type: 'research_business',
-            payload: { businessId, campaignId },
+            payload: { businessId, campaignId, organizationId: orgId },
             idempotency_key: `research-${campaignId}-${businessId}`,
           });
         }
@@ -184,7 +192,9 @@ async function executeSingleJob(job: BackgroundJob, supabase: any): Promise<void
 
     case 'research_business': {
       const { businessId, campaignId } = payload;
-      const { data: business } = await supabase.from('businesses').select('*').eq('id', businessId).single();
+      let query = supabase.from('businesses').select('*').eq('id', businessId);
+      if (orgId) query = query.eq('organization_id', orgId);
+      const { data: business } = await query.single();
       if (!business) return;
 
       if (!business.official_website_url) {
@@ -231,8 +241,9 @@ async function executeSingleJob(job: BackgroundJob, supabase: any): Promise<void
 
       // Next step: Score lead
       await supabase.from('background_jobs').insert({
+        organization_id: orgId,
         job_type: 'score_lead',
-        payload: { businessId, campaignId },
+        payload: { businessId, campaignId, organizationId: orgId },
         idempotency_key: `score-${campaignId}-${businessId}`,
       });
       break;
@@ -240,14 +251,18 @@ async function executeSingleJob(job: BackgroundJob, supabase: any): Promise<void
 
     case 'score_lead': {
       const { businessId, campaignId } = payload;
-      const { data: business } = await supabase.from('businesses').select('*').eq('id', businessId).single();
-      const { data: evidence } = await supabase.from('evidence_items').select('*').eq('id', businessId);
+      let bQuery = supabase.from('businesses').select('*').eq('id', businessId);
+      if (orgId) bQuery = bQuery.eq('organization_id', orgId);
+      const { data: business } = await bQuery.single();
+      if (!business) return;
+      const { data: evidence } = await supabase.from('evidence_items').select('*').eq('business_id', businessId);
       const { data: contact } = await supabase.from('contacts').select('*').eq('business_id', businessId).maybeSingle();
       const { data: suppressions } = await supabase.from('suppression_entries').select('*');
 
       const isSuppressed = checkSuppression(
         { email: contact?.email_address || business.general_business_email },
-        suppressions || []
+        suppressions || [],
+        orgId
       ).isSuppressed;
 
       const scoreResult = calculateLeadScore({
@@ -283,8 +298,9 @@ async function executeSingleJob(job: BackgroundJob, supabase: any): Promise<void
         // If qualified, generate draft
         if (scoreResult.qualificationStatus === 'qualified') {
           await supabase.from('background_jobs').insert({
+            organization_id: orgId,
             job_type: 'generate_draft',
-            payload: { businessId, campaignId },
+            payload: { businessId, campaignId, organizationId: orgId },
             idempotency_key: `draft-${campaignId}-${businessId}`,
           });
         }
@@ -294,11 +310,14 @@ async function executeSingleJob(job: BackgroundJob, supabase: any): Promise<void
 
     case 'generate_draft': {
       const { businessId, campaignId } = payload;
-      const { data: business } = await supabase.from('businesses').select('*').eq('id', businessId).single();
+      let bQuery = supabase.from('businesses').select('*').eq('id', businessId);
+      if (orgId) bQuery = bQuery.eq('organization_id', orgId);
+      const { data: business } = await bQuery.single();
+      if (!business) return;
       const { data: evidence } = await supabase.from('evidence_items').select('*').eq('business_id', businessId);
       const { data: contact } = await supabase.from('contacts').select('*').eq('business_id', businessId).maybeSingle();
 
-      const ai = await getDynamicAiProvider();
+      const ai = await getDynamicAiProvider(orgId);
       const draftOutput = await ai.createEmailDraft(
         { name: business.display_name, category: business.business_type, city: business.city },
         evidence || [],
@@ -306,6 +325,7 @@ async function executeSingleJob(job: BackgroundJob, supabase: any): Promise<void
       );
 
       await supabase.from('email_drafts').insert({
+        organization_id: orgId,
         business_id: businessId,
         contact_id: contact?.id || null,
         campaign_id: campaignId || null,
@@ -325,7 +345,9 @@ async function executeSingleJob(job: BackgroundJob, supabase: any): Promise<void
 
     case 'send_email': {
       const { messageId } = payload;
-      const { data: message } = await supabase.from('outreach_messages').select('*').eq('id', messageId).single();
+      let msgQuery = supabase.from('outreach_messages').select('*').eq('id', messageId);
+      if (orgId) msgQuery = msgQuery.eq('organization_id', orgId);
+      const { data: message } = await msgQuery.single();
       if (!message || message.status !== 'queued') return;
 
       const { data: draft } = await supabase.from('email_drafts').select('*').eq('id', message.draft_id).single();
@@ -347,7 +369,7 @@ async function executeSingleJob(job: BackgroundJob, supabase: any): Promise<void
       const recipientEmail = contact?.email_address;
       if (!recipientEmail) throw new Error('Outreach blocked: Contact has no email address');
 
-      const isSuppressed = checkSuppression({ email: recipientEmail }, suppressions || []).isSuppressed;
+      const isSuppressed = checkSuppression({ email: recipientEmail }, suppressions || [], orgId).isSuppressed;
       if (isSuppressed) {
         await supabase.from('outreach_messages').update({ status: 'cancelled', failure_code: 'CONTACT_SUPPRESSED' }).eq('id', messageId);
         return;
@@ -356,11 +378,17 @@ async function executeSingleJob(job: BackgroundJob, supabase: any): Promise<void
       // Mark sending
       await supabase.from('outreach_messages').update({ status: 'sending', attempted_at: new Date().toISOString() }).eq('id', messageId);
 
-      // Retrieve credentials (prefer SMTP App Password, fallback to OAuth)
+      // Require organizationId for credential scoping - fail closed
+      if (!orgId) {
+        throw new Error('Outreach blocked: Missing organization context for email dispatch');
+      }
+
+      // Retrieve credentials scoped strictly to this organization
       const { data: smtpCreds } = await supabase
         .from('oauth_credentials')
         .select('*')
         .eq('provider', 'smtp_app_password')
+        .eq('organization_id', orgId)
         .maybeSingle();
 
       let emailProvider;
@@ -379,13 +407,19 @@ async function executeSingleJob(job: BackgroundJob, supabase: any): Promise<void
           .from('oauth_credentials')
           .select('*')
           .eq('provider', 'google')
+          .eq('organization_id', orgId)
           .maybeSingle();
 
         if (oauthCreds?.encrypted_refresh_token) {
           const refreshToken = decryptSecret(oauthCreds.encrypted_refresh_token);
           emailProvider = getEmailProvider({ refreshToken });
         } else {
-          emailProvider = getEmailProvider();
+          // Fallback to mock only if mock provider is explicitly configured
+          if (process.env.NODE_ENV === 'test' || process.env.EMAIL_PROVIDER === 'mock') {
+            emailProvider = getEmailProvider();
+          } else {
+            throw new Error(`Outreach blocked: No email provider credentials configured for organization ${orgId}`);
+          }
         }
       }
 
@@ -433,6 +467,48 @@ async function executeSingleJob(job: BackgroundJob, supabase: any): Promise<void
             failure_detail: sendResult.error,
           })
           .eq('id', messageId);
+      }
+      break;
+    }
+
+    case 'csv_email_dispatch': {
+      const {
+        recipientEmail,
+        personalizedSubject,
+        personalizedBodyText,
+        personalizedBodyHtml,
+        idempotencyKey,
+      } = payload;
+
+      if (!recipientEmail || !recipientEmail.includes('@')) {
+        throw new Error('CSV dispatch rejected: Invalid recipient email address');
+      }
+
+      if (!orgId) {
+        throw new Error('CSV dispatch rejected: Missing organization context');
+      }
+
+      // 1. Check suppression immediately before queued dispatch
+      const { data: suppressions } = await supabase.from('suppression_entries').select('*');
+      const isSuppressed = checkSuppression({ email: recipientEmail }, suppressions || [], orgId).isSuppressed;
+      if (isSuppressed) {
+        // Suppressed: mark complete without sending to protect sender reputation
+        return;
+      }
+
+      // 2. Dispatch email using organization-scoped credentials
+      const result = await sendEmailWithSafetyChecks({
+        to: recipientEmail,
+        subject: personalizedSubject,
+        bodyText: personalizedBodyText,
+        bodyHtml: personalizedBodyHtml,
+        organizationId: orgId,
+        idempotencyKey,
+        isTestSend: false,
+      });
+
+      if (!result.success && !result.suppressed) {
+        throw new Error(`CSV email send failed: ${result.error || 'Unknown dispatch error'}`);
       }
       break;
     }

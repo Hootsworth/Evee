@@ -1,9 +1,9 @@
-// Evee - Google OAuth Callback Route
-// Exchanges code for refresh token, encrypts token at rest with AES-256-GCM, stores in oauth_credentials
-
+// Evee - Google OAuth Callback Route (Tenant-Isolated)
+// Exchanges code for refresh token, encrypts token at rest with AES-256-GCM, stores in oauth_credentials scoped by organization
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { encryptSecret } from '@/lib/compliance/encryption';
+import { getUserContext } from '@/lib/auth/context';
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
@@ -14,6 +14,12 @@ export async function GET(req: NextRequest) {
 
   if (error || !code) {
     return NextResponse.redirect(`${appUrl}/settings?error=${encodeURIComponent(error || 'missing_code')}`);
+  }
+
+  // Resolve authenticated user and organization
+  const userCtx = await getUserContext(req);
+  if (!userCtx || !userCtx.organizationId) {
+    return NextResponse.redirect(`${appUrl}/auth?error=${encodeURIComponent('unauthenticated_oauth_flow')}`);
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -34,7 +40,6 @@ export async function GET(req: NextRequest) {
     });
 
     if (!tokenRes.ok) {
-      const err = await tokenRes.text();
       return NextResponse.redirect(`${appUrl}/settings?error=${encodeURIComponent('token_exchange_failed')}`);
     }
 
@@ -59,12 +64,13 @@ export async function GET(req: NextRequest) {
       const encryptedRefresh = encryptSecret(refresh_token);
       await admin.from('oauth_credentials').upsert(
         {
+          organization_id: userCtx.organizationId,
           provider: 'google',
           account_email: userEmail,
           encrypted_refresh_token: encryptedRefresh,
           scopes: ['https://www.googleapis.com/auth/gmail.send'],
         },
-        { onConflict: 'provider' }
+        { onConflict: 'organization_id,provider' }
       );
     }
 

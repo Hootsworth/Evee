@@ -1,6 +1,7 @@
 // Evee - Send Verification Test Email to Operator
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getUserContext } from '@/lib/auth/context';
+import { assertAuthenticated, assertAuthorized } from '@/lib/auth/rbac';
 import { replaceTemplateVariables } from '@/lib/csv/parser';
 import { sendEmailWithSafetyChecks } from '@/lib/providers/email/sender';
 import {
@@ -10,14 +11,15 @@ import {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: authData } = await supabase.auth.getUser();
+    const userCtx = await getUserContext();
+    assertAuthenticated(userCtx);
+    assertAuthorized(userCtx, 'operator');
 
     const body = await req.json();
     const { template, sampleProspect, mapping, recipientOverride } = body;
 
-    // Operator email priority: override -> authenticated user email -> configured fallback
-    const operatorEmail = recipientOverride || authData?.user?.email;
+    // Operator email priority: override -> authenticated user email
+    const operatorEmail = recipientOverride || userCtx.email;
 
     if (!operatorEmail) {
       return NextResponse.json(
@@ -67,6 +69,7 @@ export async function POST(req: NextRequest) {
       bodyText: personalizedBodyText,
       bodyHtml: template.bodyHtml ? `<div style="background:#fef2f2;border:1px solid #fecdd3;padding:12px;margin-bottom:16px;border-radius:6px;font-family:sans-serif;font-size:12px;color:#991b1b;"><strong>⚠️ [EVEE AI TEST EMAIL PREVIEW]</strong><br/>Dispatched to verify formatting before bulk broadcast.<br/><strong>AI Detected Type:</strong> ${detectedType}</div>${replaceTemplateVariables(template.bodyHtml, enrichedSample, mapping)}` : undefined,
       isTestSend: true,
+      organizationId: userCtx.organizationId,
     });
 
     if (result.success) {
@@ -91,6 +94,7 @@ export async function POST(req: NextRequest) {
       );
     }
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
+    const status = err.statusCode || (err.message?.includes('Unauthenticated') ? 401 : 500);
+    return NextResponse.json({ error: err.message || 'Server error' }, { status });
   }
 }

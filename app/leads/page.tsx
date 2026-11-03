@@ -901,9 +901,9 @@ export default function LeadsPage() {
       <div className="brand-gradient-h w-full" />
 
       {/* Hero Band: Together AI style Canvas Dark (#010120) */}
-      <section className="bg-[#010120] text-white border-b border-white/[0.08] px-6 py-12 sm:py-16 relative overflow-hidden v2-grid-bg">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
-          <div>
+      <section className="bg-[#010120] text-white border-b border-white/[0.08] px-6 py-10 sm:py-14 relative overflow-hidden v2-grid-bg">
+        <div className="max-w-7xl mx-auto flex flex-col xl:flex-row xl:items-end justify-between gap-6 relative z-10">
+          <div className="max-w-xl">
             <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-2">
               <span>PROSPECT INTELLIGENCE & DISPATCH</span>
               <span>•</span>
@@ -914,85 +914,87 @@ export default function LeadsPage() {
             <h1 className="text-3xl sm:text-4xl font-medium tracking-tight text-white">
               Lead Explorer
             </h1>
-            <p className="text-sm text-[#959494] mt-2 max-w-xl font-normal leading-relaxed">
+            <p className="text-sm text-[#959494] mt-2 font-normal leading-relaxed">
               Deduplicated small business directory with multi-tier contact extraction, Free Gemini 1.5 Flash inference, and live email outreach execution.
             </p>
           </div>
 
-          {/* Action CTAs: Button-primary (Solid Black/White), Button-outline (Hairline), Button-secondary-mint */}
-          <div className="flex flex-wrap items-center gap-2.5">
+          {/* Action CTAs: 5 Core Workflow Actions in a Single Sleek Row */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 shrink-0">
+            {/* 1. Import CSV */}
             <button
               onClick={() => {
                 setShowCsvModal(true);
                 setImportResult(null);
               }}
-              className="mono-btn bg-[#313641] hover:bg-[#3d4352] text-white border border-white/[0.12] px-4 py-2 rounded-[4px] text-xs font-mono font-medium uppercase tracking-[0.05em] transition flex items-center space-x-2"
+              title="Import prospects from CSV spreadsheet"
+              className="mono-btn h-9 bg-[#313641] hover:bg-[#3d4352] text-white border border-white/[0.12] px-3.5 rounded-[4px] text-xs font-mono font-medium tracking-tight transition flex items-center space-x-2 whitespace-nowrap shadow-sm"
             >
               <UploadCloud className="w-3.5 h-3.5 text-[#bdbbff]" />
-              <span>IMPORT CSV</span>
+              <span>Import CSV</span>
             </button>
 
+            {/* 2. Enrich */}
             <button
               onClick={() => handleBulkEnrich()}
               disabled={bulkEnriching || missingEmailCount === 0}
-              className="mono-btn bg-[#c8f6f9] hover:bg-[#b2f0f4] text-[#010120] px-4 py-2 rounded-[4px] text-xs font-mono font-medium uppercase tracking-[0.05em] transition flex items-center space-x-2 disabled:opacity-50"
+              title={
+                bulkEnriching
+                  ? 'Enriching in progress...'
+                  : missingEmailCount > 0
+                  ? `AI enrich ${missingEmailCount} leads missing emails`
+                  : 'All active leads are enriched'
+              }
+              className="mono-btn h-9 bg-[#c8f6f9] hover:bg-[#b2f0f4] text-[#010120] px-3.5 rounded-[4px] text-xs font-mono font-medium tracking-tight transition flex items-center space-x-2 whitespace-nowrap shadow-sm disabled:opacity-50"
             >
               <Sparkles className={`w-3.5 h-3.5 ${bulkEnriching ? 'animate-spin' : ''}`} />
-              <span>
-                {bulkEnriching
-                  ? 'ENRICHING...'
-                  : missingEmailCount > 0
-                  ? `ENRICH (${missingEmailCount})`
-                  : 'ALL ENRICHED'}
-              </span>
+              <span>{bulkEnriching ? 'Enriching...' : 'Enrich'}</span>
+              {missingEmailCount > 0 && !bulkEnriching && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-[#010120]/15 text-[#010120] font-semibold">
+                  {missingEmailCount}
+                </span>
+              )}
             </button>
 
-            {missingEmailCount > 0 && (
-              <button
-                onClick={handleArchiveAllMissingEmail}
-                disabled={archiving}
-                title="Archive active leads that don't have an email address"
-                className="mono-btn bg-[#313641] hover:bg-[#3d4352] text-white border border-white/[0.12] px-3.5 py-2 rounded-[4px] text-xs font-mono font-medium uppercase tracking-[0.05em] transition flex items-center space-x-2 disabled:opacity-50"
-              >
-                <Archive className={`w-3.5 h-3.5 text-[#ef2cc1] ${archiving ? 'animate-spin' : ''}`} />
-                <span>ARCHIVE NO-EMAIL ({missingEmailCount})</span>
-              </button>
-            )}
-
+            {/* 3. Deduplicate */}
             <button
               onClick={() => setShowDuplicatesModal(true)}
-              className={`mono-btn px-3.5 py-2 rounded-[4px] text-xs font-mono font-medium uppercase tracking-[0.05em] transition flex items-center space-x-2 border ${
+              title="Identify and delete duplicate leads & redundant contacts"
+              className={`mono-btn h-9 px-3.5 rounded-[4px] text-xs font-mono font-medium tracking-tight transition flex items-center space-x-2 whitespace-nowrap border shadow-sm ${
                 totalDuplicateLeadsCount > 0
                   ? 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/30'
                   : 'bg-[#313641] hover:bg-[#3d4352] text-white border-white/[0.12]'
               }`}
-              title="Identify and delete duplicate leads & redundant contacts"
             >
               <CopyX className="w-3.5 h-3.5 text-amber-400" />
-              <span>
-                {totalDuplicateLeadsCount > 0
-                  ? `DUPLICATES (${totalDuplicateLeadsCount})`
-                  : 'DEDUPLICATE'}
-              </span>
+              <span>Deduplicate</span>
+              {totalDuplicateLeadsCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-500/25 text-amber-300 font-semibold border border-amber-500/30">
+                  {totalDuplicateLeadsCount}
+                </span>
+              )}
             </button>
 
+            {/* 4. Audit Emails */}
             <button
               onClick={() => setShowEmailAuditModal(true)}
-              className={`mono-btn px-3.5 py-2 rounded-[4px] text-xs font-mono font-medium uppercase tracking-[0.05em] transition flex items-center space-x-2 border ${
+              title="AI detect and clean fake emails, proxies, and social handles"
+              className={`mono-btn h-9 px-3.5 rounded-[4px] text-xs font-mono font-medium tracking-tight transition flex items-center space-x-2 whitespace-nowrap border shadow-sm ${
                 totalFlaggedEmailsCount > 0
                   ? 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border-rose-500/30'
                   : 'bg-[#313641] hover:bg-[#3d4352] text-white border-white/[0.12]'
               }`}
-              title="AI detect and archive fake emails, non-emails, aggregator proxies (@swiggy.com, @redirect.foursquare.com), and @instagram.com"
             >
               <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-              <span>
-                {totalFlaggedEmailsCount > 0
-                  ? `CLEAN FAKE EMAILS (${totalFlaggedEmailsCount})`
-                  : 'AI EMAIL AUDIT'}
-              </span>
+              <span>Audit Emails</span>
+              {totalFlaggedEmailsCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-rose-500/25 text-rose-300 font-semibold border border-rose-500/30">
+                  {totalFlaggedEmailsCount}
+                </span>
+              )}
             </button>
 
+            {/* 5. Start Outreach */}
             <button
               onClick={() => {
                 if (selectedIds.size === 0) {
@@ -1007,10 +1009,16 @@ export default function LeadsPage() {
                 setDispatchResults([]);
                 setShowOutreachModal(true);
               }}
-              className="mono-btn bg-white hover:bg-[#ebebeb] text-[#010120] px-5 py-2 rounded-[4px] text-xs font-mono font-medium uppercase tracking-[0.05em] transition flex items-center space-x-2"
+              title="Launch unified direct outreach campaign"
+              className="mono-btn h-9 bg-white hover:bg-[#ebebeb] text-[#010120] px-4 rounded-[4px] text-xs font-mono font-semibold tracking-tight transition flex items-center space-x-2 whitespace-nowrap shadow-sm"
             >
               <Send className="w-3.5 h-3.5 text-[#010120]" />
-              <span>{selectedIds.size > 0 ? `START OUTREACH (${selectedIds.size})` : 'START OUTREACH'}</span>
+              <span>Start Outreach</span>
+              {selectedIds.size > 0 && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-[#010120]/15 text-[#010120] font-bold">
+                  {selectedIds.size}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -1083,6 +1091,29 @@ export default function LeadsPage() {
             ))}
           </div>
         </div>
+
+        {/* Missing Email Banner when viewing No Email */}
+        {statusFilter === 'missing_email' && (
+          <div className="mb-6 p-4 rounded-[4px] border border-pink-500/30 bg-pink-500/10 text-pink-800 dark:text-pink-300 font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-2.5">
+              <Archive className="w-4 h-4 text-pink-500 shrink-0" />
+              <div>
+                <span className="font-semibold">Showing {missingEmailCount} active leads without an email address.</span>
+                <span className="text-[11px] opacity-80 block sm:inline sm:ml-2">Enrich them with AI or archive them to keep your outreach list clean.</span>
+              </div>
+            </div>
+            {missingEmailCount > 0 && (
+              <button
+                onClick={handleArchiveAllMissingEmail}
+                disabled={archiving}
+                className="mono-btn bg-pink-600 hover:bg-pink-700 text-white px-3.5 py-1.5 rounded-[4px] text-xs font-mono uppercase tracking-wider whitespace-nowrap disabled:opacity-50 flex items-center space-x-2 shrink-0"
+              >
+                <Archive className={`w-3.5 h-3.5 ${archiving ? 'animate-spin' : ''}`} />
+                <span>{archiving ? 'Archiving...' : `Archive All No-Email (${missingEmailCount})`}</span>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Flagged Email Banner when viewing Flagged Emails */}
         {statusFilter === 'flagged_emails' && (

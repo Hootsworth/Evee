@@ -1,19 +1,25 @@
-// Evee - AI Provider Factory with Dynamic Database Key Retrieval
+// Evee - AI Provider Factory with Organization-Scoped Database Key Retrieval
 import { ResearchProvider, DraftProvider } from './interface';
 import { MultiLlmProvider } from './multi-llm';
 import { MockAiProvider } from './mock';
 import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
 import { decryptSecret } from '@/lib/compliance/encryption';
 
-export async function getDynamicAiProvider(): Promise<ResearchProvider & DraftProvider> {
-  if (isSupabaseConfigured()) {
+export async function getDynamicAiProvider(organizationId?: string | null): Promise<ResearchProvider & DraftProvider> {
+  // If organizationId is provided, query strictly within this organization (or global fallback)
+  if (organizationId && isSupabaseConfigured()) {
     try {
       const admin = createAdminClient();
-      const { data: record } = await admin
+      const { data: records } = await admin
         .from('oauth_credentials')
         .select('*')
         .eq('provider', 'ai_provider_config')
-        .maybeSingle();
+        .or(`organization_id.eq.${organizationId},organization_id.is.null`);
+
+      // Strictly match tenant's own record first, then null global default; NEVER return another tenant's record
+      const record =
+        records?.find((r) => r.organization_id === organizationId) ||
+        records?.find((r) => r.organization_id === null);
 
       if (record && record.encrypted_access_token) {
         const apiKey = decryptSecret(record.encrypted_access_token);

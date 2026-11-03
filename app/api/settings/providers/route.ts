@@ -1,10 +1,12 @@
 // Evee - Dynamic Settings API Endpoint
-// Manages local server-stored provider credentials (AI Keys, SMTP App Passwords, Google Places)
+// Manages organization-scoped provider credentials (AI Keys, SMTP App Passwords, Google Places)
 // Automatically encrypts sensitive API keys at rest using AES-256-GCM
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
 import { encryptSecret, decryptSecret } from '@/lib/compliance/encryption';
+import { getUserContext } from '@/lib/auth/context';
+import { assertAuthenticated, assertAuthorized } from '@/lib/auth/rbac';
 
 // In-memory fallback settings store for mock/sandbox runs
 const inMemorySettings: Record<string, any> = {
@@ -20,42 +22,66 @@ const inMemorySettings: Record<string, any> = {
 };
 
 export async function GET() {
-  const summary: Record<string, any> = { ...inMemorySettings };
+  try {
+    const userCtx = await getUserContext();
+    assertAuthenticated(userCtx);
 
-  if (isSupabaseConfigured()) {
-    try {
-      const admin = createAdminClient();
-      const { data: creds } = await admin.from('oauth_credentials').select('*');
+    const summary: Record<string, any> = { ...inMemorySettings };
 
-      for (const c of creds || []) {
-        if (c.provider === 'smtp_app_password') {
-          summary.smtpConfigured = true;
-          summary.smtpUser = c.account_email;
-        } else if (c.provider === 'ai_provider_config') {
-          const meta = c.scopes as any;
-          summary.aiProvider = meta?.provider || 'gemini';
-          summary.aiModel = meta?.model || 'gemini-1.5-flash';
-          summary.aiBaseUrl = meta?.baseUrl || '';
-          summary.aiKeyConfigured = Boolean(c.encrypted_access_token);
-        } else if (c.provider === 'google_places_config') {
-          summary.discoveryKeyConfigured = Boolean(c.encrypted_access_token);
-        } else if (c.provider === 'explorium_config' || c.provider === 'enrichment_config') {
-          summary.enrichmentKeyConfigured = Boolean(c.encrypted_access_token);
-          const meta = c.scopes as any;
-          if (meta?.provider) summary.enrichmentProvider = meta.provider;
+    if (isSupabaseConfigured()) {
+      try {
+        const admin = createAdminClient();
+        let query = admin.from('oauth_credentials').select('*');
+
+        if (userCtx.organizationId) {
+          query = query.or(`organization_id.eq.${userCtx.organizationId},organization_id.is.null`);
         }
-      }
-    } catch {
-      // Return memory summary
-    }
-  }
 
-  return NextResponse.json({ settings: summary });
+        const { data: creds } = await query;
+
+        for (const c of creds || []) {
+          // If entry is from another organization, ignore
+          if (userCtx.organizationId && c.organization_id && c.organization_id !== userCtx.organizationId) {
+            continue;
+          }
+
+          if (c.provider === 'smtp_app_password') {
+            summary.smtpConfigured = true;
+            summary.smtpUser = c.account_email;
+          } else if (c.provider === 'ai_provider_config') {
+            const meta = c.scopes as any;
+            summary.aiProvider = meta?.provider || 'gemini';
+            summary.aiModel = meta?.model || 'gemini-1.5-flash';
+            summary.aiBaseUrl = meta?.baseUrl || '';
+            summary.aiKeyConfigured = Boolean(c.encrypted_access_token);
+          } else if (c.provider === 'google_places_config') {
+            summary.discoveryKeyConfigured = Boolean(c.encrypted_access_token);
+          } else if (c.provider === 'explorium_config' || c.provider === 'enrichment_config') {
+            summary.enrichmentKeyConfigured = Boolean(c.encrypted_access_token);
+            const meta = c.scopes as any;
+            if (meta?.provider) summary.enrichmentProvider = meta.provider;
+          }
+        }
+      } catch {
+        // Return memory summary fallback
+      }
+    }
+
+    return NextResponse.json({ settings: summary });
+  } catch (err: any) {
+    const status = err.statusCode || (err.message.includes('Unauthenticated') ? 401 : 500);
+    return NextResponse.json({ error: err.message }, { status });
+  }
 }
 
 export async function POST(req: NextRequest) {
   try {
+    const userCtx = await getUserContext();
+    assertAuthenticated(userCtx);
+    assertAuthorized(userCtx, 'admin');
+
     const body = await req.json();
+    const orgId = userCtx.organizationId;
 
     // 1. Save SMTP App Password
     if (body.smtpEmail) {
@@ -68,15 +94,18 @@ export async function POST(req: NextRequest) {
           const encryptedPass = encryptSecret(body.smtpAppPassword);
           await admin.from('oauth_credentials').upsert(
             {
+              organization_id: orgId,
               provider: 'smtp_app_password',
               account_email: body.smtpEmail.trim(),
               encrypted_refresh_token: encryptedPass,
               encrypted_access_token: body.smtpHost || 'smtp.gmail.com',
               scopes: [String(body.smtpPort || 465)],
             },
-            { onConflict: 'provider' }
+            { onConflict: 'organization_id,provider' }
           );
-        } catch {}
+        } catch (err) {
+          console.warn('Failed to save SMTP credentials:', err);
+        }
       }
     }
 
@@ -94,16 +123,21 @@ export async function POST(req: NextRequest) {
           if (body.aiApiKey) {
             encryptedKey = encryptSecret(body.aiApiKey.trim());
           } else {
-            const { data: existing } = await admin
+            let existingQuery = admin
               .from('oauth_credentials')
               .select('encrypted_access_token')
-              .eq('provider', 'ai_provider_config')
-              .maybeSingle();
+              .eq('provider', 'ai_provider_config');
+
+            if (orgId) {
+              existingQuery = existingQuery.eq('organization_id', orgId);
+            }
+            const { data: existing } = await existingQuery.maybeSingle();
             encryptedKey = existing?.encrypted_access_token || null;
           }
 
           await admin.from('oauth_credentials').upsert(
             {
+              organization_id: orgId,
               provider: 'ai_provider_config',
               account_email: body.aiProvider,
               encrypted_refresh_token: 'active',
@@ -114,9 +148,11 @@ export async function POST(req: NextRequest) {
                 baseUrl: body.aiBaseUrl || undefined,
               } as any,
             },
-            { onConflict: 'provider' }
+            { onConflict: 'organization_id,provider' }
           );
-        } catch {}
+        } catch (err) {
+          console.warn('Failed to save AI credentials:', err);
+        }
       }
     }
 
@@ -129,15 +165,18 @@ export async function POST(req: NextRequest) {
           const encryptedKey = encryptSecret(body.placesApiKey.trim());
           await admin.from('oauth_credentials').upsert(
             {
+              organization_id: orgId,
               provider: 'google_places_config',
               account_email: 'google_places',
               encrypted_refresh_token: 'active',
               encrypted_access_token: encryptedKey,
               scopes: ['places.searchText'],
             },
-            { onConflict: 'provider' }
+            { onConflict: 'organization_id,provider' }
           );
-        } catch {}
+        } catch (err) {
+          console.warn('Failed to save Places credentials:', err);
+        }
       }
     }
 
@@ -154,31 +193,38 @@ export async function POST(req: NextRequest) {
           if (rawKey && rawKey.trim()) {
             encryptedKey = encryptSecret(rawKey.trim());
           } else {
-            const { data: existing } = await admin
+            let existingQuery = admin
               .from('oauth_credentials')
               .select('encrypted_access_token')
-              .eq('provider', 'explorium_config')
-              .maybeSingle();
+              .eq('provider', 'explorium_config');
+
+            if (orgId) {
+              existingQuery = existingQuery.eq('organization_id', orgId);
+            }
+            const { data: existing } = await existingQuery.maybeSingle();
             encryptedKey = existing?.encrypted_access_token || null;
           }
 
           await admin.from('oauth_credentials').upsert(
             {
+              organization_id: orgId,
               provider: 'explorium_config',
               account_email: 'explorium_enrichment',
               encrypted_refresh_token: 'active',
               encrypted_access_token: encryptedKey,
               scopes: { provider: body.enrichmentProvider || 'built_in' } as any,
             },
-            { onConflict: 'provider' }
+            { onConflict: 'organization_id,provider' }
           );
-        } catch {}
+        } catch (err) {
+          console.warn('Failed to save enrichment credentials:', err);
+        }
       }
     }
 
     return NextResponse.json({ success: true, message: 'Settings saved and encrypted.' });
-  } catch (err: unknown) {
-    const error = err as Error;
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (err: any) {
+    const status = err.statusCode || (err.message.includes('Unauthenticated') ? 401 : err.message.includes('Unauthorized') ? 403 : 500);
+    return NextResponse.json({ error: err.message }, { status });
   }
 }
