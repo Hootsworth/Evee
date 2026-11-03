@@ -900,22 +900,22 @@ export default function LeadsPage() {
       {/* Brand 3-Color Ribbon Accent (DESIGN.md) */}
       <div className="brand-gradient-h w-full" />
 
-      {/* Hero Band: Together AI style Canvas Dark (#010120) */}
-      <section className="bg-[#010120] text-white border-b border-white/[0.08] px-6 py-10 sm:py-14 relative overflow-hidden v2-grid-bg">
+      {/* Hero Band: deep green page header */}
+      <section className="bg-[#28352d] text-white border-b border-white/[0.08] px-6 py-10 sm:py-14 relative overflow-hidden ui-grid-bg">
         <div className="max-w-7xl mx-auto flex flex-col xl:flex-row xl:items-end justify-between gap-6 relative z-10">
           <div className="max-w-xl">
             <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-2">
-              <span>PROSPECT INTELLIGENCE & DISPATCH</span>
+              <span>Prospect directory</span>
               <span>•</span>
-              <span className="v2-badge text-emerald-400 bg-emerald-500/10 border-emerald-500/20">
+              <span className="ui-badge text-emerald-400 bg-emerald-500/10 border-emerald-500/20">
                 EVEE AI DIRECTORY
               </span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-medium tracking-tight text-white">
-              Lead Explorer
+              Leads
             </h1>
             <p className="text-sm text-[#959494] mt-2 font-normal leading-relaxed">
-              Deduplicated small business directory with multi-tier contact extraction, Free Gemini 1.5 Flash inference, and live email outreach execution.
+              Search, organize, and enrich your prospect list. Review contact details and manage outreach from one place.
             </p>
           </div>
 
@@ -930,7 +930,7 @@ export default function LeadsPage() {
               title="Import prospects from CSV spreadsheet"
               className="mono-btn h-9 bg-[#313641] hover:bg-[#3d4352] text-white border border-white/[0.12] px-3.5 rounded-[4px] text-xs font-mono font-medium tracking-tight transition flex items-center space-x-2 whitespace-nowrap shadow-sm"
             >
-              <UploadCloud className="w-3.5 h-3.5 text-[#bdbbff]" />
+              <UploadCloud className="w-3.5 h-3.5 text-[#bdc8b5]" />
               <span>Import CSV</span>
             </button>
 
@@ -1153,7 +1153,7 @@ export default function LeadsPage() {
           </div>
         )}
 
-        {/* Lead Table / List: Canonical Together AI data-table style */}
+        {/* Lead Table / List: lead table style */}
         {loading ? (
           <div className="py-20 text-center font-mono text-xs text-[#959494]">Loading discovered leads...</div>
         ) : filtered.length === 0 ? (
@@ -1373,7 +1373,7 @@ export default function LeadsPage() {
 
       {/* Floating Action Bar when Leads are selected (DESIGN.md Level 3 Elevation) */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#010120] text-white border border-white/[0.16] rounded-[4px] px-5 py-3 shadow-2xl flex items-center space-x-4 animate-in fade-in slide-in-from-bottom-4">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#28352d] text-white border border-white/[0.16] rounded-[4px] px-5 py-3 shadow-2xl flex items-center space-x-4 animate-in fade-in slide-in-from-bottom-4">
           <div className="font-mono text-xs flex items-center space-x-2">
             <span>
               <strong>{selectedIds.size}</strong> {selectedIds.size === 1 ? 'LEAD' : 'LEADS'} SELECTED
@@ -1388,7 +1388,7 @@ export default function LeadsPage() {
               disabled={bulkEnriching}
               className="mono-btn bg-[#313641] hover:bg-[#3d4352] text-white border border-white/[0.12] px-3 py-1.5 rounded-[4px] text-xs font-mono font-medium uppercase tracking-wider flex items-center space-x-1.5 transition disabled:opacity-50"
             >
-              <Sparkles className="w-3 h-3 text-[#bdbbff]" />
+              <Sparkles className="w-3 h-3 text-[#bdc8b5]" />
               <span>ENRICH ({selectedMissingEmail.length})</span>
             </button>
           )}
@@ -1408,7 +1408,7 @@ export default function LeadsPage() {
               disabled={archiving}
               className="mono-btn bg-[#313641] hover:bg-rose-950/40 text-rose-300 border border-rose-500/30 px-3 py-1.5 rounded-[4px] text-xs font-mono font-medium uppercase tracking-wider flex items-center space-x-1.5 transition disabled:opacity-50"
             >
-              <Archive className="w-3 h-3 text-[#ef2cc1]" />
+              <Archive className="w-3 h-3 text-[#71866e]" />
               <span>ARCHIVE ({selectedIds.size})</span>
             </button>
           )}
@@ -1457,11 +1457,11 @@ export default function LeadsPage() {
               <div>
                 <div className="flex items-center gap-2 text-[10px] font-mono tracking-wider uppercase mb-1 whitespace-nowrap">
                   <span className="inline-flex items-center gap-1 text-[#959494] font-medium">
-                    <Send className="w-2.5 h-2.5 text-[#ef2cc1]" />
+                    <Send className="w-2.5 h-2.5 text-[#71866e]" />
                     OUTREACH PIPELINE
                   </span>
                   <span className="text-[#959494]/40">•</span>
-                  <span className="inline-flex items-center gap-1 text-[#ef2cc1] font-semibold">
+                  <span className="inline-flex items-center gap-1 text-[#71866e] font-semibold">
                     <Sparkles className="w-2.5 h-2.5" />
                     AI ENGINE
                   </span>
@@ -1508,7 +1508,7 @@ export default function LeadsPage() {
                   type="button"
                   onClick={handleOpenInFullCsvOutreach}
                   title="Open in Full-Screen CSV Outreach Page"
-                  className="mono-btn hidden md:inline-flex items-center gap-1 text-xs text-[#ef2cc1] hover:underline font-mono px-2 py-1 rounded hover:bg-[#ef2cc1]/10 transition whitespace-nowrap"
+                  className="mono-btn hidden md:inline-flex items-center gap-1 text-xs text-[#71866e] hover:underline font-mono px-2 py-1 rounded hover:bg-[#71866e]/10 transition whitespace-nowrap"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   <span>Full Page</span>
@@ -1574,12 +1574,12 @@ export default function LeadsPage() {
                   </div>
                 </div>
 
-                {/* Flat Technical AI Reasoning & Adaptation Bar (Together AI Aesthetic) */}
+                {/* Flat Technical AI Reasoning & Adaptation Bar (workspace style) */}
                 <div className="ai-flat-container overflow-hidden">
                   {/* Active Linear Scanner when Enriching, otherwise static 2px brand ribbon */}
                   {aiEnrichingModal ? (
                     <div className="w-full h-[2px] bg-neutral-200 dark:bg-white/[0.08] overflow-hidden relative">
-                      <div className="w-1/3 h-full bg-gradient-to-r from-[#fc4c02] via-[#ef2cc1] to-[#bdbbff] animate-flat-scan" />
+                      <div className="w-1/3 h-full bg-gradient-to-r from-[#fc4c02] via-[#71866e] to-[#bdc8b5] animate-flat-scan" />
                     </div>
                   ) : (
                     <div className="brand-gradient-h w-full" />
@@ -1589,7 +1589,7 @@ export default function LeadsPage() {
                     <div className="space-y-1.5 flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="mono-eyebrow text-[#959494] text-[10px] tracking-[0.55px] uppercase font-semibold flex items-center gap-1.5">
-                          <Sparkles className="w-3 h-3 text-[#ef2cc1]" />
+                          <Sparkles className="w-3 h-3 text-[#71866e]" />
                           AI REASONING & COPY ADAPTATION
                         </span>
                         {aiEnrichingModal && (
@@ -1614,7 +1614,7 @@ export default function LeadsPage() {
                           {activeRecipients.length} prospects
                         </span>
                         <span>•</span>
-                        <span className="inline-flex items-center gap-1 text-[#ef2cc1] font-semibold">
+                        <span className="inline-flex items-center gap-1 text-[#71866e] font-semibold">
                           <Cpu className="w-3 h-3" />
                           Deduces:
                         </span>
@@ -1655,7 +1655,7 @@ export default function LeadsPage() {
                           </>
                         ) : (
                           <>
-                            <Sparkles className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                            <Sparkles className="w-3.5 h-3.5 text-[#71866e]" />
                             <span>ENRICH ALL WITH AI</span>
                           </>
                         )}
@@ -1682,7 +1682,7 @@ export default function LeadsPage() {
                       <thead className="bg-[#f8fafc] dark:bg-[#313641]/30 border-b border-[#ebebeb] dark:border-white/[0.08] text-[#959494] sticky top-0 bg-opacity-95">
                         <tr>
                           <th className="py-2 px-3 whitespace-nowrap">#</th>
-                          <th className="py-2 px-3 text-[#ef2cc1] whitespace-nowrap">
+                          <th className="py-2 px-3 text-[#71866e] whitespace-nowrap">
                             <span className="inline-flex items-center gap-1">
                               <Sparkles className="w-3 h-3" />
                               AI TYPE
@@ -1720,7 +1720,7 @@ export default function LeadsPage() {
                             <td className="py-2 px-3 text-[#959494] whitespace-nowrap">{idx + 1}</td>
                             <td className="py-2 px-3 whitespace-nowrap">
                               <span className="ai-flat-pill animate-ios-swish text-[10px]">
-                                <span className="w-1 h-1 rounded-[1px] bg-[#ef2cc1]" />
+                                <span className="w-1 h-1 rounded-[1px] bg-[#71866e]" />
                                 <span>{row.ai_company_type || row.company_type || 'Commercial Enterprise'}</span>
                               </span>
                             </td>
@@ -1778,7 +1778,7 @@ export default function LeadsPage() {
                     <div className="flex items-center justify-between pb-3 border-b border-[#ebebeb] dark:border-white/[0.08]">
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <PenLine className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                          <PenLine className="w-3.5 h-3.5 text-[#71866e]" />
                           <h4 className="text-sm font-semibold text-black dark:text-white">
                             Compose Outreach Template
                           </h4>
@@ -1802,7 +1802,7 @@ export default function LeadsPage() {
                       <div className="p-3.5 space-y-2.5">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-1.5 text-black dark:text-white font-mono text-xs font-semibold">
-                            <Sparkles className="w-3 h-3 text-[#ef2cc1]" />
+                            <Sparkles className="w-3 h-3 text-[#71866e]" />
                             <span>AI ADAPTATION TOKENS</span>
                           </div>
                           <span className="text-[10px] font-mono text-[#959494] hidden sm:inline">
@@ -1822,10 +1822,10 @@ export default function LeadsPage() {
                               key={v.token}
                               type="button"
                               onClick={() => handleInsertVariable(v.token)}
-                              className="mono-btn text-[11px] font-mono px-2.5 py-1 rounded-[3px] bg-[#f8fafc] dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.12] text-black dark:text-white hover:border-[#ef2cc1] transition inline-flex items-center gap-1 whitespace-nowrap"
+                              className="mono-btn text-[11px] font-mono px-2.5 py-1 rounded-[3px] bg-[#f8fafc] dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.12] text-black dark:text-white hover:border-[#71866e] transition inline-flex items-center gap-1 whitespace-nowrap"
                               title={v.desc}
                             >
-                              <Sparkles className="w-2.5 h-2.5 text-[#ef2cc1]" />
+                              <Sparkles className="w-2.5 h-2.5 text-[#71866e]" />
                               <span>+{`{${v.token}}`}</span>
                             </button>
                           ))}
@@ -1934,7 +1934,7 @@ export default function LeadsPage() {
                   <div className="lg:col-span-5 bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-5 space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-[#ebebeb] dark:border-white/[0.08]">
                       <div className="flex items-center space-x-2">
-                        <Eye className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                        <Eye className="w-3.5 h-3.5 text-[#71866e]" />
                         <span className="mono-eyebrow text-black dark:text-white font-semibold text-[11px]">
                           LIVE PREVIEW
                         </span>
@@ -1965,7 +1965,7 @@ export default function LeadsPage() {
                       <div className="p-3.5 space-y-2">
                         <div className="flex items-center justify-between pb-2 border-b border-[#ebebeb] dark:border-white/[0.06]">
                           <div className="flex items-center space-x-1.5 text-black dark:text-white text-xs font-mono font-semibold">
-                            <Sparkles className="w-3 h-3 text-[#ef2cc1]" />
+                            <Sparkles className="w-3 h-3 text-[#71866e]" />
                             <span>AI PROFILE</span>
                           </div>
                           <span className="ai-flat-pill text-[9px] truncate max-w-[140px]">
@@ -1995,7 +1995,7 @@ export default function LeadsPage() {
                         {sampleCandidate.ai_personalized_pitch && (
                           <div className="pt-1.5 border-t border-[#ebebeb] dark:border-white/[0.06]">
                             <span className="text-[9px] font-mono uppercase text-[#959494] flex items-center gap-1">
-                              <Sparkles className="w-2.5 h-2.5 text-[#ef2cc1]" />
+                              <Sparkles className="w-2.5 h-2.5 text-[#71866e]" />
                               BESPOKE PITCH
                             </span>
                             <div className="text-[11px] font-mono text-black dark:text-white leading-snug mt-0.5">
@@ -2184,7 +2184,7 @@ export default function LeadsPage() {
                                 RECIPIENT
                               </span>
                             </th>
-                            <th className="py-2 px-3 text-[#ef2cc1] whitespace-nowrap">
+                            <th className="py-2 px-3 text-[#71866e] whitespace-nowrap">
                               <span className="flex items-center gap-1">
                                 <Sparkles className="w-3 h-3" />
                                 AI TYPE
@@ -2391,7 +2391,7 @@ export default function LeadsPage() {
                     {/* Auto-Enrich Toggle */}
                     <div className="p-3 bg-[#f8fafc] dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] flex items-center justify-between">
                       <div className="flex items-center space-x-2.5">
-                        <Sparkles className="w-4 h-4 text-[#bdbbff] shrink-0" />
+                        <Sparkles className="w-4 h-4 text-[#bdc8b5] shrink-0" />
                         <div>
                           <div className="text-xs font-mono text-[#000000] dark:text-white font-medium">
                             Auto-enrich missing emails on import
@@ -2451,7 +2451,7 @@ export default function LeadsPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08] gap-4">
               <div>
                 <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
-                  <span className="flex items-center gap-1 text-[#ef2cc1]">
+                  <span className="flex items-center gap-1 text-[#71866e]">
                     <Sparkles className="w-3 h-3" />
                     EVEE AI DEDUPLICATION ENGINE
                   </span>
@@ -2741,8 +2741,8 @@ export default function LeadsPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08] gap-4">
               <div>
                 <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
-                  <span className="flex items-center gap-1 text-[#ef2cc1]">
-                    <ShieldAlert className="w-3 h-3 text-[#ef2cc1]" />
+                  <span className="flex items-center gap-1 text-[#71866e]">
+                    <ShieldAlert className="w-3 h-3 text-[#71866e]" />
                     AI EMAIL QUALITY & DELIVERABILITY AUDIT
                   </span>
                   <span>•</span>
@@ -2946,7 +2946,7 @@ export default function LeadsPage() {
                               </div>
 
                               <div className="text-[11px] text-[#959494] mt-1 flex items-start gap-1.5">
-                                <Info className="w-3.5 h-3.5 text-[#ef2cc1] shrink-0 mt-0.5" />
+                                <Info className="w-3.5 h-3.5 text-[#71866e] shrink-0 mt-0.5" />
                                 <span>{item.flag.reason}</span>
                               </div>
                             </div>

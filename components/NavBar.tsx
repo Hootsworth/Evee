@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Logo from '@/components/Logo';
-import { LogOut, Plus, Moon, Sun, Cpu, Search } from 'lucide-react';
+import { LogOut, Plus, Moon, Sun, Search } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import QuickSearch from '@/components/QuickSearch';
 
@@ -57,15 +57,15 @@ export default function NavBar() {
   };
 
   const navItems = [
-    { label: 'DASHBOARD', href: '/' },
-    { label: 'CAMPAIGNS', href: '/campaigns' },
-    { label: 'LEADS', href: '/leads' },
+    { label: 'Overview', href: '/' },
+    { label: 'Campaigns', href: '/campaigns' },
+    { label: 'Leads', href: '/leads' },
     {
-      label: 'DRAFTS',
+      label: 'Drafts',
       href: '/drafts',
       badge: metrics?.pendingDrafts > 0 ? metrics.pendingDrafts : undefined,
     },
-    { label: 'SETTINGS', href: '/settings' },
+    { label: 'Settings', href: '/settings' },
   ];
 
   // Resolve user display name (fallback to email prefix or Operator)
@@ -76,21 +76,12 @@ export default function NavBar() {
     (user?.email ? user.email.split('@')[0] : 'Operator');
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 dark:bg-[#010120]/95 backdrop-blur-md border-b border-[#ebebeb] dark:border-white/[0.08] transition-colors duration-150">
-      {/* 2px Signature Together AI Brand Gradient Ribbon */}
-      <div className="brand-gradient-h w-full" />
-
-      <div className="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between">
+    <header className="sticky top-0 z-50 bg-[#f7f7f5]/95 dark:bg-[#171916]/95 backdrop-blur-md border-b border-[#e8e9e5] dark:border-white/[0.08] transition-colors duration-150">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 py-3 flex items-center justify-between gap-4">
         {/* Brand Logo & Clean Monospace Navigation */}
         <div className="flex items-center space-x-6">
           <div className="flex items-center space-x-2">
             <Logo height={26} showSubtitle={false} />
-            <span
-              title="Evee AI"
-              className="text-[10px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded-[2px] bg-black/5 dark:bg-white/10 text-black dark:text-white border border-[#ebebeb] dark:border-white/10"
-            >
-              AI
-            </span>
           </div>
 
           {/* Navigation Links with 4px border radius and mono caps */}
@@ -101,7 +92,7 @@ export default function NavBar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`mono-btn text-[11px] px-3 py-1.5 rounded-[4px] transition-all flex items-center space-x-1.5 ${
+                  className={`text-sm px-3 py-2 rounded-lg transition-all flex items-center space-x-1.5 ${
                     isActive
                       ? 'bg-black dark:bg-white text-white dark:text-black font-semibold'
                       : 'text-[#6b7280] dark:text-[#959494] hover:text-[#000000] dark:hover:text-white hover:bg-[#f3f4f6] dark:hover:bg-white/[0.06]'
@@ -112,7 +103,7 @@ export default function NavBar() {
                     <span
                       className={`ml-1 px-1.5 py-0.5 text-[9px] font-mono font-bold rounded-[3px] ${
                         isActive
-                          ? 'bg-[#ef2cc1] text-white'
+                          ? 'bg-[#71866e] text-white'
                           : 'bg-black dark:bg-white text-white dark:text-black'
                       }`}
                     >
@@ -130,10 +121,10 @@ export default function NavBar() {
           <button
             onClick={() => setSearchOpen(true)}
             className="flex items-center space-x-2 px-2.5 py-1.5 rounded-[4px] bg-[#f8fafc] dark:bg-white/[0.04] border border-[#ebebeb] dark:border-white/[0.08] text-[#959494] hover:text-black dark:hover:text-white transition text-[10px] font-mono cursor-pointer active:scale-95"
-            title="Search Leads & Campaigns (Press ⌘K)"
+            title="Search leads and campaigns (Press ⌘K)"
           >
-            <Search className="w-3 h-3 text-[#ef2cc1]" />
-            <span className="hidden sm:inline">QUICK FIND</span>
+            <Search className="w-3 h-3 text-[#71866e]" />
+            <span className="hidden sm:inline">Search</span>
             <kbd className="px-1 py-0.2 rounded-[2px] bg-black/5 dark:bg-white/10 text-[9px] font-mono">⌘K</kbd>
           </button>
 
@@ -154,10 +145,10 @@ export default function NavBar() {
           {/* Primary CTA: Solid black pill in 4px radius as per DESIGN.md */}
           <Link
             href="/campaigns"
-            className="mono-btn bg-black dark:bg-white hover:bg-neutral-800 dark:hover:bg-neutral-200 text-white dark:text-black px-3.5 py-1.5 rounded-[4px] text-[11px] font-semibold flex items-center space-x-1.5 transition active:scale-95"
+            className="bg-[#4f6653] hover:bg-[#405444] text-white px-3.5 py-2 rounded-lg text-sm font-medium flex items-center space-x-1.5 transition active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>NEW CAMPAIGN</span>
+            <span>New campaign</span>
           </Link>
 
           {user && (

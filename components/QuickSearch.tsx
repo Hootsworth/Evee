@@ -102,7 +102,7 @@ export default function QuickSearch({ isOpen, onClose }: QuickSearchProps) {
       >
         {/* Search Input Bar */}
         <div className="flex items-center px-4 py-3.5 border-b border-[#ebebeb] dark:border-white/10 space-x-3 bg-neutral-50/50 dark:bg-white/[0.02]">
-          <Search className="w-4 h-4 text-[#ef2cc1]" />
+          <Search className="w-4 h-4 text-[#71866e]" />
           <input
             ref={inputRef}
             type="text"
@@ -133,7 +133,7 @@ export default function QuickSearch({ isOpen, onClose }: QuickSearchProps) {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
                   { label: 'Leads Directory', href: '/leads' },
-                  { label: 'Campaigns Hub', href: '/campaigns' },
+                  { label: 'Campaigns', href: '/campaigns' },
                   { label: 'Email Drafts', href: '/drafts' },
                   { label: 'Settings', href: '/settings' },
                 ].map((item) => (
@@ -158,7 +158,7 @@ export default function QuickSearch({ isOpen, onClose }: QuickSearchProps) {
                   onClose();
                   router.push(`/leads?search=${encodeURIComponent(query)}`);
                 }}
-                className="mt-3 block mx-auto text-[#ef2cc1] underline hover:text-[#d019a5]"
+                className="mt-3 block mx-auto text-[#71866e] underline hover:text-[#d019a5]"
               >
                 Search all leads in Directory &rarr;
               </button>
@@ -212,7 +212,7 @@ export default function QuickSearch({ isOpen, onClose }: QuickSearchProps) {
                   </div>
                   <ArrowRight
                     className={`w-3.5 h-3.5 shrink-0 ${
-                      isSelected ? 'text-[#ef2cc1]' : 'text-neutral-300 dark:text-neutral-600'
+                      isSelected ? 'text-[#71866e]' : 'text-neutral-300 dark:text-neutral-600'
                     }`}
                   />
                 </div>
@@ -228,7 +228,7 @@ export default function QuickSearch({ isOpen, onClose }: QuickSearchProps) {
             <span>&crarr; to select</span>
             <span>ESC to close</span>
           </div>
-          <span className="text-[#ef2cc1]">Evee AI Quick Finder</span>
+          <span className="text-[#71866e]">Search</span>
         </div>
       </div>
     </div>

@@ -348,18 +348,18 @@ export default function CsvOutreachPage() {
               className="mono-btn text-xs text-[#959494] hover:text-white flex items-center space-x-1.5 mb-2 font-normal"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>BACK TO CAMPAIGNS</span>
+              <span>Back to campaigns</span>
             </Link>
             <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
-              <span>CSV PIPELINE // DYNAMIC OUTREACH</span>
+              <span>Import and send</span>
               <span>•</span>
-              <span className="text-[#ef2cc1]">AI ADAPTATION ENGINE</span>
+              <span className="text-[#71866e]">Message personalization</span>
             </div>
             <h1 className="text-3xl font-medium tracking-tight text-white">
-              CSV Direct Outreach
+              Import a list
             </h1>
             <p className="text-xs text-[#959494] mt-1 max-w-xl font-normal">
-              Import prospect spreadsheets, analyze companies with AI reasoning, test pre-flight on yourself, and dispatch with human sign-off.
+              Import a spreadsheet, review personalized messages, and send when you are ready.
             </p>
           </div>
 
@@ -425,7 +425,7 @@ export default function CsvOutreachPage() {
                     <button
                       type="button"
                       onClick={handleLoadSampleCsv}
-                      className="mono-btn text-xs text-[#ef2cc1] hover:underline font-semibold"
+                      className="mono-btn text-xs text-[#71866e] hover:underline font-semibold"
                     >
                       Load Sample CSV →
                     </button>
@@ -480,12 +480,12 @@ export default function CsvOutreachPage() {
                   </div>
                 ) : (
                   <div className="space-y-5">
-                    {/* Flat Technical AI Reasoning & Adaptation Bar (Together AI Aesthetic) */}
+                    {/* Flat Technical AI Reasoning & Adaptation Bar (workspace style) */}
                     <div className="ai-flat-container overflow-hidden">
                       {/* Active Linear Scanner when Enriching, otherwise static 2px brand ribbon */}
                       {enriching ? (
                         <div className="w-full h-[2px] bg-neutral-200 dark:bg-white/[0.08] overflow-hidden relative">
-                          <div className="w-1/3 h-full bg-gradient-to-r from-[#fc4c02] via-[#ef2cc1] to-[#bdbbff] animate-flat-scan" />
+                          <div className="w-1/3 h-full bg-gradient-to-r from-[#fc4c02] via-[#71866e] to-[#bdc8b5] animate-flat-scan" />
                         </div>
                       ) : (
                         <div className="brand-gradient-h w-full" />
@@ -542,7 +542,7 @@ export default function CsvOutreachPage() {
                               </>
                             ) : (
                               <>
-                                <Sparkles className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                                <Sparkles className="w-3.5 h-3.5 text-[#71866e]" />
                                 <span>ENRICH ALL WITH AI</span>
                               </>
                             )}
@@ -593,7 +593,7 @@ export default function CsvOutreachPage() {
                           <thead className="bg-[#f8fafc] dark:bg-[#313641]/30 border-b border-[#ebebeb] dark:border-white/[0.08] text-[#959494]">
                             <tr>
                               <th className="py-2 px-3">#</th>
-                              <th className="py-2 px-3 text-[#ef2cc1]">AI IDENTIFIED TYPE</th>
+                              <th className="py-2 px-3 text-[#71866e]">AI IDENTIFIED TYPE</th>
                               {csvResult.headers.map((h) => (
                                 <th key={h} className="py-2 px-3">
                                   {h}
@@ -607,7 +607,7 @@ export default function CsvOutreachPage() {
                                 <td className="py-2.5 px-3 text-[#959494]">{idx + 1}</td>
                                 <td className="py-2.5 px-3">
                                   <span className="ai-flat-pill animate-ios-swish text-[10px]">
-                                    <span className="w-1 h-1 rounded-[1px] bg-[#ef2cc1]" />
+                                    <span className="w-1 h-1 rounded-[1px] bg-[#71866e]" />
                                     <span>{row.ai_company_type || row.company_type || 'AI Synthesizing...'}</span>
                                   </span>
                                 </td>
@@ -658,7 +658,7 @@ export default function CsvOutreachPage() {
                   <div className="p-3.5 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2 text-black dark:text-white font-mono text-xs font-semibold">
-                        <span className="w-1.5 h-1.5 rounded-[1px] bg-[#ef2cc1]" />
+                        <span className="w-1.5 h-1.5 rounded-[1px] bg-[#71866e]" />
                         <span>AI ADAPTATION TOKENS</span>
                       </div>
                       <span className="text-[10px] font-mono text-[#959494]">
@@ -682,7 +682,7 @@ export default function CsvOutreachPage() {
                           title={v.desc}
                         >
                           <span>+{v.label}</span>
-                          <span className="text-[9px] text-[#ef2cc1] font-mono uppercase font-semibold">[AI]</span>
+                          <span className="text-[9px] text-[#71866e] font-mono uppercase font-semibold">[AI]</span>
                         </button>
                       ))}
                     </div>
@@ -736,11 +736,11 @@ export default function CsvOutreachPage() {
                       }}
                       className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-[3px] border text-[10px] font-mono font-semibold transition ${
                         showAiEnhancer
-                          ? 'bg-[#ef2cc1] border-[#ef2cc1] text-white'
+                          ? 'bg-[#71866e] border-[#71866e] text-white'
                           : 'bg-black dark:bg-white text-white dark:text-black border-transparent hover:opacity-90'
                       }`}
                     >
-                      <Sparkles className="w-3 h-3 text-[#ef2cc1]" />
+                      <Sparkles className="w-3 h-3 text-[#71866e]" />
                       <span>{showAiEnhancer ? 'CLOSE AI OPTIMIZER' : 'IMPROVE COPY WITH AI'}</span>
                     </button>
                   </div>
@@ -750,7 +750,7 @@ export default function CsvOutreachPage() {
                     <div className="ai-flat-container overflow-hidden space-y-3">
                       {aiEnhancing ? (
                         <div className="w-full h-[2px] bg-neutral-200 dark:bg-white/[0.08] overflow-hidden relative">
-                          <div className="w-1/3 h-full bg-gradient-to-r from-[#fc4c02] via-[#ef2cc1] to-[#bdbbff] animate-flat-scan" />
+                          <div className="w-1/3 h-full bg-gradient-to-r from-[#fc4c02] via-[#71866e] to-[#bdc8b5] animate-flat-scan" />
                         </div>
                       ) : (
                         <div className="brand-gradient-h w-full" />
@@ -759,7 +759,7 @@ export default function CsvOutreachPage() {
                       <div className="p-3.5 space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
-                            <Sparkles className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                            <Sparkles className="w-3.5 h-3.5 text-[#71866e]" />
                             <span className="font-mono text-xs font-semibold uppercase text-black dark:text-white">
                               AI Template Optimizer
                             </span>
@@ -823,7 +823,7 @@ export default function CsvOutreachPage() {
                               </>
                             ) : (
                               <>
-                                <Sparkles className="w-3 h-3 text-[#ef2cc1]" />
+                                <Sparkles className="w-3 h-3 text-[#71866e]" />
                                 <span>GENERATE IMPROVED TEMPLATE</span>
                               </>
                             )}
@@ -931,7 +931,7 @@ export default function CsvOutreachPage() {
               <div className="lg:col-span-5 bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-5 space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-[#ebebeb] dark:border-white/[0.08]">
                   <div className="flex items-center space-x-2">
-                    <Eye className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                    <Eye className="w-3.5 h-3.5 text-[#71866e]" />
                     <span className="mono-eyebrow text-black dark:text-white font-semibold">
                       LIVE RENDERED PREVIEW
                     </span>
@@ -962,7 +962,7 @@ export default function CsvOutreachPage() {
                   <div className="p-3.5 space-y-2">
                     <div className="flex items-center justify-between pb-2 border-b border-[#ebebeb] dark:border-white/[0.06]">
                       <div className="flex items-center space-x-2 text-black dark:text-white text-xs font-mono font-semibold">
-                        <span className="w-1.5 h-1.5 rounded-[1px] bg-[#ef2cc1]" />
+                        <span className="w-1.5 h-1.5 rounded-[1px] bg-[#71866e]" />
                         <span>AI INFERENCE PROFILE</span>
                       </div>
                       <span className="ai-flat-pill text-[9px]">

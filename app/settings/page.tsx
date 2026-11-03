@@ -486,7 +486,7 @@ export default function SettingsPage() {
             <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
               <span>SYSTEM CONFIGURATION // HARDENED CREDENTIALS</span>
               <span>•</span>
-              <span className="text-[#ef2cc1]">AES-256-GCM ENCRYPTED</span>
+              <span className="text-[#71866e]">AES-256-GCM ENCRYPTED</span>
             </div>
             <h1 className="text-3xl font-medium tracking-tight text-white">
               Settings & Intelligence Engine
@@ -632,7 +632,7 @@ export default function SettingsPage() {
                         <button
                           type="button"
                           onClick={() => setShowSmtpPass(!showSmtpPass)}
-                          className="text-[10px] text-[#ef2cc1] hover:underline flex items-center space-x-1"
+                          className="text-[10px] text-[#71866e] hover:underline flex items-center space-x-1"
                         >
                           {showSmtpPass ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                           <span>{showSmtpPass ? 'HIDE' : 'SHOW'}</span>
@@ -750,7 +750,7 @@ export default function SettingsPage() {
                     <label className="block text-[#959494] uppercase tracking-wider font-semibold">
                       2. MODEL PRESETS (QUICK SELECT)
                     </label>
-                    <span className="text-[10px] text-[#ef2cc1]">CLICK TO APPLY</span>
+                    <span className="text-[10px] text-[#71866e]">CLICK TO APPLY</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -822,7 +822,7 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setShowAiKey(!showAiKey)}
-                      className="text-[10px] text-[#ef2cc1] hover:underline flex items-center space-x-1"
+                      className="text-[10px] text-[#71866e] hover:underline flex items-center space-x-1"
                     >
                       {showAiKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                       <span>{showAiKey ? 'HIDE' : 'SHOW'}</span>
@@ -859,7 +859,7 @@ export default function SettingsPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#ebebeb] dark:border-white/[0.08]">
                   <div>
                     <h2 className="text-base font-semibold text-black dark:text-white flex items-center space-x-2">
-                      <Cpu className="w-4 h-4 text-[#ef2cc1]" />
+                      <Cpu className="w-4 h-4 text-[#71866e]" />
                       <span>Connectors & External Integrations Hub</span>
                     </h2>
                     <p className="text-xs text-[#959494] font-mono mt-0.5">
@@ -894,7 +894,7 @@ export default function SettingsPage() {
 
                 {loadingIntegrations ? (
                   <div className="py-20 text-center font-mono text-xs text-[#959494] flex items-center justify-center space-x-2">
-                    <RefreshCw className="w-4 h-4 animate-spin text-[#ef2cc1]" />
+                    <RefreshCw className="w-4 h-4 animate-spin text-[#71866e]" />
                     <span>LOADING CONNECTORS REGISTRY...</span>
                   </div>
                 ) : (
@@ -928,7 +928,7 @@ export default function SettingsPage() {
                                     href={integ.websiteUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="text-[10px] font-mono text-[#ef2cc1] hover:underline inline-flex items-center space-x-1 mt-0.5"
+                                    className="text-[10px] font-mono text-[#71866e] hover:underline inline-flex items-center space-x-1 mt-0.5"
                                   >
                                     <span>Documentation & API</span>
                                     <ExternalLink className="w-2.5 h-2.5" />
@@ -1050,7 +1050,7 @@ export default function SettingsPage() {
                                   disabled={isTesting}
                                   className="mono-btn bg-white dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.08] text-black dark:text-white px-3 py-1 rounded-[3px] text-[10px] font-mono hover:border-black dark:hover:border-white flex items-center space-x-1 disabled:opacity-50"
                                 >
-                                  {isTesting ? <RefreshCw className="w-3 h-3 animate-spin text-[#ef2cc1]" /> : <Zap className="w-3 h-3 text-[#ef2cc1]" />}
+                                  {isTesting ? <RefreshCw className="w-3 h-3 animate-spin text-[#71866e]" /> : <Zap className="w-3 h-3 text-[#71866e]" />}
                                   <span>TEST PING</span>
                                 </button>
                               </div>
@@ -1398,7 +1398,7 @@ export default function SettingsPage() {
                     </span>
                     <button
                       onClick={() => copyToClipboard('/api/webhooks/resend', 'resend')}
-                      className="text-[10px] text-[#ef2cc1] hover:underline flex items-center space-x-1"
+                      className="text-[10px] text-[#71866e] hover:underline flex items-center space-x-1"
                     >
                       <Copy className="w-3 h-3" />
                       <span>{copiedWebhook === 'resend' ? 'COPIED!' : 'COPY PATH'}</span>
@@ -1419,7 +1419,7 @@ export default function SettingsPage() {
                     </span>
                     <button
                       onClick={() => copyToClipboard('/api/webhooks/inbound', 'inbound')}
-                      className="text-[10px] text-[#ef2cc1] hover:underline flex items-center space-x-1"
+                      className="text-[10px] text-[#71866e] hover:underline flex items-center space-x-1"
                     >
                       <Copy className="w-3 h-3" />
                       <span>{copiedWebhook === 'inbound' ? 'COPIED!' : 'COPY PATH'}</span>
@@ -1449,7 +1449,7 @@ export default function SettingsPage() {
                   </div>
                   <button
                     onClick={fetchAuditLogs}
-                    className="text-[10px] text-[#ef2cc1] hover:underline flex items-center space-x-1"
+                    className="text-[10px] text-[#71866e] hover:underline flex items-center space-x-1"
                   >
                     <RefreshCw className="w-3 h-3" />
                     <span>REFRESH</span>

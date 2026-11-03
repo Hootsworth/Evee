@@ -4,313 +4,83 @@
 
 @layer base {
   :root {
-    --canvas-dark: #010120;
-    --canvas-white: #ffffff;
-    --hairline: #ebebeb;
-    --hairline-dark: rgba(255, 255, 255, 0.12);
+    color-scheme: light;
+    --canvas: #f7f7f5;
+    --surface: #ffffff;
+    --ink: #20211f;
+    --muted: #777a74;
+    --line: #e8e9e5;
+    --accent: #4f6653;
   }
 
+  .dark {
+    color-scheme: dark;
+    --canvas: #171916;
+    --surface: #1e211d;
+    --ink: #f1f2ee;
+    --muted: #a2a69e;
+    --line: #343831;
+    --accent: #afc6ad;
+  }
+
+  html { background: var(--canvas); }
   body {
-    background-color: #ffffff;
-    color: #111827;
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: -0.015em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-weight: 300;
-    letter-spacing: -0.01em;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-weight: 400;
-    letter-spacing: -0.025em;
-  }
+  h1, h2, h3, h4, h5, h6 { font-weight: 550; letter-spacing: -0.035em; }
+  ::selection { background: #dce7d9; color: #20211f; }
+  :focus-visible { outline: 2px solid #6d8b70; outline-offset: 2px; }
 }
 
-/* Crisp Minimalist Typography Utilities */
-.mono-eyebrow {
-  font-family: 'JetBrains Mono', ui-monospace, SF Mono, Menlo, monospace;
-  font-size: 11px;
-  font-weight: 400;
-  line-height: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+.mono-eyebrow, .mono-btn {
+  font-family: inherit;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
-.mono-btn {
-  font-family: 'JetBrains Mono', ui-monospace, SF Mono, Menlo, monospace;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  border-radius: 4px;
-}
+.mono-eyebrow { font-size: 0.75rem; line-height: 1.2rem; font-weight: 500; }
+.mono-btn { font-size: 0.8125rem; font-weight: 550; border-radius: 8px; }
+.brand-gradient, .brand-gradient-h { background: #8a9d83; }
+.brand-gradient-h { height: 0; }
 
-/* Together AI-inspired three-stop brand gradient */
-.brand-gradient {
-  background: linear-gradient(90deg, #fc4c02 0%, #ef2cc1 50%, #bdbbff 100%);
-}
-
-.brand-gradient-h {
-  height: 2px;
-  background: linear-gradient(90deg, #fc4c02 0%, #ef2cc1 50%, #bdbbff 100%);
-}
-
-/* ==========================================================================
-   Sophisticated Dark Mode Shading & Depth Engine
-   Replaces flat AI-generated black/gray boxes with realistic physical lighting,
-   elevated surfaces, and subtle atmospheric depth (Linear/macOS style).
-   ========================================================================== */
-
-.dark {
-  color-scheme: dark;
-}
-
-.dark body {
-  background-color: #090a0f !important;
-  background-image: 
-    radial-gradient(1200px circle at 50% -80px, rgba(244, 63, 94, 0.045), transparent 60%),
-    radial-gradient(900px circle at 90% 400px, rgba(189, 187, 255, 0.012), transparent 50%),
-    radial-gradient(700px circle at 10% 800px, rgba(244, 63, 94, 0.015), transparent 50%) !important;
-  background-attachment: fixed !important;
-}
-
-/* Base canvas replacement */
-.dark .dark\:bg-\[\#09090b\] {
-  background-color: #090a0f !important;
-}
-
-/* Level 1: Elevated Sections & Hero Panels */
-.dark .dark\:bg-\[\#121217\] {
-  background-color: #0f1017 !important;
-}
-
-/* Level 2: Interactive Cards & Modals */
-.dark .dark\:bg-\[\#18181b\] {
-  background-color: #14161f !important;
-}
-
-/* Hairline borders in dark mode: optical semi-transparent edge instead of flat gray */
-.dark .dark\:border-\[\#27272a\] {
-  border-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-.dark .dark\:border-\[\#1f1f23\] {
-  border-color: rgba(255, 255, 255, 0.05) !important;
-}
-
-/* Dark mode hover borders */
-.dark .dark\:hover\:border-\[\#3f3f46\]:hover,
-.dark .hover\:border-\[\#cbd5e1\]:hover {
-  border-color: rgba(255, 255, 255, 0.16) !important;
-}
-
-/* Realistic specular top-edge illumination on dark surfaces */
-.dark .rounded-xl.border,
-.dark .rounded-2xl.border {
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06), 0 8px 24px -4px rgba(0, 0, 0, 0.45);
-}
-
-/* Recessed wells (inputs, textareas, progress bars) */
-.dark input:not([type="checkbox"]):not([type="radio"]),
-.dark textarea,
-.dark select {
-  background-color: #0c0d13 !important;
-  border-color: rgba(255, 255, 255, 0.07) !important;
-  box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.45);
-  color: #f4f4f5 !important;
-}
-
-.dark input:focus,
-.dark textarea:focus,
-.dark select:focus {
-  border-color: #f43f5e !important;
-  box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(244, 63, 94, 0.2) !important;
-}
-
-/* Sticky Header Glassmorphism & Depth */
-.dark header.sticky {
-  background-color: rgba(9, 10, 15, 0.82) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-  border-bottom-color: rgba(255, 255, 255, 0.07) !important;
-  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.03), 0 8px 32px -8px rgba(0, 0, 0, 0.6) !important;
-}
-
-/* Primary Button in Dark Mode: Refined contrast without harshness */
-.dark button.bg-\[\#f43f5e\],
-.dark a.bg-\[\#f43f5e\] {
-  box-shadow: 0 2px 14px rgba(244, 63, 94, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
-}
-
-/* Subtle Invert Buttons in Dark Mode */
-.dark .dark\:bg-white {
-  background-color: #f4f4f5 !important;
-  color: #090a0f !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
-}
-
-.dark .dark\:bg-white:hover {
-  background-color: #ffffff !important;
-}
-
-/* Status Badges */
-.dark .bg-emerald-100,
-.dark .dark\:bg-emerald-950\/60 {
-  background-color: rgba(16, 185, 129, 0.12) !important;
-  color: #6ee7b7 !important;
-  border: 1px solid rgba(16, 185, 129, 0.22) !important;
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.08) !important;
-}
-
-.dark .bg-amber-100,
-.dark .dark\:bg-amber-950\/60 {
-  background-color: rgba(245, 158, 11, 0.12) !important;
-  color: #fcd34d !important;
-  border: 1px solid rgba(245, 158, 11, 0.22) !important;
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.08) !important;
-}
-
-/* Footer depth */
-.dark footer {
-  background-color: #08090d !important;
-  border-top-color: rgba(255, 255, 255, 0.06) !important;
-}
-
-/* ==========================================================================
-   Distinctive AI Micro-Animations & iOS Swish Physics
-   No typing animations. Pure iOS fluid spring swish & iridescent brand aura.
-   ========================================================================== */
-
-@keyframes ios-swish {
-  0% {
-    opacity: 0;
-    transform: translateY(12px) scale(0.975);
-    filter: blur(4px);
-  }
-  60% {
-    opacity: 0.95;
-    transform: translateY(-1.5px) scale(1.006);
-    filter: blur(0px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0px);
-  }
-}
-
-.animate-ios-swish {
-  animation: ios-swish 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-/* ==========================================================================
-   Flat Technical AI Design System (Strict Together AI Aesthetic)
-   Replaces fake glassmorphism & glowing gradients with crisp flat developer chrome
-   ========================================================================== */
-
-/* Clean flat container matching DESIGN.md */
-.ai-flat-container {
-  position: relative;
-  border-radius: 4px;
-  background-color: #ffffff;
-  border: 1px solid #ebebeb;
-}
-
-.dark .ai-flat-container {
-  background-color: #010120 !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+.ai-flat-container, .dark .ai-flat-container, .ui-surface, .dark .ui-surface {
+  border-radius: 12px;
+  border: 1px solid var(--line) !important;
+  background: var(--surface) !important;
   box-shadow: none !important;
 }
-
-/* Crisp flat monospace technical pill */
-.ai-flat-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 2px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  background-color: #f8fafc;
-  border: 1px solid #ebebeb;
-  color: #000000;
-}
-
-.dark .ai-flat-pill {
-  background-color: rgba(255, 255, 255, 0.04) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  color: #ffffff !important;
+.ai-flat-pill, .dark .ai-flat-pill, .ui-badge, .dark .ui-badge {
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 550;
+  letter-spacing: 0;
+  text-transform: none;
   box-shadow: none !important;
 }
+.ui-grid-bg { background-image: none !important; }
+.bg-\[\#010120\] { background-color: #28352d !important; }
 
-/* High-precision linear scanner loading animation (zero spinning icons) */
-@keyframes flat-scan {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(300%);
-  }
-}
+.dark body { background: var(--canvas) !important; background-image: none !important; }
+.dark .dark\:bg-\[\#09090b\], .dark .dark\:bg-\[\#121217\], .dark .dark\:bg-\[\#18181b\] { background-color: var(--canvas) !important; }
+.dark .dark\:border-\[\#27272a\], .dark .dark\:border-\[\#1f1f23\] { border-color: var(--line) !important; }
+.dark input:not([type="checkbox"]):not([type="radio"]), .dark textarea, .dark select { background: var(--surface) !important; border-color: var(--line) !important; box-shadow: none !important; }
+.dark input:focus, .dark textarea:focus, .dark select:focus { border-color: #8a9d83 !important; box-shadow: 0 0 0 3px rgb(138 157 131 / 18%) !important; }
+.dark header.sticky { background: color-mix(in srgb, var(--canvas) 92%, transparent) !important; backdrop-filter: blur(14px) !important; border-color: var(--line) !important; box-shadow: none !important; }
+.dark footer { background: var(--canvas) !important; border-color: var(--line) !important; }
 
-.animate-flat-scan {
-  animation: flat-scan 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
+@keyframes ios-swish { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.animate-ios-swish { animation: ios-swish .35s ease-out both; }
+@keyframes flat-scan { to { transform: translateX(300%); } }
+.animate-flat-scan { animation: flat-scan 1.4s ease-in-out infinite; }
 
-/* ==========================================================================
-   v2.0 Flat Developer Design Evolution
-   High-density engineering aesthetic: hairline dividers, 4px radius,
-   subtle structural grid lines, and monochromatic telemetry tags.
-   ========================================================================== */
-
-.v2-surface {
-  background-color: #ffffff;
-  border: 1px solid #ebebeb;
-  border-radius: 4px;
-  transition: border-color 0.15s ease;
-}
-
-.dark .v2-surface {
-  background-color: #070814 !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-
-.v2-surface:hover {
-  border-color: #000000;
-}
-
-.dark .v2-surface:hover {
-  border-color: rgba(255, 255, 255, 0.2) !important;
-}
-
-.v2-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.125rem 0.5rem;
-  border-radius: 3px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  background-color: #f4f4f5;
-  border: 1px solid #ebebeb;
-  color: #18181b;
-}
-
-.dark .v2-badge {
-  background-color: rgba(255, 255, 255, 0.06) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  color: #f4f4f5 !important;
-}
-
-.v2-grid-bg {
-  background-size: 32px 32px;
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

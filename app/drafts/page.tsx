@@ -246,27 +246,27 @@ export default function DraftsApprovalPage() {
       <div className="brand-gradient-h w-full" />
 
       {/* Hero Band: Canvas Dark #010120 */}
-      <section className="bg-[#010120] text-white border-b border-white/[0.08] px-6 py-8 relative overflow-hidden v2-grid-bg">
+      <section className="bg-[#28352d] text-white border-b border-white/[0.08] px-6 py-8 relative overflow-hidden ui-grid-bg">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4 relative z-10">
           <div>
             <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
-              <span>OUTREACH INTELLIGENCE // RAPID APPROVAL REVIEWER</span>
+              <span>Message review</span>
               <span>•</span>
-              <span className="v2-badge text-emerald-400 bg-emerald-500/10 border-emerald-500/20">
-                v2.0 REVIEWER
+              <span className="ui-badge text-emerald-400 bg-emerald-500/10 border-emerald-500/20">
+                 Review
               </span>
             </div>
             <h1 className="text-3xl font-medium tracking-tight text-white">
-              Draft Approval Queue
+              Drafts
             </h1>
             <p className="text-xs text-[#959494] mt-1 font-normal max-w-xl">
-              Inspect AI-generated personalized hooks. Automated dispatch remains strictly gated until explicit operator sign-off.
+              Review personalized messages before they are sent.
             </p>
           </div>
 
           {/* Keyboard Shortcut Cheatsheet Pill */}
           <div className="hidden lg:flex items-center space-x-3 px-3 py-1.5 rounded-[4px] bg-[#313641]/50 border border-white/[0.08] text-[10px] font-mono text-[#959494]">
-            <Keyboard className="w-3.5 h-3.5 text-[#ef2cc1]" />
+            <Keyboard className="w-3.5 h-3.5 text-[#71866e]" />
             <span><strong className="text-white">A</strong> APPROVE</span>
             <span>•</span>
             <span><strong className="text-white">R</strong> REJECT</span>
@@ -276,7 +276,7 @@ export default function DraftsApprovalPage() {
         </div>
       </section>
 
-      {/* Main 3-Pane Reviewer Surface */}
+      {/* Draft review workspace */}
       <div className="flex-1 max-w-7xl w-full mx-auto px-6 py-6 flex flex-col">
         {/* Status / Alert Banner */}
         {statusMessage && (
@@ -290,7 +290,7 @@ export default function DraftsApprovalPage() {
 
         {loading ? (
           <div className="py-24 text-center font-mono text-xs text-[#959494] flex items-center justify-center space-x-2">
-            <RefreshCw className="w-4 h-4 animate-spin text-[#ef2cc1]" />
+            <RefreshCw className="w-4 h-4 animate-spin text-[#71866e]" />
             <span>LOADING OUTREACH QUEUE...</span>
           </div>
         ) : drafts.length === 0 ? (
@@ -349,7 +349,7 @@ export default function DraftsApprovalPage() {
                       onClick={() => setSelectedDraftId(draft.id)}
                       className={`w-full text-left p-3.5 transition flex flex-col space-y-1.5 ${
                         isSelected
-                          ? 'bg-[#f4f4f5] dark:bg-[#313641]/70 border-l-2 border-[#ef2cc1]'
+                          ? 'bg-[#f4f4f5] dark:bg-[#313641]/70 border-l-2 border-[#71866e]'
                           : 'hover:bg-[#fafafa] dark:hover:bg-white/[0.02]'
                       }`}
                     >
@@ -389,7 +389,7 @@ export default function DraftsApprovalPage() {
               </div>
             </div>
 
-            {/* PANE 2: Interactive Email Reviewer (5 Cols) */}
+            {/* PANE 2: Message editor (5 Cols) */}
             <div className="lg:col-span-5 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] bg-white dark:bg-[#010120] overflow-hidden flex flex-col h-[750px]">
               {selectedDraft ? (
                 <>
@@ -407,11 +407,11 @@ export default function DraftsApprovalPage() {
                           }}
                           className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-[3px] border text-[10px] font-mono font-semibold transition shadow-sm ${
                             showAiEnhancer
-                              ? 'bg-[#ef2cc1] border-[#ef2cc1] text-white'
+                              ? 'bg-[#71866e] border-[#71866e] text-white'
                               : 'bg-black dark:bg-white text-white dark:text-black border-transparent hover:opacity-90'
                           }`}
                         >
-                          <Sparkles className="w-3 h-3 text-[#ef2cc1]" />
+                          <Sparkles className="w-3 h-3 text-[#71866e]" />
                           <span>{showAiEnhancer ? 'CLOSE AI OPTIMIZER' : 'IMPROVE WITH AI'}</span>
                         </button>
 
@@ -427,7 +427,7 @@ export default function DraftsApprovalPage() {
                     <div className="text-xs space-y-1 font-mono">
                       <div className="flex items-center text-[#6b7280] dark:text-[#959494]">
                         <span className="w-14 font-semibold text-black dark:text-white">TO:</span>
-                        <span className="text-[#ef2cc1]">
+                        <span className="text-[#71866e]">
                           {selectedDraft.contact?.email_address ||
                             selectedDraft.business?.general_business_email ||
                             'no-email-discovered@domain.com'}
@@ -453,7 +453,7 @@ export default function DraftsApprovalPage() {
                       <div className="ai-flat-container overflow-hidden">
                         {aiEnhancing ? (
                           <div className="w-full h-[2px] bg-neutral-200 dark:bg-white/[0.08] overflow-hidden relative">
-                            <div className="w-1/3 h-full bg-gradient-to-r from-[#fc4c02] via-[#ef2cc1] to-[#bdbbff] animate-flat-scan" />
+                            <div className="w-1/3 h-full bg-gradient-to-r from-[#fc4c02] via-[#71866e] to-[#bdc8b5] animate-flat-scan" />
                           </div>
                         ) : (
                           <div className="brand-gradient-h w-full" />
@@ -462,7 +462,7 @@ export default function DraftsApprovalPage() {
                         <div className="p-3.5 space-y-3">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-2">
-                              <Sparkles className="w-3.5 h-3.5 text-[#ef2cc1]" />
+                              <Sparkles className="w-3.5 h-3.5 text-[#71866e]" />
                               <span className="font-mono text-xs font-semibold uppercase text-black dark:text-white">
                                 AI Copywriting & Conversion Optimizer
                               </span>
@@ -533,7 +533,7 @@ export default function DraftsApprovalPage() {
                                 </>
                               ) : (
                                 <>
-                                  <Sparkles className="w-3 h-3 text-[#ef2cc1]" />
+                                  <Sparkles className="w-3 h-3 text-[#71866e]" />
                                   <span>GENERATE IMPROVED COPY</span>
                                 </>
                               )}
@@ -699,7 +699,7 @@ export default function DraftsApprovalPage() {
                         href={selectedDraft.business.website_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[11px] font-mono text-[#ef2cc1] hover:underline flex items-center space-x-1 pt-0.5"
+                        className="text-[11px] font-mono text-[#71866e] hover:underline flex items-center space-x-1 pt-0.5"
                       >
                         <span>{selectedDraft.business.website_url.replace(/^https?:\/\//, '')}</span>
                         <ExternalLink className="w-2.5 h-2.5" />
@@ -728,7 +728,7 @@ export default function DraftsApprovalPage() {
                     <div className="brand-gradient-h w-full" />
                     <div className="p-3.5 space-y-1.5">
                       <div className="flex items-center space-x-2 text-[10px] font-mono uppercase text-black dark:text-white font-semibold">
-                        <span className="w-1.5 h-1.5 rounded-[1px] bg-[#ef2cc1]" />
+                        <span className="w-1.5 h-1.5 rounded-[1px] bg-[#71866e]" />
                         <span>AI RESEARCH ANGLE</span>
                       </div>
                       <p className="text-[11px] text-[#6b7280] dark:text-[#959494] font-mono leading-relaxed">

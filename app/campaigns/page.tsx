@@ -110,21 +110,17 @@ export default function CampaignsPage() {
       <div className="brand-gradient-h w-full" />
 
       {/* Hero Band: Canvas Dark #010120 */}
-      <section className="bg-[#010120] text-white pt-8 pb-10 px-6 border-b border-white/[0.08] relative overflow-hidden v2-grid-bg">
+      <section className="bg-[#28352d] text-white pt-8 pb-10 px-6 border-b border-white/[0.08] relative overflow-hidden ui-grid-bg">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
           <div>
             <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
-              <span>TARGETING // CAMPAIGN MANAGER</span>
-              <span>•</span>
-              <span className="v2-badge text-emerald-400 bg-emerald-500/10 border-emerald-500/20">
-                v2.0 MESH
-              </span>
+              <span className="text-sm font-medium tracking-normal text-[#c5d0c2]">Campaigns</span>
             </div>
             <h1 className="text-3xl font-medium tracking-tight text-white mb-1">
-              Campaigns Hub
+              Your campaigns
             </h1>
             <p className="text-xs text-[#959494] max-w-xl font-normal">
-              Manage discrete outbound target segments. Discovery adapters pull fresh leads, perform automated web inspections, and draft personalized outreach.
+              Organize your audiences, find new prospects, and manage campaign activity.
             </p>
           </div>
 
@@ -134,7 +130,7 @@ export default function CampaignsPage() {
               className="mono-btn bg-[#313641] hover:bg-[#313641]/80 text-white border border-white/[0.08] px-3.5 py-2 rounded-[4px] text-xs font-semibold flex items-center space-x-1.5 transition"
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
-              <span>IMPORT CSV OUTREACH</span>
+              <span>Import list</span>
             </Link>
 
             <button
@@ -142,7 +138,7 @@ export default function CampaignsPage() {
               className="mono-btn bg-white hover:bg-neutral-200 text-black px-4 py-2 rounded-[4px] text-xs font-semibold flex items-center space-x-1.5 transition active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>NEW CAMPAIGN</span>
+              <span>New campaign</span>
             </button>
           </div>
         </div>
@@ -152,7 +148,7 @@ export default function CampaignsPage() {
       <main className="max-w-7xl mx-auto px-6 py-8 w-full flex-1">
         {loading ? (
           <div className="py-24 text-center font-mono text-xs text-[#959494] flex items-center justify-center space-x-2">
-            <RefreshCw className="w-4 h-4 animate-spin text-[#ef2cc1]" />
+            <RefreshCw className="w-4 h-4 animate-spin text-[#71866e]" />
             <span>LOADING CAMPAIGNS...</span>
           </div>
         ) : campaigns.length === 0 ? (
@@ -162,14 +158,14 @@ export default function CampaignsPage() {
               No Campaigns Configured
             </h3>
             <p className="text-xs text-[#6b7280] dark:text-[#959494] mb-4 max-w-md mx-auto">
-              Create an automated discovery campaign by target city and industry, or import an existing CSV file.
+              Create a campaign to find prospects, or import a list you already have.
             </p>
             <button
               onClick={() => setShowModal(true)}
               className="mono-btn px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-[4px] text-xs font-semibold inline-flex items-center space-x-1.5"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>CREATE FIRST CAMPAIGN</span>
+              <span>Create campaign</span>
             </button>
           </div>
         ) : (
@@ -203,7 +199,7 @@ export default function CampaignsPage() {
                 <div className="pt-4 border-t border-[#ebebeb] dark:border-white/[0.08] flex items-center justify-between">
                   <Link
                     href={`/leads`}
-                    className="text-xs font-mono text-black dark:text-white hover:text-[#ef2cc1] flex items-center space-x-1"
+                    className="text-xs font-mono text-black dark:text-white hover:text-[#71866e] flex items-center space-x-1"
                   >
                     <span>VIEW LEADS</span>
                     <ArrowRight className="w-3 h-3" />

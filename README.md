@@ -2,7 +2,7 @@
 
 Evee is an autonomous, evidence-backed prospecting and outreach platform engineered for modern small businesses. It discovers local businesses, inspects their public web presence, identifies concrete automation opportunities, calculates deterministic qualification scores, and drafts personalized emails requiring explicit human review before controlled dispatch.
 
-Built strictly according to [ARCHITECTURE.MD](file:///Users/adityadixit/Documents/antigravity/hopeful-bohr/ARCHITECTURE.MD) and the [DESIGN.md](file:///Users/adityadixit/Documents/antigravity/hopeful-bohr/DESIGN.md) Together AI visual system.
+Built strictly according to [ARCHITECTURE.MD](file:///Users/adityadixit/Documents/antigravity/hopeful-bohr/ARCHITECTURE.MD) and the [DESIGN.md](file:///Users/adityadixit/Documents/antigravity/hopeful-bohr/DESIGN.md) Evee interface guide.
 
 ---
 
@@ -65,7 +65,7 @@ Open [http://localhost:3000](http://localhost:3000) to view Evee.
 
 ## 2. Key Architecture & Safety Features
 
-- **Together AI Design System**: Alternating near-black hero bands (`#010120`) and white content bands, the orange-magenta-periwinkle gradient ribbon, uppercase monospace eyebrows (`JetBrains Mono`), and high-density technical cards.
+- **Interface**: A restrained, responsive workspace with accessible contrast, concise language, and reusable light and dark themes.
 - **Durable Database-backed Job Queue**: Asynchronous tasks (`discover_businesses`, `research_business`, `score_lead`, `generate_draft`, `send_email`) persisted in PostgreSQL with atomic `SKIP LOCKED` batch claiming.
 - **Fail-Closed Approval Workflow**: Automated sending is disabled by default. Outreach messages can never be dispatched until both the workflow specification and the individual draft have received human operator approval.
 - **Deterministic 100-pt Scoring Engine**: Fit (30 pts), Need/Evidence (35 pts), Contactability (15 pts), Service Match (20 pts), with hard caps for unverified business identity (max 30 pts) and uncertain evidence (max 60 pts).
