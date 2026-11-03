@@ -32,6 +32,12 @@ export async function processBackgroundJobs(batchSize = 5): Promise<JobProcessin
     p_lock_timeout_seconds: 300,
   });
 
+  if (claimErr) {
+    console.error('[processBackgroundJobs] claim_background_jobs RPC error:', claimErr);
+  } else {
+    console.log('[processBackgroundJobs] Claimed jobs count:', claimed ? claimed.length : 0);
+  }
+
   const jobs: BackgroundJob[] = claimed || [];
 
   const summary: JobProcessingResult = {

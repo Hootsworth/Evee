@@ -888,6 +888,42 @@ export default function LeadsPage() {
     }
   };
 
+  // Active queue processor heartbeat while in dispatched summary view
+  useEffect(() => {
+    if (outreachStep !== 'dispatched') return;
+
+    let isMounted = true;
+    const processQueueTick = async () => {
+      try {
+        const res = await fetch('/api/jobs/queue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'process', batchSize: 5 }),
+        });
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          if (data.result && (data.result.succeeded > 0 || data.result.failed > 0)) {
+            setDispatchSummary((prev: any) => ({
+              ...prev,
+              sent: (prev?.sent || 0) + (data.result.succeeded || 0),
+              failed: (prev?.failed || 0) + (data.result.failed || 0),
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Queue tick notice:', err);
+      }
+    };
+
+    processQueueTick();
+    const interval = setInterval(processQueueTick, 3500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [outreachStep]);
+
   // Navigate to full-screen CSV outreach pipeline with preloaded leads
   const handleOpenInFullCsvOutreach = () => {
     try {

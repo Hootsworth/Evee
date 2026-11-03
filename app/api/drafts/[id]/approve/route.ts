@@ -43,7 +43,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     };
 
     if (payload.bodyText) updateFields.body_text = payload.bodyText;
-    if (payload.subjectLine) updateFields.subject_line = payload.subjectLine;
+    if (payload.subjectLine || (payload as any).subject) updateFields.subject = payload.subjectLine || (payload as any).subject;
 
     const { data: updated, error: updateErr } = await admin
       .from('email_drafts')

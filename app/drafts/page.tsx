@@ -31,6 +31,7 @@ export default function DraftsApprovalPage() {
   const [editedBody, setEditedBody] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [generatingDrafts, setGeneratingDrafts] = useState(false);
 
   // AI Copywriting & Optimization State
   const [showAiEnhancer, setShowAiEnhancer] = useState(false);
@@ -72,6 +73,29 @@ export default function DraftsApprovalPage() {
     fetchDrafts();
   }, []);
 
+  const handleGenerateDrafts = async () => {
+    setGeneratingDrafts(true);
+    setStatusMessage('Generating bespoke handcrafted AI drafts for your leads...');
+    try {
+      const res = await fetch('/api/drafts/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 15 }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setStatusMessage(`Successfully generated ${data.generated} personalized AI drafts!`);
+        await fetchDrafts();
+      } else {
+        setStatusMessage(`Notice: ${data.message || data.error || 'No new drafts generated'}`);
+      }
+    } catch (err: any) {
+      setStatusMessage(`Error generating drafts: ${err.message}`);
+    } finally {
+      setGeneratingDrafts(false);
+    }
+  };
+
   const selectedDraft = drafts.find((d) => d.id === selectedDraftId) || drafts[0];
 
   useEffect(() => {
@@ -86,7 +110,7 @@ export default function DraftsApprovalPage() {
     setAiEnhancing(true);
     setStatusMessage(null);
     try {
-      const currentSubject = selectedDraft.subject_line || '';
+      const currentSubject = selectedDraft.subject || selectedDraft.subject_line || '';
       const currentBody = editedBody || selectedDraft.body_text || '';
       const res = await fetch('/api/drafts/enhance', {
         method: 'POST',
@@ -119,6 +143,7 @@ export default function DraftsApprovalPage() {
   const handleApplyAiEnhancement = () => {
     if (!aiResult || !selectedDraft) return;
     setEditedBody(aiResult.improvedBody);
+    selectedDraft.subject = aiResult.improvedSubject;
     selectedDraft.subject_line = aiResult.improvedSubject;
     selectedDraft.body_text = aiResult.improvedBody;
     setIsEditing(true);
@@ -135,7 +160,7 @@ export default function DraftsApprovalPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bodyText: editedBody || selectedDraft?.body_text,
-          subjectLine: selectedDraft?.subject_line,
+          subjectLine: selectedDraft?.subject || selectedDraft?.subject_line,
         }),
       });
       if (res.ok) {
@@ -264,14 +289,34 @@ export default function DraftsApprovalPage() {
             </p>
           </div>
 
-          {/* Keyboard Shortcut Cheatsheet Pill */}
-          <div className="hidden lg:flex items-center space-x-3 px-3 py-1.5 rounded-[4px] bg-[#313641]/50 border border-white/[0.08] text-[10px] font-mono text-[#959494]">
-            <Keyboard className="w-3.5 h-3.5 text-[#71866e]" />
-            <span><strong className="text-white">A</strong> APPROVE</span>
-            <span>•</span>
-            <span><strong className="text-white">R</strong> REJECT</span>
-            <span>•</span>
-            <span><strong className="text-white">J/K</strong> NAVIGATE</span>
+          {/* Top Actions & Keyboard Shortcut Cheatsheet Pill */}
+          <div className="flex items-center space-x-2.5">
+            <button
+              onClick={handleGenerateDrafts}
+              disabled={generatingDrafts}
+              className="mono-btn inline-flex items-center space-x-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-[4px] text-xs font-semibold shadow-sm transition active:scale-95 disabled:opacity-50"
+            >
+              {generatingDrafts ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>GENERATING DRAFTS...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>+ GENERATE AI DRAFTS</span>
+                </>
+              )}
+            </button>
+
+            <div className="hidden lg:flex items-center space-x-3 px-3 py-1.5 rounded-[4px] bg-[#313641]/50 border border-white/[0.08] text-[10px] font-mono text-[#959494]">
+              <Keyboard className="w-3.5 h-3.5 text-[#71866e]" />
+              <span><strong className="text-white">A</strong> APPROVE</span>
+              <span>•</span>
+              <span><strong className="text-white">R</strong> REJECT</span>
+              <span>•</span>
+              <span><strong className="text-white">J/K</strong> NAVIGATE</span>
+            </div>
           </div>
         </div>
       </section>
@@ -294,21 +339,44 @@ export default function DraftsApprovalPage() {
             <span>LOADING OUTREACH QUEUE...</span>
           </div>
         ) : drafts.length === 0 ? (
-          <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-16 text-center bg-[#f8fafc] dark:bg-[#313641]/20 my-auto">
-            <ShieldCheck className="w-10 h-10 text-[#959494] mx-auto mb-3" />
-            <h3 className="text-sm font-mono uppercase tracking-wider font-semibold text-black dark:text-white mb-1">
+          <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-16 text-center bg-[#f8fafc] dark:bg-[#313641]/20 my-auto max-w-lg mx-auto w-full">
+            <div className="w-12 h-12 rounded-[6px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <h3 className="text-sm font-mono uppercase tracking-wider font-semibold text-black dark:text-white mb-1.5">
               Zero Pending Drafts
             </h3>
-            <p className="text-xs text-[#6b7280] dark:text-[#959494] font-normal mb-4">
-              All generated outreach emails have been approved or dispatched.
+            <p className="text-xs text-[#6b7280] dark:text-[#959494] font-normal mb-5 leading-relaxed">
+              No personalized drafts are in the review queue yet. Click below to craft bespoke, 1-to-1 outreach drafts for the leads in your workspace.
             </p>
-            <Link
-              href="/campaigns"
-              className="mono-btn inline-flex items-center space-x-1.5 px-3 py-1.5 bg-black dark:bg-white text-white dark:text-black rounded-[4px] text-xs font-semibold"
-            >
-              <span>RUN CAMPAIGN DISCOVERY</span>
-              <ArrowRight className="w-3 h-3" />
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleGenerateDrafts}
+                disabled={generatingDrafts}
+                className="mono-btn inline-flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-[4px] text-xs font-semibold shadow-sm transition active:scale-95 disabled:opacity-50"
+              >
+                {generatingDrafts ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>GENERATING HANDCRAFTED DRAFTS...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>GENERATE AI DRAFTS FOR LEADS</span>
+                  </>
+                )}
+              </button>
+
+              <Link
+                href="/campaigns"
+                className="mono-btn inline-flex items-center space-x-1.5 px-3 py-2 border border-[#ebebeb] dark:border-white/[0.1] bg-white dark:bg-[#010120] text-black dark:text-white rounded-[4px] text-xs font-semibold hover:border-black dark:hover:border-white transition"
+              >
+                <span>Discover Leads</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 items-start">
@@ -373,7 +441,7 @@ export default function DraftsApprovalPage() {
                       </div>
 
                       <div className="text-[11px] text-[#6b7280] dark:text-[#959494] truncate">
-                        {draft.subject_line || 'Untitled Outreach Draft'}
+                        {draft.subject || draft.subject_line || 'Untitled Outreach Draft'}
                       </div>
 
                       <div className="flex items-center space-x-2 text-[10px] font-mono text-[#959494]">
@@ -440,7 +508,7 @@ export default function DraftsApprovalPage() {
                       <div className="flex items-center text-[#6b7280] dark:text-[#959494]">
                         <span className="w-14 font-semibold text-black dark:text-white">SUBJECT:</span>
                         <span className="text-black dark:text-white font-medium">
-                          {selectedDraft.subject_line}
+                          {selectedDraft.subject || selectedDraft.subject_line}
                         </span>
                       </div>
                     </div>

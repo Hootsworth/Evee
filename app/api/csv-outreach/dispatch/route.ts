@@ -9,6 +9,7 @@ import {
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getUserContext } from '@/lib/auth/context';
 import { assertAuthenticated, assertAuthorized } from '@/lib/auth/rbac';
+import { processBackgroundJobs } from '@/lib/jobs/processor';
 
 export async function POST(req: NextRequest) {
   try {
@@ -107,6 +108,7 @@ export async function POST(req: NextRequest) {
         organization_id: orgId,
         job_type: 'csv_email_dispatch',
         status: 'queued',
+        priority: 100, // HIGH PRIORITY: user-initiated outreach dispatches take precedence
         scheduled_at: scheduledAtDate.toISOString(),
         payload: {
           batchId,
@@ -143,6 +145,13 @@ export async function POST(req: NextRequest) {
         console.error('Failed to enqueue durable CSV dispatch jobs:', insertErr);
         return NextResponse.json({ error: `Database error while enqueuing dispatch: ${insertErr.message}` }, { status: 500 });
       }
+
+      // Automatically kick off initial queue processing immediately so ready emails dispatch without delay
+      try {
+        processBackgroundJobs(Math.min(jobsToInsert.length, 10)).catch((procErr) => {
+          console.error('[dispatch] Background processor kickoff notice:', procErr);
+        });
+      } catch {}
     }
 
     // Record audit event
