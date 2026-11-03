@@ -21,6 +21,7 @@ import {
   X,
   Users,
   PenLine,
+  Clock,
 } from 'lucide-react';
 import {
   parseCsvFile,
@@ -89,6 +90,7 @@ export default function CsvOutreachPage() {
   const [dispatching, setDispatching] = useState(false);
   const [dispatchSummary, setDispatchSummary] = useState<any>(null);
   const [dispatchResults, setDispatchResults] = useState<any[]>([]);
+  const [dispatchCadence, setDispatchCadence] = useState<'human' | 'fast' | 'immediate'>('human');
 
   // Current logged in user email for self test
   const [operatorEmail, setOperatorEmail] = useState('');
@@ -311,6 +313,7 @@ export default function CsvOutreachPage() {
         body: JSON.stringify({
           template: { subject, bodyText },
           recipients: csvResult.rows,
+          cadence: dispatchCadence,
           mapping,
         }),
       });
@@ -1063,6 +1066,86 @@ export default function CsvOutreachPage() {
                 </div>
               </div>
 
+              {/* Sending Cadence Selector (Anti-Spam) */}
+              <div className="space-y-2 mb-6 font-mono">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-semibold text-black dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-[#959494]" />
+                    <span>Sending Cadence & Deliverability Pacing</span>
+                  </label>
+                  <span className="text-[10px] text-[#959494]">Protects mailbox reputation</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                  {/* Option 1: Human Drip */}
+                  <button
+                    type="button"
+                    onClick={() => setDispatchCadence('human')}
+                    className={`text-left p-3 rounded-[4px] border transition-all ${
+                      dispatchCadence === 'human'
+                        ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 ring-1 ring-emerald-500/30'
+                        : 'border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/20 text-[#6b7280] dark:text-[#959494] hover:border-black/20 dark:hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-xs text-black dark:text-white flex items-center gap-1">
+                        Human Drip
+                      </span>
+                      <span className="text-[9px] uppercase px-1.5 py-0.5 rounded font-mono font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
+                        Recommended
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-[#6b7280] dark:text-[#959494] leading-relaxed">
+                      45–75s randomized delay. Bypasses spam tripwires & mimics human sending rhythm.
+                    </p>
+                  </button>
+
+                  {/* Option 2: Fast Pace */}
+                  <button
+                    type="button"
+                    onClick={() => setDispatchCadence('fast')}
+                    className={`text-left p-3 rounded-[4px] border transition-all ${
+                      dispatchCadence === 'fast'
+                        ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 ring-1 ring-emerald-500/30'
+                        : 'border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/20 text-[#6b7280] dark:text-[#959494] hover:border-black/20 dark:hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-xs text-black dark:text-white">
+                        Fast Pace
+                      </span>
+                      <span className="text-[9px] font-mono text-[#959494]">~15s</span>
+                    </div>
+                    <p className="text-[10px] text-[#6b7280] dark:text-[#959494] leading-relaxed">
+                      15s delay between sends. Quick dispatch suitable for smaller batches (&lt;20 leads).
+                    </p>
+                  </button>
+
+                  {/* Option 3: Immediate */}
+                  <button
+                    type="button"
+                    onClick={() => setDispatchCadence('immediate')}
+                    className={`text-left p-3 rounded-[4px] border transition-all ${
+                      dispatchCadence === 'immediate'
+                        ? 'border-amber-500/50 bg-amber-500/10 text-amber-800 dark:text-amber-300 ring-1 ring-amber-500/30'
+                        : 'border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/20 text-[#6b7280] dark:text-[#959494] hover:border-black/20 dark:hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-xs text-black dark:text-white">
+                        Immediate Burst
+                      </span>
+                      <span className="text-[9px] uppercase px-1.5 py-0.5 rounded font-mono font-bold bg-amber-500/20 text-amber-700 dark:text-amber-400">
+                        Risky
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-[#6b7280] dark:text-[#959494] leading-relaxed">
+                      Sends all at once. Highest risk of mailbox spam filters flagging your domain.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3 border-t border-[#ebebeb] dark:border-white/[0.08]">
                 <button
@@ -1114,7 +1197,7 @@ export default function CsvOutreachPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 text-xs font-mono">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
                 <div className="p-3 rounded-[4px] bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08]">
                   <span className="text-[#959494] block text-[10px]">TOTAL TARGETS</span>
                   <span className="text-base font-semibold text-black dark:text-white">
@@ -1122,7 +1205,7 @@ export default function CsvOutreachPage() {
                   </span>
                 </div>
                 <div className="p-3 rounded-[4px] bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08]">
-                  <span className="text-[#959494] block text-[10px]">DISPATCHED</span>
+                  <span className="text-[#959494] block text-[10px]">QUEUED / SENT</span>
                   <span className="text-base font-semibold text-emerald-600 dark:text-emerald-400">
                     {dispatchSummary?.sent || 0}
                   </span>
@@ -1131,6 +1214,16 @@ export default function CsvOutreachPage() {
                   <span className="text-[#959494] block text-[10px]">SUPPRESSED / ERRORS</span>
                   <span className="text-base font-semibold text-rose-600 dark:text-rose-400">
                     {dispatchSummary?.suppressed || dispatchSummary?.errors || 0}
+                  </span>
+                </div>
+                <div className="p-3 rounded-[4px] bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08]">
+                  <span className="text-[#959494] block text-[10px]">CADENCE</span>
+                  <span className="text-xs font-semibold text-black dark:text-white mt-1 block capitalize truncate">
+                    {dispatchCadence === 'human'
+                      ? 'Human Drip'
+                      : dispatchCadence === 'fast'
+                      ? 'Fast Pace'
+                      : 'Immediate'}
                   </span>
                 </div>
               </div>

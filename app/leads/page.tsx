@@ -45,6 +45,7 @@ import {
   Trash2,
   CopyX,
   Check,
+  Clock,
 } from 'lucide-react';
 import { parseAndAnalyzeCsv, CsvColumnMapping, replaceTemplateVariables } from '@/lib/csv/parser';
 import {
@@ -109,6 +110,7 @@ export default function LeadsPage() {
   const [dispatching, setDispatching] = useState(false);
   const [dispatchSummary, setDispatchSummary] = useState<any>(null);
   const [dispatchResults, setDispatchResults] = useState<any[]>([]);
+  const [dispatchCadence, setDispatchCadence] = useState<'human' | 'fast' | 'immediate'>('human');
   const [aiEnrichingModal, setAiEnrichingModal] = useState(false);
   const [aiEnrichedModal, setAiEnrichedModal] = useState(false);
   const [aiMetaModal, setAiMetaModal] = useState<{
@@ -859,6 +861,7 @@ export default function LeadsPage() {
         body: JSON.stringify({
           template: { subject: outreachSubject, bodyText: outreachBody },
           recipients: activeRecipients,
+          cadence: dispatchCadence,
           mapping: {
             email: 'email',
             companyName: 'company_name',
@@ -2086,14 +2089,94 @@ export default function LeadsPage() {
                     </div>
                   </div>
 
+                  {/* SENDING CADENCE SELECTOR (ANTI-SPAM) */}
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-semibold text-black dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-[#959494]" />
+                        <span>Sending Cadence & Deliverability Pacing</span>
+                      </label>
+                      <span className="text-[10px] text-[#959494]">Anti-spam rate protection</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                      {/* Option 1: Human Drip */}
+                      <button
+                        type="button"
+                        onClick={() => setDispatchCadence('human')}
+                        className={`text-left p-3 rounded-[4px] border transition-all ${
+                          dispatchCadence === 'human'
+                            ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 ring-1 ring-emerald-500/30'
+                            : 'border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/20 text-[#6b7280] dark:text-[#959494] hover:border-black/20 dark:hover:border-white/20'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold text-xs text-black dark:text-white flex items-center gap-1">
+                            Human Drip
+                          </span>
+                          <span className="text-[9px] uppercase px-1.5 py-0.5 rounded font-mono font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
+                            Recommended
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-[#6b7280] dark:text-[#959494] leading-relaxed">
+                          45–75s randomized delay. Bypasses spam tripwires & mimics human sending rhythm.
+                        </p>
+                      </button>
+
+                      {/* Option 2: Fast Pace */}
+                      <button
+                        type="button"
+                        onClick={() => setDispatchCadence('fast')}
+                        className={`text-left p-3 rounded-[4px] border transition-all ${
+                          dispatchCadence === 'fast'
+                            ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 ring-1 ring-emerald-500/30'
+                            : 'border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/20 text-[#6b7280] dark:text-[#959494] hover:border-black/20 dark:hover:border-white/20'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold text-xs text-black dark:text-white">
+                            Fast Pace
+                          </span>
+                          <span className="text-[9px] font-mono text-[#959494]">~15s</span>
+                        </div>
+                        <p className="text-[10px] text-[#6b7280] dark:text-[#959494] leading-relaxed">
+                          15s delay between sends. Quick dispatch suitable for smaller batches (&lt;20 leads).
+                        </p>
+                      </button>
+
+                      {/* Option 3: Immediate */}
+                      <button
+                        type="button"
+                        onClick={() => setDispatchCadence('immediate')}
+                        className={`text-left p-3 rounded-[4px] border transition-all ${
+                          dispatchCadence === 'immediate'
+                            ? 'border-amber-500/50 bg-amber-500/10 text-amber-800 dark:text-amber-300 ring-1 ring-amber-500/30'
+                            : 'border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/20 text-[#6b7280] dark:text-[#959494] hover:border-black/20 dark:hover:border-white/20'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold text-xs text-black dark:text-white">
+                            Immediate Burst
+                          </span>
+                          <span className="text-[9px] uppercase px-1.5 py-0.5 rounded font-mono font-bold bg-amber-500/20 text-amber-700 dark:text-amber-400">
+                            Risky
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-[#6b7280] dark:text-[#959494] leading-relaxed">
+                          Sends all at once. Highest risk of mailbox spam filters flagging your domain.
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-[4px] text-amber-700 dark:text-amber-400 space-y-1">
                     <div className="font-semibold flex items-center space-x-1.5">
                       <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-500" />
                       <span>Ready for Live Dispatch</span>
                     </div>
                     <p className="text-[11px] leading-relaxed">
-                      Confirming will immediately queue and transmit emails to all{' '}
-                      <strong>{activeRecipients.length}</strong> selected businesses.
+                      Confirming will queue and transmit emails to all{' '}
+                      <strong>{activeRecipients.length}</strong> selected businesses via durable background queue.
                     </p>
                   </div>
 
@@ -2142,11 +2225,11 @@ export default function LeadsPage() {
                   </div>
 
                   {/* Summary Metric Cards */}
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="p-3 rounded-[4px] bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08]">
                       <span className="text-[#959494] flex items-center gap-1 text-[10px] whitespace-nowrap">
                         <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                        DISPATCHED
+                        QUEUED / SENT
                       </span>
                       <span className="text-base font-semibold text-emerald-600 dark:text-emerald-400 mt-1 block">
                         {dispatchSummary?.sent || 0}
@@ -2168,6 +2251,19 @@ export default function LeadsPage() {
                       </span>
                       <span className="text-base font-semibold text-rose-600 dark:text-rose-400 mt-1 block">
                         {dispatchSummary?.failed || 0}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-[4px] bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08]">
+                      <span className="text-[#959494] flex items-center gap-1 text-[10px] whitespace-nowrap">
+                        <Clock className="w-3 h-3 text-blue-500" />
+                        CADENCE
+                      </span>
+                      <span className="text-xs font-semibold text-black dark:text-white mt-1.5 block capitalize truncate">
+                        {dispatchCadence === 'human'
+                          ? 'Human Drip'
+                          : dispatchCadence === 'fast'
+                          ? 'Fast Pace'
+                          : 'Immediate'}
                       </span>
                     </div>
                   </div>

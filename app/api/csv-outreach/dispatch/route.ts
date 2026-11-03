@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     assertAuthorized(userCtx, 'operator');
 
     const body = await req.json();
-    const { template, recipients, mapping } = body;
+    const { template, recipients, mapping, cadence = 'human' } = body;
 
     if (!template?.subject || !template?.bodyText) {
       return NextResponse.json({ error: 'Subject and body template are required.' }, { status: 400 });
@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
       companyType?: string;
       error?: string;
       idempotencyKey?: string;
+      scheduledAt?: string;
     }> = [];
 
     let queuedCount = 0;
@@ -87,10 +88,26 @@ export async function POST(req: NextRequest) {
 
       const idempotencyKey = `csv-${batchId}-${idx}-${email}`;
 
+      // Calculate staggered schedule to prevent spam flags and simulate natural human sending rhythm
+      let scheduledAtDate = new Date();
+      if (cadence === 'fast') {
+        // Fast Pace: ~15 seconds apart
+        scheduledAtDate = new Date(Date.now() + idx * 15 * 1000);
+      } else if (cadence === 'human') {
+        // Human Drip (Anti-Spam Default): 45-75 seconds between each email with randomized jitter
+        const jitter = Math.floor(Math.random() * 25);
+        const cumulativeDelaySeconds = idx * 50 + jitter;
+        scheduledAtDate = new Date(Date.now() + cumulativeDelaySeconds * 1000);
+      } else {
+        // Immediate
+        scheduledAtDate = new Date();
+      }
+
       jobsToInsert.push({
         organization_id: orgId,
         job_type: 'csv_email_dispatch',
         status: 'queued',
+        scheduled_at: scheduledAtDate.toISOString(),
         payload: {
           batchId,
           recipientEmail: email,
@@ -100,6 +117,8 @@ export async function POST(req: NextRequest) {
           companyType,
           organizationId: orgId,
           idempotencyKey,
+          cadence,
+          scheduledFor: scheduledAtDate.toISOString(),
         },
         idempotency_key: idempotencyKey,
       });
@@ -109,6 +128,7 @@ export async function POST(req: NextRequest) {
         status: 'queued',
         companyType,
         idempotencyKey,
+        scheduledAt: scheduledAtDate.toISOString(),
       });
       queuedCount++;
     }

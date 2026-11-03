@@ -57,6 +57,15 @@ export async function processBackgroundJobs(batchSize = 5): Promise<JobProcessin
         .eq('id', job.id);
 
       summary.succeeded++;
+
+      // Deliverability Pacing: 2.5s pause between consecutive email sends in the same batch to avoid burst spam triggers
+      if (
+        summary.succeeded < jobs.length &&
+        (job.job_type === 'csv_email_dispatch' || job.job_type === 'send_email') &&
+        process.env.NODE_ENV !== 'test'
+      ) {
+        await new Promise((r) => setTimeout(r, 2500));
+      }
     } catch (err: unknown) {
       const error = err as Error;
       summary.failed++;
