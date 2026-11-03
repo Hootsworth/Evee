@@ -19,6 +19,7 @@ import {
   ArrowRight,
   AlertTriangle,
   RefreshCw,
+  MailCheck,
 } from 'lucide-react';
 
 export default function DraftsApprovalPage() {
@@ -27,7 +28,9 @@ export default function DraftsApprovalPage() {
   const [workflows, setWorkflows] = useState<any[]>([]);
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'sent' | 'rejected'>('pending');
+  const [sentEmails, setSentEmails] = useState<Set<string>>(new Set());
+  const [sentBusinessIds, setSentBusinessIds] = useState<Set<string>>(new Set());
   const [editedBody, setEditedBody] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -48,15 +51,22 @@ export default function DraftsApprovalPage() {
 
   const fetchDrafts = async () => {
     try {
-      const [draftsRes, wfRes] = await Promise.all([
+      const [draftsRes, wfRes, sentRes] = await Promise.all([
         fetch('/api/drafts'),
         fetch('/api/workflows'),
+        fetch('/api/outreach/sent'),
       ]);
       const draftsData = await draftsRes.json();
       const wfData = await wfRes.json();
+      const sentData = await sentRes.json();
       const loadedDrafts = draftsData.drafts || [];
       setDrafts(loadedDrafts);
       setWorkflows(wfData.workflows || []);
+
+      if (sentData.success) {
+        setSentEmails(new Set((sentData.sentEmails || []).map((e: string) => e.toLowerCase().trim())));
+        setSentBusinessIds(new Set(sentData.sentBusinessIds || []));
+      }
 
       if (loadedDrafts.length > 0 && !selectedDraftId) {
         setSelectedDraftId(loadedDrafts[0].id);
@@ -257,10 +267,22 @@ export default function DraftsApprovalPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedDraft, drafts]);
 
+  const isDraftSent = (d: any) => {
+    if (!d) return false;
+    if (d.approval_status === 'sent') return true;
+    if (d.business_id && sentBusinessIds.has(d.business_id)) return true;
+    const bizEmail = d.business?.general_business_email?.toLowerCase().trim();
+    if (bizEmail && sentEmails.has(bizEmail)) return true;
+    const contactEmail = (d.contact?.email || d.contact?.email_address)?.toLowerCase().trim();
+    if (contactEmail && sentEmails.has(contactEmail)) return true;
+    return false;
+  };
+
   const filteredDrafts = drafts.filter((d) => {
     if (filter === 'all') return true;
-    if (filter === 'pending') return !d.approval_status || d.approval_status === 'pending';
-    if (filter === 'approved') return d.approval_status === 'approved';
+    if (filter === 'sent') return isDraftSent(d);
+    if (filter === 'pending') return (!d.approval_status || d.approval_status === 'pending') && !isDraftSent(d);
+    if (filter === 'approved') return d.approval_status === 'approved' && !isDraftSent(d);
     if (filter === 'rejected') return d.approval_status === 'rejected';
     return true;
   });
@@ -388,7 +410,7 @@ export default function DraftsApprovalPage() {
                   QUEUE ({filteredDrafts.length})
                 </span>
                 <div className="flex items-center space-x-1">
-                  {(['all', 'pending', 'approved', 'rejected'] as const).map((tab) => (
+                  {(['all', 'pending', 'approved', 'sent', 'rejected'] as const).map((tab) => (
                     <button
                       key={tab}
                       onClick={() => setFilter(tab)}
@@ -408,6 +430,7 @@ export default function DraftsApprovalPage() {
               <div className="flex-1 overflow-y-auto divide-y divide-[#ebebeb] dark:divide-white/[0.06]">
                 {filteredDrafts.map((draft) => {
                   const isSelected = selectedDraft?.id === draft.id;
+                  const isSent = isDraftSent(draft);
                   const isApproved = draft.approval_status === 'approved';
                   const isRejected = draft.approval_status === 'rejected';
 
@@ -425,7 +448,11 @@ export default function DraftsApprovalPage() {
                         <span className="font-medium text-xs text-black dark:text-white truncate max-w-[190px]">
                           {draft.business?.display_name || 'Target Prospect'}
                         </span>
-                        {isApproved ? (
+                        {isSent ? (
+                          <span className="px-1.5 py-0.2 rounded-[2px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[9px] font-mono uppercase font-semibold">
+                            SENT
+                          </span>
+                        ) : isApproved ? (
                           <span className="px-1.5 py-0.2 rounded-[2px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[9px] font-mono uppercase font-semibold">
                             APPROVED
                           </span>
@@ -725,19 +752,26 @@ export default function DraftsApprovalPage() {
                       </button>
                     </div>
 
-                    <button
-                      onClick={() => handleQueueForSend(selectedDraft)}
-                      disabled={actionLoading === selectedDraft.id || selectedDraft.approval_status !== 'approved'}
-                      title={selectedDraft.approval_status !== 'approved' ? 'Approve draft first' : 'Queue email'}
-                      className={`mono-btn px-3.5 py-1.5 rounded-[4px] text-[11px] font-semibold flex items-center space-x-1.5 transition ${
-                        selectedDraft.approval_status === 'approved'
-                          ? 'bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800'
-                          : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-400 cursor-not-allowed'
-                      }`}
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>DISPATCH [S]</span>
-                    </button>
+                    {isDraftSent(selectedDraft) ? (
+                      <span className="px-3.5 py-1.5 rounded-[4px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[11px] font-mono uppercase font-semibold flex items-center space-x-1.5">
+                        <MailCheck className="w-3.5 h-3.5" />
+                        <span>DISPATCHED</span>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleQueueForSend(selectedDraft)}
+                        disabled={actionLoading === selectedDraft.id || selectedDraft.approval_status !== 'approved'}
+                        title={selectedDraft.approval_status !== 'approved' ? 'Approve draft first' : 'Queue email'}
+                        className={`mono-btn px-3.5 py-1.5 rounded-[4px] text-[11px] font-semibold flex items-center space-x-1.5 transition ${
+                          selectedDraft.approval_status === 'approved'
+                            ? 'bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800'
+                            : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-400 cursor-not-allowed'
+                        }`}
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>DISPATCH [S]</span>
+                      </button>
+                    )}
                   </div>
                 </>
               ) : (

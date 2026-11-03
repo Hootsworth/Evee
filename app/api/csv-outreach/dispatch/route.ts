@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     assertAuthorized(userCtx, 'operator');
 
     const body = await req.json();
-    const { template, recipients, mapping, cadence = 'human' } = body;
+    const { template, recipients, mapping, cadence = 'human', skipPreviouslyContacted = true } = body;
 
     if (!template?.subject || !template?.bodyText) {
       return NextResponse.json({ error: 'Subject and body template are required.' }, { status: 400 });
@@ -30,6 +30,43 @@ export async function POST(req: NextRequest) {
 
     const orgId = userCtx.organizationId;
     const admin = createAdminClient();
+
+    // Deduplication Protection: Find all previously contacted or queued emails for this tenant
+    const contactedEmails = new Set<string>();
+    if (skipPreviouslyContacted) {
+      const { data: existingJobs } = await admin
+        .from('background_jobs')
+        .select('payload')
+        .eq('organization_id', orgId)
+        .eq('job_type', 'csv_email_dispatch')
+        .in('status', ['succeeded', 'queued', 'running']);
+
+      if (existingJobs) {
+        for (const j of existingJobs) {
+          const em = (j.payload?.recipientEmail || '').trim().toLowerCase();
+          if (em) contactedEmails.add(em);
+        }
+      }
+
+      const { data: existingMessages } = await admin
+        .from('outreach_messages')
+        .select(`
+          status,
+          businesses (general_business_email),
+          contacts (email)
+        `)
+        .eq('organization_id', orgId)
+        .in('status', ['sent', 'sending', 'queued']);
+
+      if (existingMessages) {
+        for (const m of existingMessages) {
+          const em1 = ((m as any).contacts?.email || '').trim().toLowerCase();
+          const em2 = ((m as any).businesses?.general_business_email || '').trim().toLowerCase();
+          if (em1) contactedEmails.add(em1);
+          if (em2) contactedEmails.add(em2);
+        }
+      }
+    }
 
     const emailCol = mapping?.email || 'email';
     const companyCol = mapping?.companyName || 'company_name';
@@ -60,7 +97,7 @@ export async function POST(req: NextRequest) {
     const jobsToInsert: any[] = [];
     const clientResults: Array<{
       email: string;
-      status: 'queued' | 'failed';
+      status: 'queued' | 'failed' | 'skipped';
       companyType?: string;
       error?: string;
       idempotencyKey?: string;
@@ -69,6 +106,7 @@ export async function POST(req: NextRequest) {
 
     let queuedCount = 0;
     let failedCount = 0;
+    let skippedCount = 0;
 
     for (let idx = 0; idx < processedRecipients.length; idx++) {
       const prospect = processedRecipients[idx];
@@ -81,6 +119,19 @@ export async function POST(req: NextRequest) {
       }
 
       const companyType = prospect.ai_company_type || prospect.company_type || 'General Business';
+
+      // Duplicate Prevention: Skip if already contacted or queued in a previous dispatch or earlier in this batch
+      if (skipPreviouslyContacted && contactedEmails.has(email)) {
+        clientResults.push({
+          email,
+          status: 'skipped',
+          companyType,
+          error: 'Skipped: recipient was already contacted or queued previously',
+        });
+        skippedCount++;
+        continue;
+      }
+      contactedEmails.add(email);
       const personalizedSubject = replaceTemplateVariables(template.subject, prospect, mapping);
       const personalizedBodyText = replaceTemplateVariables(template.bodyText, prospect, mapping);
       const personalizedBodyHtml = template.bodyHtml
@@ -164,6 +215,7 @@ export async function POST(req: NextRequest) {
           batchId,
           totalRecipients: recipients.length,
           queuedCount,
+          skippedCount,
           failedCount,
           operatorId: userCtx.userId,
         },
@@ -179,6 +231,7 @@ export async function POST(req: NextRequest) {
         summary: {
           total: recipients.length,
           queued: queuedCount,
+          skipped: skippedCount,
           sent: 0,
           suppressed: 0,
           failed: failedCount,

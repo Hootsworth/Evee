@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Upload,
@@ -22,6 +22,7 @@ import {
   Users,
   PenLine,
   Clock,
+  MailCheck,
 } from 'lucide-react';
 import {
   parseCsvFile,
@@ -93,6 +94,19 @@ export default function CsvOutreachPage() {
   const [dispatchCadence, setDispatchCadence] = useState<'human' | 'fast' | 'immediate'>('human');
   const [cancellingDispatch, setCancellingDispatch] = useState(false);
 
+  // Sent Registry & Duplicate Prevention
+  const [sentEmails, setSentEmails] = useState<Set<string>>(new Set());
+  const [excludeAlreadySent, setExcludeAlreadySent] = useState<boolean>(true);
+
+  const contactedInCsv = useMemo(() => {
+    if (!csvResult || !csvResult.rows) return [];
+    const emailCol = mapping?.email || 'email';
+    return csvResult.rows.filter((r) => {
+      const em = (r[emailCol] || r.email || '').trim().toLowerCase();
+      return em && sentEmails.has(em);
+    });
+  }, [csvResult, mapping, sentEmails]);
+
   const handleCancelDispatch = async () => {
     if (!confirm('Are you sure you want to stop sending and cancel all remaining queued emails?')) return;
     setCancellingDispatch(true);
@@ -118,13 +132,22 @@ export default function CsvOutreachPage() {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Fetch operator's email on mount and check for pre-loaded leads
+  // Fetch operator's email and sent registry on mount and check for pre-loaded leads
   useEffect(() => {
     fetch('/api/settings/providers')
       .then((res) => res.json())
       .then((data) => {
         if (data.settings?.smtpUser) {
           setOperatorEmail(data.settings.smtpUser);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/outreach/sent')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.sentEmails)) {
+          setSentEmails(new Set(data.sentEmails.map((e: string) => e.toLowerCase().trim())));
         }
       })
       .catch(() => {});
@@ -335,6 +358,7 @@ export default function CsvOutreachPage() {
           template: { subject, bodyText },
           recipients: csvResult.rows,
           cadence: dispatchCadence,
+          skipPreviouslyContacted: excludeAlreadySent,
           mapping,
         }),
       });
@@ -344,6 +368,15 @@ export default function CsvOutreachPage() {
         setDispatchSummary(data.summary);
         setDispatchResults(data.results || []);
         setStep('dispatched');
+        // Refresh sent registry
+        fetch('/api/outreach/sent')
+          .then((r) => r.json())
+          .then((sd) => {
+            if (sd.success && Array.isArray(sd.sentEmails)) {
+              setSentEmails(new Set(sd.sentEmails.map((e: string) => e.toLowerCase().trim())));
+            }
+          })
+          .catch(() => {});
       } else {
         alert(`Bulk dispatch error: ${data.error}`);
       }
@@ -642,6 +675,27 @@ export default function CsvOutreachPage() {
                         </div>
                       ))}
                     </div>
+
+                    {/* Duplicate Prevention Alert if matching sent emails */}
+                    {contactedInCsv.length > 0 && (
+                      <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-[4px] text-blue-900 dark:text-blue-200 text-xs font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0" />
+                          <span>
+                            <strong>Duplicate Prevention Active:</strong> {contactedInCsv.length} {contactedInCsv.length === 1 ? 'contact was' : 'contacts were'} already emailed previously.
+                          </span>
+                        </div>
+                        <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
+                          <input
+                            type="checkbox"
+                            checked={excludeAlreadySent}
+                            onChange={(e) => setExcludeAlreadySent(e.target.checked)}
+                            className="rounded text-blue-600 focus:ring-0"
+                          />
+                          <span>Skip previously contacted ({contactedInCsv.length})</span>
+                        </label>
+                      </div>
+                    )}
 
                     {/* Preview Table */}
                     <div>
@@ -1271,6 +1325,21 @@ export default function CsvOutreachPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Deduplication summary notice */}
+              {contactedInCsv.length > 0 && excludeAlreadySent && (
+                <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-[4px] text-blue-900 dark:text-blue-300 text-xs font-mono flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0" />
+                    <span>
+                      {contactedInCsv.length} previously emailed {contactedInCsv.length === 1 ? 'prospect will' : 'prospects will'} be skipped automatically.
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-semibold">
+                    {Math.max(0, (csvResult?.totalRows || 0) - contactedInCsv.length)} emails will be sent
+                  </span>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3 border-t border-[#ebebeb] dark:border-white/[0.08]">

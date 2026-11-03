@@ -72,8 +72,15 @@ export default function LeadsPage() {
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'active' | 'all' | 'missing_email' | 'archived' | 'suppressed' | 'duplicates' | 'flagged_emails'>('active');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'sent' | 'all' | 'missing_email' | 'archived' | 'suppressed' | 'duplicates' | 'flagged_emails'>('active');
   const [archiving, setArchiving] = useState(false);
+
+  // Sent Outreach Registry State (Prevents duplicate sends)
+  const [sentEmails, setSentEmails] = useState<Set<string>>(new Set());
+  const [sentBusinessIds, setSentBusinessIds] = useState<Set<string>>(new Set());
+  const [sentRecords, setSentRecords] = useState<any[]>([]);
+  const [sentRecordsMap, setSentRecordsMap] = useState<Map<string, any>>(new Map());
+  const [excludeAlreadySent, setExcludeAlreadySent] = useState<boolean>(true);
 
   // Multi-selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -142,6 +149,29 @@ export default function LeadsPage() {
   const [importResult, setImportResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const fetchSentData = async () => {
+    try {
+      const res = await fetch('/api/outreach/sent');
+      const data = await res.json();
+      if (data.success) {
+        const emailSet = new Set<string>((data.sentEmails || []).map((e: string) => e.toLowerCase().trim()));
+        const idSet = new Set<string>(data.sentBusinessIds || []);
+        setSentEmails(emailSet);
+        setSentBusinessIds(idSet);
+        setSentRecords(data.records || []);
+
+        const map = new Map<string, any>();
+        for (const rec of data.records || []) {
+          if (rec.email) map.set(rec.email.toLowerCase().trim(), rec);
+          if (rec.businessId) map.set(rec.businessId, rec);
+        }
+        setSentRecordsMap(map);
+      }
+    } catch (e) {
+      console.error('[leads] Failed to fetch sent outreach data:', e);
+    }
+  };
+
   const fetchBusinesses = async () => {
     try {
       const res = await fetch('/api/businesses');
@@ -156,6 +186,7 @@ export default function LeadsPage() {
 
   useEffect(() => {
     fetchBusinesses();
+    fetchSentData();
     fetch('/api/settings/providers')
       .then((res) => res.json())
       .then((data) => {
@@ -215,6 +246,32 @@ export default function LeadsPage() {
 
   const totalFlaggedEmailsCount = emailAuditReport.totalFlagged;
 
+  // Sent Detection & Deduplication Helper
+  const isLeadSent = (b: any): boolean => {
+    if (!b) return false;
+    if (sentBusinessIds.has(b.id)) return true;
+    const em = b.general_business_email?.toLowerCase().trim();
+    if (em && sentEmails.has(em)) return true;
+    if (b.contacts && Array.isArray(b.contacts)) {
+      return b.contacts.some((c: any) => c.email && sentEmails.has(c.email.toLowerCase().trim()));
+    }
+    return false;
+  };
+
+  const getLeadSentInfo = (b: any) => {
+    if (!b) return null;
+    const em = b.general_business_email?.toLowerCase().trim();
+    if (em && sentRecordsMap.has(em)) return sentRecordsMap.get(em);
+    if (sentRecordsMap.has(b.id)) return sentRecordsMap.get(b.id);
+    if (b.contacts && Array.isArray(b.contacts)) {
+      for (const c of b.contacts) {
+        const cEmail = c.email?.toLowerCase().trim();
+        if (cEmail && sentRecordsMap.has(cEmail)) return sentRecordsMap.get(cEmail);
+      }
+    }
+    return null;
+  };
+
   // Filtered list
   const filtered = businesses.filter((b) => {
     const matchesSearch =
@@ -226,6 +283,9 @@ export default function LeadsPage() {
     if (!matchesSearch) return false;
 
     if (statusFilter === 'all') return true;
+    if (statusFilter === 'sent') {
+      return isLeadSent(b);
+    }
     if (statusFilter === 'duplicates') {
       return allDuplicateClusterIds.has(b.id);
     }
@@ -245,6 +305,8 @@ export default function LeadsPage() {
   });
 
   const activeBusinesses = businesses.filter((b) => b.record_status === 'active');
+  const sentBusinessesCount = businesses.filter(isLeadSent).length;
+  const totalSentCount = Math.max(sentBusinessesCount, sentEmails.size);
   const missingEmailCount = activeBusinesses.filter((b) => !b.general_business_email || b.general_business_email.trim() === '').length;
   const archivedCount = businesses.filter((b) => b.record_status === 'archived').length;
 
@@ -588,7 +650,12 @@ export default function LeadsPage() {
     if (selectedIds.size === filtered.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filtered.map((b) => b.id)));
+      if (excludeAlreadySent && statusFilter !== 'sent') {
+        const uncontacted = filtered.filter((b) => !isLeadSent(b));
+        setSelectedIds(new Set(uncontacted.map((b) => b.id)));
+      } else {
+        setSelectedIds(new Set(filtered.map((b) => b.id)));
+      }
     }
   };
 
@@ -600,10 +667,17 @@ export default function LeadsPage() {
   const selectedBusinesses = businesses.filter((b) => selectedIds.has(b.id));
   const selectedReadyToEmail = selectedBusinesses.filter((b) => Boolean(b.general_business_email));
   const selectedMissingEmail = selectedBusinesses.filter((b) => !b.general_business_email);
+  const selectedAlreadySentCount = selectedBusinesses.filter(isLeadSent).length;
 
   // Outreach Candidates: selected leads, or filtered leads if none explicitly selected
   const activeCandidatesList = selectedBusinesses.length > 0 ? selectedBusinesses : filtered;
-  const outreachCandidates = activeCandidatesList.map((b) => ({
+  const alreadyContactedInCandidates = activeCandidatesList.filter(isLeadSent).length;
+  const eligibleCandidates =
+    excludeAlreadySent && statusFilter !== 'sent'
+      ? activeCandidatesList.filter((b) => !isLeadSent(b))
+      : activeCandidatesList;
+
+  const outreachCandidates = eligibleCandidates.map((b) => ({
     id: b.id,
     email: b.general_business_email || b.contacts?.[0]?.contact_email || '',
     company_name: b.display_name,
@@ -620,6 +694,8 @@ export default function LeadsPage() {
     ai_pain_point: b.ai_pain_point,
     ai_value_prop: b.ai_value_prop,
     ai_industry: b.business_type,
+    is_sent: isLeadSent(b),
+    sent_info: getLeadSentInfo(b),
   }));
   const activeRecipients = outreachCandidates.filter((c) => Boolean(c.email && c.email.includes('@')));
   const sampleCandidate = activeRecipients[previewLeadIdx] || activeRecipients[0] || {};
@@ -863,6 +939,7 @@ export default function LeadsPage() {
           template: { subject: outreachSubject, bodyText: outreachBody },
           recipients: activeRecipients,
           cadence: dispatchCadence,
+          skipPreviouslyContacted: excludeAlreadySent,
           mapping: {
             email: 'email',
             companyName: 'company_name',
@@ -879,6 +956,7 @@ export default function LeadsPage() {
         setDispatchResults(data.results || []);
         setOutreachStep('dispatched');
         fetchBusinesses();
+        fetchSentData();
       } else {
         alert(`Bulk dispatch error: ${data.error}`);
       }
@@ -1126,6 +1204,7 @@ export default function LeadsPage() {
             <span className="mono-eyebrow text-[#959494] text-[11px] font-mono mr-1">STATUS:</span>
             {[
               { id: 'active', label: `ACTIVE (${activeBusinesses.length})` },
+              { id: 'sent', label: `SENT (${sentBusinessesCount || totalSentCount})` },
               { id: 'missing_email', label: `NO EMAIL (${missingEmailCount})` },
               ...(totalFlaggedEmailsCount > 0
                 ? [{ id: 'flagged_emails', label: `FLAGGED EMAILS (${totalFlaggedEmailsCount})` }]
@@ -1151,6 +1230,25 @@ export default function LeadsPage() {
             ))}
           </div>
         </div>
+
+        {/* Sent / Contacted Banner when viewing Sent */}
+        {statusFilter === 'sent' && (
+          <div className="mb-6 p-4 rounded-[4px] border border-blue-500/30 bg-blue-500/10 text-blue-900 dark:text-blue-200 font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-2.5">
+              <MailCheck className="w-4 h-4 text-blue-500 shrink-0" />
+              <div>
+                <span className="font-semibold">Showing {filtered.length} contacted leads ({totalSentCount} total sent recipient emails).</span>
+                <span className="text-[11px] opacity-80 block sm:inline sm:ml-2">These companies and emails are flagged to prevent duplicate emails from being sent by mistake.</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-blue-500/20 text-blue-800 dark:text-blue-300 text-[11px] font-semibold">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>DUPLICATE PROTECTED</span>
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Missing Email Banner when viewing No Email */}
         {statusFilter === 'missing_email' && (
@@ -1216,7 +1314,15 @@ export default function LeadsPage() {
         {/* Lead Table / List: lead table style */}
         {loading ? (
           <div className="py-20 text-center font-mono text-xs text-[#959494]">Loading discovered leads...</div>
-        ) : filtered.length === 0 ? (
+        ) : filtered.length === 0 && statusFilter === 'sent' && sentRecords.length === 0 ? (
+          <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-16 text-center bg-white dark:bg-[#0f1017]">
+            <MailCheck className="w-8 h-8 text-[#959494] mx-auto mb-3 opacity-60" />
+            <p className="text-xs text-[#959494] font-mono mb-2">No outreach emails have been sent yet.</p>
+            <p className="text-[11px] text-[#959494] font-mono opacity-80">
+              When you launch outreach campaigns, contacted businesses and emails will appear here and be protected from accidental duplicate sends.
+            </p>
+          </div>
+        ) : filtered.length === 0 && statusFilter !== 'sent' ? (
           <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-16 text-center bg-white dark:bg-[#0f1017]">
             <p className="text-xs text-[#959494] font-mono mb-4">No prospects match your search criteria.</p>
             <button
@@ -1297,6 +1403,19 @@ export default function LeadsPage() {
                               <span>{b.display_name}</span>
                               <ChevronRight className="w-3.5 h-3.5 text-[#959494] group-hover:translate-x-0.5 transition-transform" />
                             </Link>
+                            {isLeadSent(b) && (
+                              <span
+                                title={
+                                  getLeadSentInfo(b)?.sentAt
+                                    ? `Contacted on ${new Date(getLeadSentInfo(b).sentAt).toLocaleDateString()}`
+                                    : 'Contacted previously'
+                                }
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-semibold uppercase"
+                              >
+                                <MailCheck className="w-2.5 h-2.5 text-blue-500" />
+                                <span>Sent</span>
+                              </span>
+                            )}
                             {allDuplicateLeadIds.has(b.id) && (
                               <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-semibold uppercase">
                                 <CopyX className="w-2.5 h-2.5" />
@@ -1318,6 +1437,15 @@ export default function LeadsPage() {
                               <div className="flex items-center space-x-1.5 flex-wrap gap-y-1 text-[#000000] dark:text-white font-normal">
                                 <Mail className="w-3 h-3 text-[#959494] shrink-0" />
                                 <span>{b.general_business_email}</span>
+                                {isLeadSent(b) && (
+                                  <span
+                                    title="Email already delivered or in flight"
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-mono bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 font-semibold uppercase shrink-0"
+                                  >
+                                    <MailCheck className="w-2.5 h-2.5 text-blue-500" />
+                                    <span>CONTACTED</span>
+                                  </span>
+                                )}
                                 {flaggedEmailsMap.has(b.id) && (
                                   <span
                                     title={flaggedEmailsMap.get(b.id)!.flag.reason}
@@ -1362,17 +1490,28 @@ export default function LeadsPage() {
 
                         {/* Status */}
                         <td className="py-3.5 px-4">
-                          <span
-                            className={`px-2 py-0.5 rounded-[4px] font-mono text-[10px] uppercase tracking-wider ${
-                              b.record_status === 'active'
-                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                                : b.record_status === 'archived'
-                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                            }`}
-                          >
-                            {b.record_status}
-                          </span>
+                          <div className="flex flex-col gap-1 items-start">
+                            <span
+                              className={`px-2 py-0.5 rounded-[4px] font-mono text-[10px] uppercase tracking-wider ${
+                                b.record_status === 'active'
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                  : b.record_status === 'archived'
+                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                              }`}
+                            >
+                              {b.record_status}
+                            </span>
+                            {isLeadSent(b) && (
+                              <span
+                                title="Lead has already received outreach"
+                                className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-[4px] text-[9px] font-mono bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-semibold uppercase"
+                              >
+                                <MailCheck className="w-2.5 h-2.5 text-blue-500" />
+                                <span>SENT</span>
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Actions */}
@@ -1429,6 +1568,63 @@ export default function LeadsPage() {
             </div>
           </div>
         )}
+
+        {/* Dedicated Outbound Dispatch Registry when viewing SENT */}
+        {statusFilter === 'sent' && sentRecords.length > 0 && (
+          <div className="mt-8 space-y-3 font-mono">
+            <div className="flex items-center justify-between">
+              <span className="mono-eyebrow text-[#959494] text-[11px] font-semibold uppercase flex items-center gap-1.5">
+                <MailCheck className="w-3.5 h-3.5 text-blue-500" />
+                OUTBOUND DISPATCH REGISTRY ({sentRecords.length} EMAILS CONTACTED / QUEUED)
+              </span>
+              <span className="text-[11px] text-[#959494] flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                Deduplication active (cannot be emailed twice)
+              </span>
+            </div>
+            <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] overflow-hidden bg-white dark:bg-[#0f1017]">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs font-mono">
+                  <thead className="bg-[#f4f4f5] dark:bg-[#14161f] border-b border-[#ebebeb] dark:border-white/[0.08] text-[#959494]">
+                    <tr>
+                      <th className="py-2.5 px-4 uppercase">RECIPIENT EMAIL</th>
+                      <th className="py-2.5 px-4 uppercase">COMPANY / PROSPECT</th>
+                      <th className="py-2.5 px-4 uppercase">SUBJECT</th>
+                      <th className="py-2.5 px-4 uppercase">SENT AT</th>
+                      <th className="py-2.5 px-4 uppercase text-right">STATUS</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#ebebeb] dark:divide-white/[0.06]">
+                    {sentRecords.map((rec) => (
+                      <tr key={rec.id} className="hover:bg-[#f8fafc] dark:hover:bg-white/[0.02]">
+                        <td className="py-3 px-4 font-mono font-medium text-black dark:text-white flex items-center gap-1.5">
+                          <Mail className="w-3 h-3 text-[#959494]" />
+                          <span>{rec.email}</span>
+                        </td>
+                        <td className="py-3 px-4 text-[#959494] truncate max-w-[200px]">{rec.companyName}</td>
+                        <td className="py-3 px-4 text-black dark:text-white truncate max-w-xs">{rec.subject}</td>
+                        <td className="py-3 px-4 text-[#959494] whitespace-nowrap">
+                          {rec.sentAt ? new Date(rec.sentAt).toLocaleString() : 'Recent'}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <span
+                            className={`px-2 py-0.5 rounded-[4px] text-[10px] uppercase font-semibold ${
+                              rec.status === 'succeeded' || rec.status === 'sent'
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                            }`}
+                          >
+                            {rec.status === 'succeeded' ? 'DELIVERED' : rec.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Floating Action Bar when Leads are selected (DESIGN.md Level 3 Elevation) */}
@@ -1481,6 +1677,18 @@ export default function LeadsPage() {
             <Trash2 className="w-3 h-3 text-rose-400" />
             <span>DELETE ({selectedIds.size})</span>
           </button>
+
+          {selectedAlreadySentCount > 0 && (
+            <label className="flex items-center space-x-1.5 cursor-pointer text-xs font-mono bg-blue-500/20 px-2.5 py-1.5 rounded-[4px] border border-blue-400/30 text-blue-200">
+              <input
+                type="checkbox"
+                checked={excludeAlreadySent}
+                onChange={(e) => setExcludeAlreadySent(e.target.checked)}
+                className="rounded text-blue-500 focus:ring-0 w-3.5 h-3.5"
+              />
+              <span>Exclude {selectedAlreadySentCount} sent</span>
+            </label>
+          )}
 
           <button
             onClick={() => {
@@ -1588,7 +1796,7 @@ export default function LeadsPage() {
             {outreachStep === 'recipients' && (
               <div className="space-y-5 font-mono text-xs">
                 {/* Stats Breakdown */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <div className="p-3 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
                     <div className="flex items-center justify-between text-[#959494] text-[10px] uppercase font-semibold">
                       <span className="flex items-center gap-1.5">
@@ -1632,7 +1840,48 @@ export default function LeadsPage() {
                       )}
                     </div>
                   </div>
+                  <div className="p-3 bg-[#f8fafc] dark:bg-[#313641]/20 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px]">
+                    <div className="flex items-center justify-between text-[#959494] text-[10px] uppercase font-semibold">
+                      <span className="flex items-center gap-1.5">
+                        <MailCheck className="w-3 h-3 text-blue-500" />
+                        Sent Previously
+                      </span>
+                    </div>
+                    <div className="text-xl font-semibold text-blue-600 dark:text-blue-400 mt-1 flex items-center justify-between">
+                      <span>{alreadyContactedInCandidates}</span>
+                      {alreadyContactedInCandidates > 0 && (
+                        <label className="flex items-center gap-1 text-[10px] font-mono text-blue-700 dark:text-blue-300 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={excludeAlreadySent}
+                            onChange={(e) => setExcludeAlreadySent(e.target.checked)}
+                            className="rounded text-blue-600 focus:ring-0 w-3 h-3"
+                          />
+                          <span>Skip</span>
+                        </label>
+                      )}
+                    </div>
+                  </div>
                 </div>
+
+                {/* Duplicate Prevention Alert */}
+                {alreadyContactedInCandidates > 0 && (
+                  <div className="p-3 rounded-[4px] border border-blue-500/30 bg-blue-500/10 text-blue-900 dark:text-blue-200 font-mono text-xs flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0" />
+                      <span>
+                        <strong>Duplicate Prevention Active:</strong> {alreadyContactedInCandidates} previously contacted {alreadyContactedInCandidates === 1 ? 'company has' : 'companies have'} been automatically skipped to protect against duplicate emails.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setExcludeAlreadySent(!excludeAlreadySent)}
+                      className="text-[11px] underline ml-2 whitespace-nowrap shrink-0 text-blue-700 dark:text-blue-300"
+                    >
+                      {excludeAlreadySent ? 'Include anyway' : 'Exclude sent'}
+                    </button>
+                  </div>
+                )}
 
                 {/* Flat Technical AI Reasoning & Adaptation Bar (workspace style) */}
                 <div className="ai-flat-container overflow-hidden">
@@ -1772,6 +2021,7 @@ export default function LeadsPage() {
                               WEBSITE
                             </span>
                           </th>
+                          <th className="py-2 px-3 whitespace-nowrap">STATUS</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#ebebeb] dark:divide-white/[0.06]">
@@ -1799,6 +2049,18 @@ export default function LeadsPage() {
                             </td>
                             <td className="py-2 px-3 text-[#959494] whitespace-nowrap">{row.city || '—'}</td>
                             <td className="py-2 px-3 text-[#959494] truncate max-w-xs whitespace-nowrap">{row.website || '—'}</td>
+                            <td className="py-2 px-3 whitespace-nowrap">
+                              {row.is_sent ? (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-semibold uppercase">
+                                  <MailCheck className="w-2.5 h-2.5" />
+                                  <span>Already Sent</span>
+                                </span>
+                              ) : row.email ? (
+                                <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-mono">Ready</span>
+                              ) : (
+                                <span className="text-rose-500 text-[10px] font-mono">No Email</span>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
