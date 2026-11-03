@@ -111,6 +111,7 @@ export default function LeadsPage() {
   const [dispatchSummary, setDispatchSummary] = useState<any>(null);
   const [dispatchResults, setDispatchResults] = useState<any[]>([]);
   const [dispatchCadence, setDispatchCadence] = useState<'human' | 'fast' | 'immediate'>('human');
+  const [cancellingDispatch, setCancellingDispatch] = useState(false);
   const [aiEnrichingModal, setAiEnrichingModal] = useState(false);
   const [aiEnrichedModal, setAiEnrichedModal] = useState(false);
   const [aiMetaModal, setAiMetaModal] = useState<{
@@ -923,6 +924,26 @@ export default function LeadsPage() {
       clearInterval(interval);
     };
   }, [outreachStep]);
+
+  const handleCancelDispatch = async () => {
+    if (!confirm('Are you sure you want to stop sending and cancel all remaining queued emails?')) return;
+    setCancellingDispatch(true);
+    try {
+      const res = await fetch('/api/csv-outreach/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cancelAll: true }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`Outreach stopped. ${data.cancelledCount} queued emails were cancelled.`);
+      }
+    } catch (err: any) {
+      alert(`Error cancelling outreach: ${err.message}`);
+    } finally {
+      setCancellingDispatch(false);
+    }
+  };
 
   // Navigate to full-screen CSV outreach pipeline with preloaded leads
   const handleOpenInFullCsvOutreach = () => {
@@ -2423,13 +2444,25 @@ export default function LeadsPage() {
                   )}
 
                   <div className="pt-3 border-t border-[#ebebeb] dark:border-white/[0.08] flex items-center justify-between">
-                    <Link
-                      href="/outreach"
-                      className="mono-btn px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-[4px] text-xs font-semibold inline-flex items-center space-x-1.5"
-                    >
-                      <span>VIEW LOGS</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                    <div className="flex items-center space-x-2">
+                      <Link
+                        href="/outreach"
+                        className="mono-btn px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-[4px] text-xs font-semibold inline-flex items-center space-x-1.5"
+                      >
+                        <span>VIEW LOGS</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={handleCancelDispatch}
+                        disabled={cancellingDispatch}
+                        className="mono-btn px-3 py-2 border border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 rounded-[4px] text-xs font-semibold inline-flex items-center space-x-1.5 transition disabled:opacity-50"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>{cancellingDispatch ? 'STOPPING...' : 'STOP / CANCEL QUEUE'}</span>
+                      </button>
+                    </div>
 
                     <button
                       type="button"
