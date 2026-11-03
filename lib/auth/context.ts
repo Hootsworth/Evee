@@ -83,7 +83,10 @@ export async function resolveUserContext(
       if (!error && memberships && memberships.length > 0) {
         const requestedOrgId = req?.headers.get('x-organization-id');
 
-        let activeMembership = memberships[0];
+        // Prefer Primary Workspace if member of multiple and no specific org requested
+        let activeMembership =
+          memberships.find((m: any) => m.organizations?.slug === 'primary-workspace') ||
+          memberships[0];
 
         // If client requested a specific tenant, verify they ACTUALLY belong to it
         if (requestedOrgId) {
@@ -111,21 +114,32 @@ export async function resolveUserContext(
         };
       }
 
-      // If user has no organization yet, auto-provision personal workspace for this user
-      const defaultSlug = `ws-${userId.slice(0, 8)}`;
-      const { data: newOrg } = await admin
+      // If user has no organization yet, check if Primary Workspace exists to prevent orphaning directory data
+      const { data: primaryOrg } = await admin
         .from('organizations')
-        .insert({
-          name: `${displayName}'s Workspace`,
-          slug: defaultSlug,
-          plan: 'starter',
-        })
-        .select()
-        .single();
+        .select('id, name, slug')
+        .eq('slug', 'primary-workspace')
+        .maybeSingle();
 
-      if (newOrg) {
+      let targetOrg = primaryOrg;
+
+      if (!targetOrg) {
+        const defaultSlug = `ws-${userId.slice(0, 8)}`;
+        const { data: newOrg } = await admin
+          .from('organizations')
+          .insert({
+            name: `${displayName}'s Workspace`,
+            slug: defaultSlug,
+            plan: 'starter',
+          })
+          .select()
+          .single();
+        targetOrg = newOrg;
+      }
+
+      if (targetOrg) {
         await admin.from('organization_members').insert({
-          organization_id: newOrg.id,
+          organization_id: targetOrg.id,
           user_id: userId,
           role: 'admin',
         });
@@ -134,8 +148,8 @@ export async function resolveUserContext(
           userId,
           email,
           displayName,
-          organizationId: newOrg.id,
-          organizationName: newOrg.name,
+          organizationId: targetOrg.id,
+          organizationName: targetOrg.name,
           role: 'admin',
         };
       }
