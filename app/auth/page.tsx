@@ -57,12 +57,19 @@ export default function AuthPage() {
       });
 
       if (error) {
-        setMessage({ text: error.message, type: 'error' });
+        if (error.status === 429 || error.message.toLowerCase().includes('rate limit')) {
+          setMessage({
+            text: 'Supabase email rate limit reached (HTTP 429). Supabase Free plan limits emails to 3 per hour. Please wait a few minutes before requesting another code.',
+            type: 'error',
+          });
+        } else {
+          setMessage({ text: error.message, type: 'error' });
+        }
       } else {
         setStep('otp');
         setDigits(Array(OTP_LENGTH).fill(''));
         setMessage({
-          text: `Verification code was sent to ${email}`,
+          text: `Verification code sent to ${email}. Enter the 6 or 8 digit code from your email.`,
           type: 'success',
         });
       }
@@ -86,7 +93,7 @@ export default function AuthPage() {
         const focusIdx = Math.min(pasted.length, OTP_LENGTH - 1);
         inputRefs.current[focusIdx]?.focus();
 
-        if (pasted.length === OTP_LENGTH) {
+        if (pasted.length === 6 || pasted.length === OTP_LENGTH) {
           verifyCode(pasted);
         }
       }
@@ -103,9 +110,9 @@ export default function AuthPage() {
       inputRefs.current[index + 1]?.focus();
     }
 
-    // Auto-submit if all digits are filled
-    const fullCode = newDigits.join('');
-    if (fullCode.length === OTP_LENGTH && !newDigits.includes('')) {
+    // Auto-submit if 6 or 8 digits are filled
+    const fullCode = newDigits.filter(Boolean).join('');
+    if ((fullCode.length === 6 && index === 5) || fullCode.length === OTP_LENGTH) {
       verifyCode(fullCode);
     }
   };
@@ -119,7 +126,7 @@ export default function AuthPage() {
   // 3. Verify OTP
   const verifyCode = async (codeToVerify: string) => {
     const trimmed = codeToVerify.trim();
-    if (!trimmed) return;
+    if (!trimmed || trimmed.length < 6) return;
 
     setLoading(true);
     setMessage(null);
@@ -132,7 +139,14 @@ export default function AuthPage() {
       });
 
       if (error) {
-        setMessage({ text: error.message, type: 'error' });
+        if (error.status === 403 || error.message.toLowerCase().includes('expired') || error.message.toLowerCase().includes('invalid')) {
+          setMessage({
+            text: `Invalid or expired code (${trimmed.length} digits entered). Please ensure you enter the exact code from your most recent email.`,
+            type: 'error',
+          });
+        } else {
+          setMessage({ text: error.message, type: 'error' });
+        }
       } else {
         // If displayName was entered during signup, update user metadata explicitly
         if (displayName) {
@@ -159,7 +173,10 @@ export default function AuthPage() {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    verifyCode(digits.join(''));
+    const code = digits.filter(Boolean).join('');
+    if (code.length >= 6) {
+      verifyCode(code);
+    }
   };
 
   return (
@@ -238,7 +255,7 @@ export default function AuthPage() {
             </h3>
             <p className="text-xs text-[#6b7280] dark:text-[#a1a1aa] mt-1 font-mono">
               {step === 'otp'
-                ? `Enter the 8-digit code sent to ${email}`
+                ? `Enter the passcode sent to ${email}`
                 : 'Enter your email to receive an instant verification passcode.'}
             </p>
           </div>
@@ -305,7 +322,7 @@ export default function AuthPage() {
             <form onSubmit={handleFormSubmit} className="space-y-6">
               <div>
                 <div className="flex justify-between items-center mb-3">
-                  <label className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal">8-DIGIT PASSCODE</label>
+                  <label className="mono-eyebrow text-[#6b7280] dark:text-[#a1a1aa] font-normal">PASSCODE (6 OR 8 DIGITS)</label>
                   <button
                     type="button"
                     onClick={() => {
@@ -345,7 +362,7 @@ export default function AuthPage() {
 
               <button
                 type="submit"
-                disabled={loading || digits.join('').length !== OTP_LENGTH}
+                disabled={loading || digits.filter(Boolean).join('').length < 6}
                 className="w-full bg-[#f43f5e] hover:bg-[#e11d48] text-white font-normal py-3 rounded-full text-xs flex items-center justify-center space-x-2 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed tracking-wider"
               >
                 <ShieldCheck className="w-4 h-4 text-white" />
