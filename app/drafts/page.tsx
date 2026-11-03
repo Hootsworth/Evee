@@ -34,7 +34,7 @@ export default function DraftsApprovalPage() {
 
   // AI Copywriting & Optimization State
   const [showAiEnhancer, setShowAiEnhancer] = useState(false);
-  const [aiGoal, setAiGoal] = useState<'concise' | 'persuasive' | 'cta' | 'warmer' | 'punchy' | 'custom'>('persuasive');
+  const [aiGoal, setAiGoal] = useState<'handcrafted' | 'concise' | 'persuasive' | 'cta' | 'warmer' | 'punchy' | 'custom'>('handcrafted');
   const [aiCustomInstruction, setAiCustomInstruction] = useState('');
   const [aiEnhancing, setAiEnhancing] = useState(false);
   const [aiResult, setAiResult] = useState<{
@@ -479,6 +479,7 @@ export default function DraftsApprovalPage() {
                             </label>
                             <div className="flex flex-wrap gap-1.5">
                               {[
+                                { id: 'handcrafted', label: '✍️ Handcrafted & Bespoke (Unique)' },
                                 { id: 'persuasive', label: '🎯 Higher Conversion Hook' },
                                 { id: 'concise', label: '✂️ More Concise (<85 words)' },
                                 { id: 'cta', label: '⚡ Low-Friction CTA' },

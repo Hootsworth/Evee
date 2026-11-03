@@ -31,7 +31,7 @@ export type EmailDraftOutput = z.infer<typeof EmailDraftOutputSchema>;
 export interface EnhanceDraftInput {
   subject?: string;
   bodyText: string;
-  goal?: 'concise' | 'persuasive' | 'cta' | 'warmer' | 'punchy' | 'custom';
+  goal?: 'handcrafted' | 'concise' | 'persuasive' | 'cta' | 'warmer' | 'punchy' | 'custom';
   instruction?: string;
   businessContext?: {
     name?: string;

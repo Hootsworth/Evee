@@ -98,9 +98,9 @@ export default function LeadsPage() {
   // Unified 4-Step Outreach Wizard state (Strictly matching CSV Direct Outreach)
   const [showOutreachModal, setShowOutreachModal] = useState(false);
   const [outreachStep, setOutreachStep] = useState<'recipients' | 'template' | 'test_sent' | 'dispatched'>('recipients');
-  const [outreachSubject, setOutreachSubject] = useState('Personalized idea for {company_name}');
+  const [outreachSubject, setOutreachSubject] = useState('quick note regarding {company_name}');
   const [outreachBody, setOutreachBody] = useState(
-    'Hi {first_name},\n\nI was looking into {company_name} in {city} and wanted to reach out specifically regarding your {company_type} operations.\n\n{personalized_pitch}\n\nMany {company_type} teams experience friction around {pain_point}. We recently implemented {value_prop} for similar businesses to streamline this completely.\n\nWould you be open to a brief 5-minute chat this week?\n\nBest regards,\nOperator'
+    'Hi {first_name},\n\nSaw {company_name} while researching top {company_type} teams in {city}. {personalized_pitch}\n\nWe recently helped another {company_type} solve {pain_point} with {value_prop} — without adding any extra staff overhead.\n\nOpen to a quick 2-minute glance at how it works? Happy to send a 60-second walkthrough if helpful.\n\nBest,\nOperator'
   );
   const [operatorEmail, setOperatorEmail] = useState('');
   const [previewLeadIdx, setPreviewLeadIdx] = useState(0);
@@ -1817,6 +1817,7 @@ export default function LeadsPage() {
                           {[
                             { token: 'company_type', label: 'company_type', desc: 'Identified Business Type' },
                             { token: 'personalized_pitch', label: 'pitch', desc: 'Tailored Industry Pitch' },
+                            { token: 'handcrafted_observation', label: 'observation', desc: 'Bespoke Human Observation' },
                             { token: 'pain_point', label: 'pain_point', desc: 'Industry Specific Bottleneck' },
                             { token: 'value_prop', label: 'value_prop', desc: 'Tailored Solution' },
                             { token: 'industry', label: 'industry', desc: 'High-Level Industry' },
@@ -1863,6 +1864,73 @@ export default function LeadsPage() {
                             </button>
                           );
                         })}
+                      </div>
+                    </div>
+
+                    {/* Handcrafted Template Presets */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="mono-eyebrow text-[#6b7280] dark:text-[#959494] text-[10px] font-semibold flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5 text-[#71866e]" />
+                          <span>HANDCRAFTED 1-TO-1 TEMPLATE PRESETS</span>
+                        </span>
+                        <span className="text-[9px] font-mono text-[#959494]">Unique per company</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOutreachSubject('quick note regarding {company_name}');
+                            setOutreachBody(
+                              'Hi {first_name},\n\nSaw {company_name} while researching top {company_type} teams in {city}. {personalized_pitch}\n\nWe recently helped another {company_type} solve {pain_point} with {value_prop} — without adding any extra staff overhead.\n\nOpen to a quick 2-minute glance at how it works? Happy to send a 60-second walkthrough if helpful.\n\nBest,\nOperator'
+                            );
+                          }}
+                          className="text-left p-2.5 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/20 hover:border-[#71866e] transition"
+                        >
+                          <div className="text-[11px] font-semibold text-black dark:text-white flex items-center justify-between">
+                            <span>✍️ Observational</span>
+                            <span className="text-[8px] uppercase font-mono px-1 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">Best</span>
+                          </div>
+                          <p className="text-[10px] text-[#6b7280] dark:text-[#959494] leading-tight mt-1">
+                            Authentic peer observation grounded in company & location.
+                          </p>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOutreachSubject('thought for {company_name}');
+                            setOutreachBody(
+                              'Hi {first_name},\n\nReally impressed by what you\'re doing with {company_name}. {personalized_pitch}\n\nCurious how your team is currently handling {pain_point}? We put together {value_prop} that cuts out the busywork entirely.\n\nNo pitch — happy to share a quick screenshot if this is top of mind right now.\n\nBest regards,\nOperator'
+                            );
+                          }}
+                          className="text-left p-2.5 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/20 hover:border-[#71866e] transition"
+                        >
+                          <div className="text-[11px] font-semibold text-black dark:text-white">
+                            🤝 Founder-to-Founder
+                          </div>
+                          <p className="text-[10px] text-[#6b7280] dark:text-[#959494] leading-tight mt-1">
+                            Warm consultative tone with zero-friction permission ask.
+                          </p>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOutreachSubject('{company_name} / quick question');
+                            setOutreachBody(
+                              'Hi {first_name},\n\nQuick observation on {company_name} in {city}: {personalized_pitch}\n\nWe set up {value_prop} to tackle {pain_point} without extra team overhead.\n\nWorth a 2-minute glance this week?\n\nBest,\nOperator'
+                            );
+                          }}
+                          className="text-left p-2.5 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/20 hover:border-[#71866e] transition"
+                        >
+                          <div className="text-[11px] font-semibold text-black dark:text-white">
+                            ⚡ Ultra-Concise
+                          </div>
+                          <p className="text-[10px] text-[#6b7280] dark:text-[#959494] leading-tight mt-1">
+                            Under 50 words, fast mobile scan, direct value focus.
+                          </p>
+                        </button>
                       </div>
                     </div>
 

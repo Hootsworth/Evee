@@ -90,9 +90,9 @@ export class MockAiProvider implements ResearchProvider, DraftProvider {
       ? finding.claim_text
       : `your digital presence for ${businessContext.name}`;
 
-    const subject = `Quick observation regarding ${businessContext.name}'s online setup`;
+    const subject = `quick note regarding ${businessContext.name}`;
 
-    const bodyText = `Hi there,\n\nI was looking at ${businessContext.name} in ${businessContext.city || 'your area'} and noticed ${observationText}.\n\nWe recently helped similar ${businessContext.category || 'local businesses'} address this with a streamlined ${serviceMatch}, which helps capture more direct customer inquiries without extra staff overhead.\n\nWould you be open to a brief 5-minute conversation or a quick preview next week?\n\nBest regards,\nEvee Team\n\nTo opt out of future emails, reply with 'unsubscribe'.`;
+    const bodyText = `Hi there,\n\nSaw ${businessContext.name} while researching ${businessContext.category || 'local businesses'} in ${businessContext.city || 'your area'} — noticed ${observationText}.\n\nWe recently helped another ${businessContext.category || 'team'} solve this with a direct ${serviceMatch}, which helped capture more direct customer inquiries without extra staff overhead.\n\nWorth a quick 2-minute look? Happy to send a 60-second walkthrough if helpful.\n\nBest,\nEvee Team\n\nReply 'unsubscribe' to opt out.`;
 
     return {
       subject,
@@ -118,7 +118,18 @@ export class MockAiProvider implements ResearchProvider, DraftProvider {
     let summary = '';
     const tips: string[] = [];
 
-    if (goal === 'concise') {
+    if (goal === 'handcrafted') {
+      const companyName = input.businessContext?.name || '{company_name}';
+      const city = input.businessContext?.city || '{city}';
+      const category = input.businessContext?.category || '{company_type}';
+
+      subject = `quick note regarding ${companyName}`;
+      body = `Hi {first_name},\n\nSaw ${companyName} while researching ${category} teams in ${city}.\n\nNoticed a clean opportunity to capture more direct customer inquiries and eliminate scheduling friction — without adding extra staff overhead.\n\nWorth a quick 2-minute look? Happy to send a 60-second walkthrough if helpful.\n\nBest,\nOperator\n\nReply 'unsubscribe' to opt out.`;
+
+      summary = 'Re-crafted into a bespoke 1-to-1 peer email. Cut all corporate throat-clearing and replaced with an authentic observation and low-friction CTA.';
+      tips.push('Feels hand-written rather than mass-blasted.');
+      tips.push('Low-friction CTA boosts positive response rates by up to 3x.');
+    } else if (goal === 'concise') {
       // Split into sentences, keep only core punchy ones
       const sentences = body
         .split(/(?<=[.?!])\s+/)

@@ -27,7 +27,7 @@ export function classifyCompanyHeuristic(
       companyType: 'Artisan Bakery & Patisserie',
       industry: 'Food & Hospitality',
       painPoint: 'handling phone pre-orders and peak walk-in morning rush congestion',
-      personalizedPitch: 'For artisan bakeries, a seamless pre-order and pickup queue eliminates morning counter congestion and increases repeat cake orders.',
+      personalizedPitch: 'Loved your bakery lineup — for artisan bakeries, a seamless pre-order and pickup queue eliminates morning counter congestion and increases repeat orders.',
       valueProp: 'frictionless pre-order & pickup scheduling workflows',
     };
   }
@@ -38,7 +38,7 @@ export function classifyCompanyHeuristic(
       companyType: 'Specialty Cafe & Roastery',
       industry: 'Food & Beverage',
       painPoint: 'peak rush order drop-offs and table turnaround delays',
-      personalizedPitch: 'For specialty cafes, digital table ordering and mobile pickup reduce barista counter bottlenecks during peak commute hours.',
+      personalizedPitch: 'Love the specialty coffee focus — for bustling cafes, mobile pickup and table ordering eliminate barista counter bottlenecks during the morning commute rush.',
       valueProp: 'mobile queue-busting and repeat loyalty automation',
     };
   }
@@ -49,7 +49,7 @@ export function classifyCompanyHeuristic(
       companyType: 'Dental Practice',
       industry: 'Healthcare',
       painPoint: 'patient no-shows, delayed recall reminders, and manual intake forms',
-      personalizedPitch: 'For modern dental clinics, automated booking recalls and digital intake forms recover thousands in lost chair time.',
+      personalizedPitch: 'Noticed your clinic setup — for modern dental practices, automated booking recalls and digital intake save hours of manual front-desk phone tag.',
       valueProp: 'automated patient recall & zero-friction booking',
     };
   }
@@ -60,7 +60,7 @@ export function classifyCompanyHeuristic(
       companyType: 'Medical & Wellness Clinic',
       industry: 'Healthcare',
       painPoint: 'intake paperwork friction and scheduling coordination phone calls',
-      personalizedPitch: 'For private healthcare clinics, direct self-service appointment scheduling streamlines patient intake and lowers front-desk overhead.',
+      personalizedPitch: 'Looked at your clinic setup — direct self-service appointment scheduling streamlines patient intake and significantly lowers front-desk phone overhead.',
       valueProp: 'compliant digital intake & online appointment coordination',
     };
   }
@@ -71,7 +71,7 @@ export function classifyCompanyHeuristic(
       companyType: 'Legal Advisory & Law Firm',
       industry: 'Professional Legal Services',
       painPoint: 'slow client intake screening and conflict-check coordination',
-      personalizedPitch: 'For legal practices, automated consultation intake immediately filters qualified matters before partners spend billable time.',
+      personalizedPitch: 'Came across your legal practice — automated consultation intake qualifies high-value matters before partners spend non-billable time.',
       valueProp: 'automated client qualification & consultation booking',
     };
   }
@@ -82,7 +82,7 @@ export function classifyCompanyHeuristic(
       companyType: 'Technology & Software Company',
       industry: 'Technology',
       painPoint: 'inbound trial conversion drop-offs and manual enterprise onboarding steps',
-      personalizedPitch: 'For fast-moving tech companies, streamlining self-serve discovery into qualified product walkthroughs accelerates sales cycles.',
+      personalizedPitch: 'Checked out your product lineup — for fast-moving tech companies, turning site visitors into qualified walkthroughs without friction accelerates the sales cycle.',
       valueProp: 'high-intent demo booking & automated lead qualification',
     };
   }
@@ -93,7 +93,7 @@ export function classifyCompanyHeuristic(
       companyType: 'Restaurant & Dining Establishment',
       industry: 'Hospitality',
       painPoint: 'third-party marketplace commissions and reservation cancellations',
-      personalizedPitch: 'For independent dining establishments, direct zero-commission reservations and private dining inquiries preserve margin.',
+      personalizedPitch: 'Was browsing your menu and dining presence — direct zero-commission reservations preserve margins compared to third-party delivery platforms.',
       valueProp: 'direct reservation workflows and private event inquiry automation',
     };
   }
@@ -104,7 +104,7 @@ export function classifyCompanyHeuristic(
       companyType: 'Fitness & Wellness Studio',
       industry: 'Sports & Fitness',
       painPoint: 'trial class no-shows and manual member renewal chasing',
-      personalizedPitch: 'For boutique fitness studios, instant trial pass booking and automated class reminders maximize studio mat capacity.',
+      personalizedPitch: 'Saw your class schedule — instant trial pass booking and automated session reminders fill class capacity without manual phone tag.',
       valueProp: 'automated trial bookings & member retention workflows',
     };
   }
@@ -115,7 +115,7 @@ export function classifyCompanyHeuristic(
       companyType: 'Real Estate Agency',
       industry: 'Real Estate',
       painPoint: 'delayed buyer tour scheduling and lost weekend open-house leads',
-      personalizedPitch: 'For competitive brokerages, instant property tour scheduling captures motivated buyers before they contact competitor listings.',
+      personalizedPitch: 'Saw your active listings — giving serious buyers instant access to tour scheduling captures motivated leads before they wander to portals.',
       valueProp: 'instant tour booking & automated buyer lead capture',
     };
   }
@@ -126,7 +126,7 @@ export function classifyCompanyHeuristic(
       companyType: 'Automotive Service Center',
       industry: 'Automotive Services',
       painPoint: 'phone tag during peak intake hours and bays waiting for service approvals',
-      personalizedPitch: 'For busy auto centers, online repair slot booking and digital diagnostic approvals keep service bays running at full utilization.',
+      personalizedPitch: 'Looked up your service center — online repair slot booking and digital diagnostic approvals keep service bays running at full utilization.',
       valueProp: 'streamlined digital bay scheduling & status updates',
     };
   }
@@ -136,7 +136,7 @@ export function classifyCompanyHeuristic(
     companyType: 'Modern Enterprise Business',
     industry: 'Commercial Services',
     painPoint: 'handling manual inbound booking coordination and lead follow-up delays',
-    personalizedPitch: 'For modern growing businesses, automating customer booking and inquiry workflows accelerates client acquisition without increasing staff overhead.',
+    personalizedPitch: 'Came across your business while researching top teams in town — setting up a direct digital inquiry flow noticeably cuts down on phone tag.',
     valueProp: 'automated inbound workflow & customer scheduling',
   };
 }
@@ -196,14 +196,22 @@ export async function classifyProspectBatchWithAi(
           city: p.city || '',
         }));
 
-        const systemPrompt = `You are an elite B2B market researcher and copywriter for Evee.
+        const systemPrompt = `You are a world-class 1-to-1 cold outreach craftsman and researcher for Evee.
 Analyze each company provided in the input list.
+Write BESPOKE, HAND-CRAFTED observations tailored to each specific company name, domain, and city so each email feels individually written by a human.
+
+CRITICAL CRAFTSMANSHIP RULES:
+- NEVER use generic, automated-sounding corporate jargon (NO "in today's digital world", NO "streamline operations completely", NO "synergize", NO "game-changing").
+- Write each company's personalizedPitch like a real human who just spent 5 minutes looking at their website and wrote a thoughtful 1-to-1 observation.
+- If you notice their city, reference their local presence naturally.
+- Focus on authentic, operational bottlenecks they actually face day-to-day.
+
 For EACH company, return:
-- companyType: concise, specific business type (e.g. "Artisan Sourdough Bakery", "Specialty Coffee Roaster", "Family Dental Practice", "Autonomous Robotics Engineering", "Commercial Roofing Contractor"). Max 4 words.
-- industry: high-level sector (e.g. "Hospitality", "Healthcare", "Technology", "Construction").
-- painPoint: a realistic operational bottleneck typical for that exact business (e.g. "phone booking drop-offs during morning rush hours", "patient recall lapses and empty chair time").
-- personalizedPitch: one crisp, natural sentence tailored specifically to this business type explaining how streamlined online conversion and automated customer workflows help them.
-- valueProp: punchy 3-5 word benefit (e.g. "instant self-service table booking", "automated patient recall reminders").
+- companyType: specific business category (e.g. "Artisan Sourdough Bakery", "Specialty Coffee Roastery", "Family Dental Practice", "Autonomous Robotics Engineering", "Commercial Roofing Contractor"). Max 4 words.
+- industry: sector (e.g. "Food & Hospitality", "Healthcare", "Technology", "Construction").
+- painPoint: a realistic, human-worded bottleneck (e.g. "morning rush counter congestion and missed phone orders", "patient recall phone tag and lost chair time").
+- personalizedPitch: one crisp, authentic, hand-crafted observation tailored specifically to their brand and workflow.
+- valueProp: punchy 3-5 word benefit (e.g. "instant self-service table booking", "automated patient recall reminders", "high-intent demo booking & automated lead qualification").
 
 Return strictly valid JSON matching this schema:
 {

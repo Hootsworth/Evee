@@ -168,16 +168,28 @@ CRITICAL RULES:
       throw new Error(`API key is required for ${this.config.provider.toUpperCase()}. Please configure it in Settings.`);
     }
 
-    const systemPrompt = `You are a professional outreach copywriter for Evee.
-Draft a concise, personalized cold email to the owner of ${businessContext.name}.
-RULES:
-1. Ground the email in the verified empirical observation provided.
-2. Present a plausible business benefit for ${serviceMatch}.
-3. Concise call to action (5-minute chat).
-4. Plain-text focus, no hype, no deceptive claims.
-5. Include an opt-out footer disclosure ("Reply 'unsubscribe' to opt out").
-6. ONLY return evidence IDs that were supplied in the prompt.
-7. Return JSON matching: { "subject": string, "bodyText": string, "evidenceIds": string[], "personalizationSummary": string }`;
+    const systemPrompt = `You are a world-class 1-to-1 cold outreach craftsman writing for Evee.
+Your goal is to write a bespoke, hand-crafted email to the owner/operator of ${businessContext.name} that feels completely personal, authentic, and unique to their specific company — as if you personally researched them for 15 minutes before drafting.
+
+CRITICAL CRAFTSMANSHIP RULES:
+1. NEVER SOUND LIKE A TEMPLATE OR A BOT:
+   - Absolutely NO corporate throat-clearing: BANNED phrases include "I hope this email finds you well", "I wanted to reach out because", "In today's fast-paced digital world", "As a valued business in ${businessContext.city || 'your area'}", "Many companies experience friction".
+   - NO marketing buzzwords: BANNED words include "synergize", "game-changing", "streamline completely", "revolutionize", "cutting-edge".
+2. GROUNDED IN EMPIRICAL OBSERVATION:
+   - Naturally mention the verified observation provided as a genuine peer who actually visited their website or tried their workflow.
+   - Connect that exact observation to a tangible business outcome for ${serviceMatch} (e.g. fewer lost bookings, higher margins, recapturing phone order drop-offs).
+3. CASUAL, RESPECTFUL, PEER-TO-PEER VOICE:
+   - Write like one busy founder/operator emailing another.
+   - Keep it short: 50 to 85 words maximum. 2 to 3 short paragraphs. Easy to read on mobile.
+4. LOW-FRICTION CONVERSATIONAL CTA:
+   - Do NOT ask for a 30-minute demo or high-friction commitment.
+   - Ask a low-friction question: "Worth a quick 2-minute glance?", "Happy to send over a 60-second video if helpful.", "Open to a quick thought on this?"
+5. AUTHENTIC LOWERCASE/CONVERSATIONAL SUBJECT LINE:
+   - E.g. "quick note regarding ${businessContext.name}", "observation on ${businessContext.name}'s site", "${businessContext.name} / idea". Never use cheesy sales clickbait.
+6. INCLUDE CLEAN COMPLIANCE FOOTER:
+   - Conclude naturally with an opt-out line: "Reply 'unsubscribe' to opt out."
+7. ONLY return evidence IDs that were supplied in the prompt.
+8. Return JSON matching: { "subject": string, "bodyText": string, "evidenceIds": string[], "personalizationSummary": string }`;
 
     const userPrompt = JSON.stringify({
       business: businessContext,
@@ -228,6 +240,7 @@ RULES:
     }
 
     const goalDescriptions: Record<string, string> = {
+      handcrafted: 'Transform this draft into a bespoke, hand-crafted 1-to-1 email written personally to this specific business owner. Make it feel authentic, observational, and deeply relevant to their company. Completely eliminate corporate filler, marketing clichés, and template phrasing. Keep it under 80 words with a casual, respectful CTA.',
       concise: 'Make this draft radically concise, sharp, and easy to read on mobile. Cut fluff, preamble, and pleasantries. Target under 85 words.',
       persuasive: 'Make this draft more compelling and value-focused. Hook the reader immediately and articulate the high-impact business benefit clearly.',
       cta: 'Improve the Call-To-Action (CTA). Make it conversational, low-friction, and easy to reply to (e.g. asking if they are open to a 2-min screen share or quick question).',

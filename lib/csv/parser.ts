@@ -220,8 +220,8 @@ export function replaceTemplateVariables(
     if (lowerKey === 'companytype' || lowerKey === 'type' || lowerKey === 'businesstype' || lowerKey === 'category') {
       return data.ai_company_type || data.company_type || data.companyType || data.category || 'growing business';
     }
-    if (lowerKey === 'personalizedpitch' || lowerKey === 'pitch' || lowerKey === 'hook') {
-      return data.ai_personalized_pitch || data.personalized_pitch || data.personalizedPitch || 'We help streamline online customer conversion and booking workflows.';
+    if (lowerKey === 'personalizedpitch' || lowerKey === 'pitch' || lowerKey === 'hook' || lowerKey === 'handcraftedobservation') {
+      return data.ai_personalized_pitch || data.personalized_pitch || data.personalizedPitch || 'Saw what your team is building and noticed an opportunity to eliminate customer scheduling friction.';
     }
     if (lowerKey === 'painpoint' || lowerKey === 'pain' || lowerKey === 'challenge') {
       return data.ai_pain_point || data.pain_point || data.painPoint || 'customer coordination drop-offs and scheduling friction';

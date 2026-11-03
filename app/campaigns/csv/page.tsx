@@ -49,10 +49,10 @@ export default function CsvOutreachPage() {
     city: null,
   });
 
-  // Template State
-  const [subject, setSubject] = useState('Personalized idea for {company_name}');
+  // Template State (Handcrafted, authentic 1-to-1 default)
+  const [subject, setSubject] = useState('quick note regarding {company_name}');
   const [bodyText, setBodyText] = useState(
-    'Hi {first_name},\n\nI was looking into {company_name} in {city} and wanted to reach out specifically regarding your {company_type} operations.\n\n{personalized_pitch}\n\nMany {company_type} teams experience friction around {pain_point}. We recently implemented {value_prop} for similar businesses to streamline this completely.\n\nWould you be open to a brief 5-minute chat this week?\n\nBest regards,\nOperator'
+    'Hi {first_name},\n\nSaw {company_name} while researching top {company_type} teams in {city}. {personalized_pitch}\n\nWe recently helped another {company_type} solve {pain_point} with {value_prop} — without adding any extra staff overhead.\n\nOpen to a quick 2-minute glance at how it works? Happy to send a 60-second walkthrough if helpful.\n\nBest,\nOperator'
   );
 
   // AI Enrichment state
@@ -75,7 +75,7 @@ export default function CsvOutreachPage() {
 
   // AI Template Optimizer State
   const [showAiEnhancer, setShowAiEnhancer] = useState(false);
-  const [aiGoal, setAiGoal] = useState<'concise' | 'persuasive' | 'cta' | 'warmer' | 'punchy' | 'custom'>('persuasive');
+  const [aiGoal, setAiGoal] = useState<'handcrafted' | 'concise' | 'persuasive' | 'cta' | 'warmer' | 'punchy' | 'custom'>('handcrafted');
   const [aiCustomInstruction, setAiCustomInstruction] = useState('');
   const [aiEnhancing, setAiEnhancing] = useState(false);
   const [aiResult, setAiResult] = useState<{
@@ -673,6 +673,7 @@ export default function CsvOutreachPage() {
                       {[
                         { token: 'company_type', label: '{company_type}', desc: 'Identified Business Type' },
                         { token: 'personalized_pitch', label: '{personalized_pitch}', desc: 'Tailored Industry Pitch' },
+                        { token: 'handcrafted_observation', label: '{handcrafted_observation}', desc: 'Bespoke Human Observation' },
                         { token: 'pain_point', label: '{pain_point}', desc: 'Industry Specific Bottleneck' },
                         { token: 'value_prop', label: '{value_prop}', desc: 'Tailored Solution' },
                         { token: 'industry', label: '{industry}', desc: 'High-Level Industry' },
@@ -708,6 +709,73 @@ export default function CsvOutreachPage() {
                         +{`{${v}}`}
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                {/* Handcrafted Template Presets */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="mono-eyebrow text-[#6b7280] dark:text-[#959494] text-[10px] font-semibold flex items-center gap-1">
+                      <Sparkles className="w-2.5 h-2.5 text-[#71866e]" />
+                      <span>HANDCRAFTED 1-TO-1 TEMPLATE PRESETS</span>
+                    </span>
+                    <span className="text-[9px] font-mono text-[#959494]">Unique per company</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSubject('quick note regarding {company_name}');
+                        setBodyText(
+                          'Hi {first_name},\n\nSaw {company_name} while researching top {company_type} teams in {city}. {personalized_pitch}\n\nWe recently helped another {company_type} solve {pain_point} with {value_prop} — without adding any extra staff overhead.\n\nOpen to a quick 2-minute glance at how it works? Happy to send a 60-second walkthrough if helpful.\n\nBest,\nOperator'
+                        );
+                      }}
+                      className="text-left p-2.5 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/20 hover:border-[#71866e] transition"
+                    >
+                      <div className="text-[11px] font-semibold text-black dark:text-white flex items-center justify-between">
+                        <span>✍️ Observational</span>
+                        <span className="text-[8px] uppercase font-mono px-1 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">Best</span>
+                      </div>
+                      <p className="text-[10px] text-[#6b7280] dark:text-[#959494] leading-tight mt-1">
+                        Authentic peer observation grounded in company & location.
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSubject('thought for {company_name}');
+                        setBodyText(
+                          'Hi {first_name},\n\nReally impressed by what you\'re doing with {company_name}. {personalized_pitch}\n\nCurious how your team is currently handling {pain_point}? We put together {value_prop} that cuts out the busywork entirely.\n\nNo pitch — happy to share a quick screenshot if this is top of mind right now.\n\nBest regards,\nOperator'
+                        );
+                      }}
+                      className="text-left p-2.5 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/20 hover:border-[#71866e] transition"
+                    >
+                      <div className="text-[11px] font-semibold text-black dark:text-white">
+                        🤝 Founder-to-Founder
+                      </div>
+                      <p className="text-[10px] text-[#6b7280] dark:text-[#959494] leading-tight mt-1">
+                        Warm consultative tone with zero-friction permission ask.
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSubject('{company_name} / quick question');
+                        setBodyText(
+                          'Hi {first_name},\n\nQuick observation on {company_name} in {city}: {personalized_pitch}\n\nWe set up {value_prop} to tackle {pain_point} without extra team overhead.\n\nWorth a 2-minute glance this week?\n\nBest,\nOperator'
+                        );
+                      }}
+                      className="text-left p-2.5 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/20 hover:border-[#71866e] transition"
+                    >
+                      <div className="text-[11px] font-semibold text-black dark:text-white">
+                        ⚡ Ultra-Concise
+                      </div>
+                      <p className="text-[10px] text-[#6b7280] dark:text-[#959494] leading-tight mt-1">
+                        Under 50 words, fast mobile scan, direct value focus.
+                      </p>
+                    </button>
                   </div>
                 </div>
 
@@ -779,6 +847,7 @@ export default function CsvOutreachPage() {
                           </label>
                           <div className="flex flex-wrap gap-1.5">
                             {[
+                              { id: 'handcrafted', label: '✍️ Handcrafted & Bespoke (Unique)' },
                               { id: 'persuasive', label: '🎯 Higher Conversion Hook' },
                               { id: 'concise', label: '✂️ More Concise (<85 words)' },
                               { id: 'cta', label: '⚡ Low-Friction CTA' },

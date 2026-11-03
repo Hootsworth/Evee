@@ -61,4 +61,27 @@ describe('AI Email Draft Copy Optimization Engine', () => {
     expect(result.improvedBody).toContain('Hi');
     expect(result.changesSummary).toContain('peer-to-peer');
   });
+
+  it('transforms drafts into bespoke, hand-crafted 1-to-1 emails', async () => {
+    const input = {
+      subject: 'Sales pitch for {company_name}',
+      bodyText:
+        'I wanted to reach out because we offer revolutionary marketing solutions for businesses in {city}. Let us schedule a call.',
+      goal: 'handcrafted' as const,
+      businessContext: {
+        name: 'Artisan Sourdough Bakes',
+        category: 'Artisan Bakery',
+        city: 'Bengaluru',
+      },
+    };
+
+    const result = await provider.enhanceDraft(input);
+
+    expect(result.improvedSubject).toContain('quick note');
+    expect(result.improvedBody).toContain('Artisan Sourdough Bakes');
+    expect(result.improvedBody).toContain('Bengaluru');
+    expect(result.improvedBody).toContain('Artisan Bakery');
+    expect(result.improvedBody).not.toContain('I wanted to reach out because');
+    expect(result.changesSummary.toLowerCase()).toContain('bespoke');
+  });
 });
