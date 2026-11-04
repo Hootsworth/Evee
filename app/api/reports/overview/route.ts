@@ -21,12 +21,12 @@ export async function GET() {
       jobsRes,
       credsRes,
     ] = await Promise.all([
-      admin.from('businesses').select('id, record_status, created_at').eq('organization_id', orgId),
+      admin.from('businesses').select('id, record_status, created_at, general_business_email').eq('organization_id', orgId),
       admin.from('campaigns').select('id, status, monthly_target').eq('organization_id', orgId),
-      admin.from('email_drafts').select('id, approval_status').eq('organization_id', orgId),
-      admin.from('outreach_messages').select('id, status, sent_at').eq('organization_id', orgId),
+      admin.from('email_drafts').select('id, approval_status, business_id, created_at').eq('organization_id', orgId),
+      admin.from('outreach_messages').select('id, status, sent_at, created_at, business_id').eq('organization_id', orgId),
       admin.from('suppression_entries').select('id').or(`organization_id.eq.${orgId},organization_id.is.null`),
-      admin.from('background_jobs').select('id, status, job_type').eq('organization_id', orgId),
+      admin.from('background_jobs').select('id, status, job_type, payload, created_at, updated_at').eq('organization_id', orgId),
       admin.from('oauth_credentials').select('provider, account_email, encrypted_access_token, encrypted_refresh_token, scopes').eq('organization_id', orgId),
     ]);
 
@@ -36,17 +36,85 @@ export async function GET() {
     const jobs = jobsRes.data || [];
     const creds = credsRes.data || [];
 
-    const qualifiedLeadsCount = drafts.length;
-    const monthlyTarget = 100;
-    const targetProgress = Math.min(Math.round((qualifiedLeadsCount / monthlyTarget) * 100), 100);
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    // 1. Sent & Queued Emails (Aggregation of Direct CSV Outreach Jobs + Workflow Outreach Messages)
+    const sentCsvJobs = jobs.filter(
+      (j) => j.job_type === 'csv_email_dispatch' && j.status === 'succeeded'
+    ).length;
+    const sentWorkflowMessages = messages.filter((m) => m.status === 'sent').length;
+    const totalSentEmails = sentWorkflowMessages + sentCsvJobs;
+
+    const queuedCsvJobs = jobs.filter(
+      (j) => j.job_type === 'csv_email_dispatch' && (j.status === 'queued' || j.status === 'running')
+    ).length;
+    const queuedWorkflowMessages = messages.filter(
+      (m) => m.status === 'queued' || m.status === 'sending'
+    ).length;
+    const totalQueuedEmails = queuedWorkflowMessages + queuedCsvJobs;
+
+    // 2. Monthly Target from Active Campaigns (default 100)
+    const activeCampaigns = (campaignsRes.data || []).filter((c) => c.status !== 'archived');
+    const monthlyTarget =
+      activeCampaigns.length > 0 && activeCampaigns[0].monthly_target
+        ? Number(activeCampaigns[0].monthly_target)
+        : 100;
+
+    // 3. Qualified Prospects This Month (Active prospects with verified email, drafts generated, or outreach dispatched this month)
+    const activeBusinessesWithEmail = businesses.filter(
+      (b) => b.record_status === 'active' && Boolean(b.general_business_email?.trim())
+    );
+
+    const qualifiedSet = new Set<string>();
+
+    // Businesses created or active this month with verified email
+    for (const b of activeBusinessesWithEmail) {
+      if (b.created_at >= startOfMonth) {
+        qualifiedSet.add(b.id);
+      }
+    }
+
+    // Prospects engaged via direct CSV outreach this month
+    for (const j of jobs) {
+      if (
+        j.job_type === 'csv_email_dispatch' &&
+        (j.created_at >= startOfMonth || j.updated_at >= startOfMonth)
+      ) {
+        const email = (j.payload?.recipientEmail || '').trim().toLowerCase();
+        if (email) qualifiedSet.add(email);
+      }
+    }
+
+    // Prospects engaged via workflow outreach messages this month
+    for (const m of messages) {
+      if (m.sent_at >= startOfMonth || m.created_at >= startOfMonth) {
+        if (m.business_id) qualifiedSet.add(m.business_id);
+      }
+    }
+
+    // Prospects with AI drafts created this month
+    for (const d of drafts) {
+      if (d.created_at >= startOfMonth && d.business_id) {
+        qualifiedSet.add(d.business_id);
+      }
+    }
+
+    // Baseline qualified leads count: at least the active qualified contacts in the current pipeline
+    const qualifiedLeadsCount = Math.max(
+      qualifiedSet.size,
+      activeBusinessesWithEmail.length
+    );
+    const targetProgress = Math.min(
+      Math.round((qualifiedLeadsCount / monthlyTarget) * 100),
+      100
+    );
 
     const activeBusinessesCount = businesses.filter((b) => b.record_status === 'active').length;
     const archivedBusinessesCount = businesses.filter((b) => b.record_status === 'archived').length;
 
-    const pendingDrafts = drafts.filter((d) => d.approval_status === 'pending').length;
+    const pendingDrafts = drafts.filter((d) => !d.approval_status || d.approval_status === 'pending').length;
     const approvedDrafts = drafts.filter((d) => d.approval_status === 'approved').length;
-    const sentMessages = messages.filter((m) => m.status === 'sent').length;
-    const queuedMessages = messages.filter((m) => m.status === 'queued').length;
     const failedJobs = jobs.filter((j) => j.status === 'failed').length;
     const activeJobs = jobs.filter((j) => j.status === 'running' || j.status === 'queued').length;
 
@@ -116,8 +184,8 @@ export async function GET() {
         targetProgressPercentage: targetProgress,
         pendingDrafts,
         approvedDrafts,
-        sentEmails: sentMessages,
-        queuedEmails: queuedMessages,
+        sentEmails: totalSentEmails,
+        queuedEmails: totalQueuedEmails,
         suppressionCount: suppressionRes.data?.length || 0,
         activeJobs,
         failedJobs,

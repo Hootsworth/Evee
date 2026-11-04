@@ -195,6 +195,16 @@ export default function LeadsPage() {
         }
       })
       .catch(() => {});
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab') || params.get('filter');
+      if (tab === 'sent') setStatusFilter('sent');
+      else if (tab === 'missing_email') setStatusFilter('missing_email');
+      else if (tab === 'archived') setStatusFilter('archived');
+      else if (tab === 'duplicates') setStatusFilter('duplicates');
+      else if (tab === 'all') setStatusFilter('all');
+    }
   }, []);
 
   // Derived duplicate groups using normalized deduplication engine
