@@ -60,6 +60,7 @@ export default function NavBar() {
     { label: 'Overview', href: '/' },
     { label: 'Campaigns', href: '/campaigns' },
     { label: 'Leads', href: '/leads' },
+    { label: 'Partners', href: '/partners' },
     {
       label: 'Drafts',
       href: '/drafts',
@@ -74,6 +75,11 @@ export default function NavBar() {
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
     (user?.email ? user.email.split('@')[0] : 'Operator');
+
+  // The Partner Portal (/partner) renders its own scoped dedicated portal header
+  if (pathname.startsWith('/partner') && pathname !== '/partners') {
+    return null;
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-[#f7f7f5]/95 dark:bg-[#171916]/95 backdrop-blur-md border-b border-[#e8e9e5] dark:border-white/[0.08] transition-colors duration-150">

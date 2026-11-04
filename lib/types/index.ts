@@ -46,6 +46,8 @@ export interface Business {
   updated_at: string;
 }
 
+export type BusinessRecord = Business;
+
 export interface BusinessSource {
   id: string;
   business_id: string;

@@ -42,6 +42,7 @@ import {
   Server,
   ShieldAlert,
   Users,
+  UserCheck,
   Trash2,
   CopyX,
   Check,
@@ -84,6 +85,14 @@ export default function LeadsPage() {
 
   // Multi-selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Partner Allotment State
+  const [partnersList, setPartnersList] = useState<any[]>([]);
+  const [allotments, setAllotments] = useState<Record<string, any>>({});
+  const [partnerFilter, setPartnerFilter] = useState<string>('all');
+  const [showLeadAllotModal, setShowLeadAllotModal] = useState(false);
+  const [allotTargetPartnerId, setAllotTargetPartnerId] = useState<string>('');
+  const [allottingLeads, setAllottingLeads] = useState(false);
 
   // Duplicate identification and management state
   const [showDuplicatesModal, setShowDuplicatesModal] = useState(false);
@@ -172,6 +181,21 @@ export default function LeadsPage() {
     }
   };
 
+  const fetchPartnersAndAllotments = async () => {
+    try {
+      const [pRes, aRes] = await Promise.all([
+        fetch('/api/partners'),
+        fetch('/api/partners/allot'),
+      ]);
+      const pData = await pRes.json();
+      const aData = await aRes.json();
+      if (pData.partners) setPartnersList(pData.partners);
+      if (aData.allotments) setAllotments(aData.allotments);
+    } catch (e) {
+      console.error('[leads] Failed to fetch partner allotments:', e);
+    }
+  };
+
   const fetchBusinesses = async () => {
     try {
       const res = await fetch('/api/businesses');
@@ -187,6 +211,7 @@ export default function LeadsPage() {
   useEffect(() => {
     fetchBusinesses();
     fetchSentData();
+    fetchPartnersAndAllotments();
     fetch('/api/settings/providers')
       .then((res) => res.json())
       .then((data) => {
@@ -282,6 +307,39 @@ export default function LeadsPage() {
     return null;
   };
 
+  // Partner Allotment Handler
+  const handleAllotSelectedLeads = async (partnerId: string | null) => {
+    if (selectedIds.size === 0) return;
+    setAllottingLeads(true);
+    try {
+      const res = await fetch('/api/partners/allot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessIds: Array.from(selectedIds),
+          partnerId,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setEnrichMessage({
+          text: partnerId
+            ? `Successfully allotted ${data.allottedCount} leads to partner.`
+            : `Unallotted ${data.allottedCount} leads back to general directory pool.`,
+          type: 'success',
+        });
+        setShowLeadAllotModal(false);
+        fetchPartnersAndAllotments();
+      } else {
+        alert(data.error || 'Failed to allot leads');
+      }
+    } catch (err: any) {
+      alert(`Error allotting leads: ${err.message}`);
+    } finally {
+      setAllottingLeads(false);
+    }
+  };
+
   // Filtered list
   const filtered = businesses.filter((b) => {
     const matchesSearch =
@@ -291,6 +349,13 @@ export default function LeadsPage() {
       (b.general_business_email && b.general_business_email.toLowerCase().includes(search.toLowerCase()));
 
     if (!matchesSearch) return false;
+
+    // Partner Allotment Filter
+    if (partnerFilter === 'unassigned') {
+      if (allotments[b.id]) return false;
+    } else if (partnerFilter !== 'all') {
+      if (allotments[b.id]?.partnerId !== partnerFilter) return false;
+    }
 
     if (statusFilter === 'all') return true;
     if (statusFilter === 'sent') {
@@ -1195,15 +1260,33 @@ export default function LeadsPage() {
 
         {/* Filter, Search & Selection Bar */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-[#777a74] dark:text-[#a2a69e] absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search company, email, city, category..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] text-[#20211f] dark:text-[#f1f2ee] placeholder-[#959494] focus:outline-none focus:ring-1 focus:ring-[#4f6653] focus:border-[#4f6653] transition shadow-sm"
-            />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-xl">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-[#777a74] dark:text-[#a2a69e] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search company, email, city, category..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] text-[#20211f] dark:text-[#f1f2ee] placeholder-[#959494] focus:outline-none focus:ring-1 focus:ring-[#4f6653] focus:border-[#4f6653] transition shadow-sm"
+              />
+            </div>
+
+            {/* Partner Allotment Scope Filter */}
+            <select
+              value={partnerFilter}
+              onChange={(e) => setPartnerFilter(e.target.value)}
+              className="text-xs px-3 py-2 rounded-xl border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] text-[#20211f] dark:text-[#f1f2ee] focus:outline-none focus:ring-1 focus:ring-[#4f6653] shadow-sm cursor-pointer shrink-0"
+              title="Filter by assigned partner sub-portal"
+            >
+              <option value="all">All Partners</option>
+              <option value="unassigned">Unassigned Only</option>
+              {partnersList.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({Object.values(allotments).filter((a: any) => a.partnerId === p.id).length})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="inline-flex items-center gap-1 p-1 bg-[#edebe8] dark:bg-[#252824] rounded-xl border border-[#dfe2dc]/70 dark:border-white/5 overflow-x-auto no-scrollbar max-w-full">
@@ -1442,6 +1525,15 @@ export default function LeadsPage() {
                                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
                                     <CopyX className="w-3 h-3" />
                                     <span>Duplicate</span>
+                                  </span>
+                                )}
+                                {allotments[b.id] && (
+                                  <span
+                                    title={`Allotted to partner: ${allotments[b.id].partnerName || 'Assigned'} (${allotments[b.id].partnerEmail || ''})`}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20"
+                                  >
+                                    <UserCheck className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                                    <span className="truncate max-w-[120px]">{allotments[b.id].partnerName || 'Partner'}</span>
                                   </span>
                                 )}
                               </div>
@@ -1701,6 +1793,18 @@ export default function LeadsPage() {
           >
             <Trash2 className="w-3 h-3" />
             <span>Delete ({selectedIds.size})</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setAllotTargetPartnerId('');
+              setShowLeadAllotModal(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 text-xs font-medium transition"
+            title="Allot selected leads to a partner sub-portal"
+          >
+            <Users className="w-3 h-3 text-purple-300" />
+            <span>Allot to Partner</span>
           </button>
 
           {selectedAlreadySentCount > 0 && (
@@ -2953,6 +3057,104 @@ export default function LeadsPage() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Lead Allotment Modal */}
+      {showLeadAllotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1e211d] border border-[#e8e9e5] dark:border-white/10 rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-[#e8e9e5] dark:border-white/[0.08]">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-base text-[#20211f] dark:text-[#f1f2ee]">
+                    Allot Leads to Partner
+                  </h3>
+                  <p className="text-xs text-[#777a74] dark:text-[#a2a69e]">
+                    Assign {selectedIds.size} selected leads to a specific partner sub-portal.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowLeadAllotModal(false)}
+                className="p-1.5 text-[#959494] hover:text-[#20211f] dark:hover:text-white rounded-lg transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-[#777a74] dark:text-[#a2a69e] mb-1.5">
+                  Select Partner
+                </label>
+                <select
+                  value={allotTargetPartnerId}
+                  onChange={(e) => setAllotTargetPartnerId(e.target.value)}
+                  className="w-full text-sm rounded-xl border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#252824] text-[#20211f] dark:text-[#f1f2ee] p-3 focus:outline-none focus:ring-1 focus:ring-[#4f6653]"
+                >
+                  <option value="">-- Choose a partner --</option>
+                  {partnersList.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.email}) - {p.company || 'Partner'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {partnersList.length === 0 && (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-800 dark:text-amber-200 text-xs">
+                  No partners found. You can add partners from the{' '}
+                  <Link href="/partners" className="underline font-semibold">
+                    Partners Management page
+                  </Link>
+                  .
+                </div>
+              )}
+
+              <p className="text-xs text-[#777a74] dark:text-[#a2a69e] bg-[#f7f7f5] dark:bg-white/[0.03] p-3 rounded-xl border border-[#dfe2dc] dark:border-white/5">
+                💡 Partner accounts only see the leads assigned to them. Once allotted, the partner can enrich and launch direct outreach campaigns from their dedicated Partner Portal.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-[#e8e9e5] dark:border-white/[0.08]">
+              <button
+                type="button"
+                onClick={() => handleAllotSelectedLeads(null)}
+                disabled={allottingLeads}
+                className="px-3 py-1.5 rounded-lg border border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 text-xs font-medium transition disabled:opacity-50"
+              >
+                Unallot from Partner
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowLeadAllotModal(false)}
+                  className="px-3.5 py-1.5 rounded-lg border border-[#dfe2dc] dark:border-white/10 hover:bg-[#f4f5f2] dark:hover:bg-white/[0.05] text-xs font-medium text-[#777a74] dark:text-[#a2a69e] transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAllotSelectedLeads(allotTargetPartnerId)}
+                  disabled={allottingLeads || !allotTargetPartnerId}
+                  className="px-4 py-1.5 rounded-lg bg-[#4f6653] hover:bg-[#405444] text-white text-xs font-medium transition shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {allottingLeads ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Allotting...</span>
+                    </>
+                  ) : (
+                    <span>Confirm Allotment</span>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
