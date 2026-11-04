@@ -721,16 +721,25 @@ export default function LeadsPage() {
     });
   };
 
+  const isAllFilteredSelected = filtered.length > 0 && filtered.every((b) => selectedIds.has(b.id));
+
   const handleSelectAll = () => {
-    if (selectedIds.size === filtered.length) {
-      setSelectedIds(new Set());
+    if (isAllFilteredSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        for (const b of filtered) {
+          next.delete(b.id);
+        }
+        return next;
+      });
     } else {
-      if (excludeAlreadySent && statusFilter !== 'sent') {
-        const uncontacted = filtered.filter((b) => !isLeadSent(b));
-        setSelectedIds(new Set(uncontacted.map((b) => b.id)));
-      } else {
-        setSelectedIds(new Set(filtered.map((b) => b.id)));
-      }
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        for (const b of filtered) {
+          next.add(b.id);
+        }
+        return next;
+      });
     }
   };
 
@@ -1446,9 +1455,9 @@ export default function LeadsPage() {
                         type="button"
                         onClick={handleSelectAll}
                         className="text-[#777a74] hover:text-[#20211f] dark:hover:text-white flex items-center transition"
-                        title={selectedIds.size === filtered.length ? 'Deselect all' : 'Select all'}
+                        title={isAllFilteredSelected ? `Deselect all (${filtered.length})` : `Select all (${filtered.length})`}
                       >
-                        {selectedIds.size === filtered.length && filtered.length > 0 ? (
+                        {isAllFilteredSelected ? (
                           <CheckSquare className="w-4 h-4 text-[#4f6653] dark:text-[#afc6ad]" />
                         ) : (
                           <Square className="w-4 h-4" />

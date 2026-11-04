@@ -11,6 +11,7 @@ export interface Partner {
   email: string;
   accessKey: string;
   role?: string;
+  company?: string;
   status: 'active' | 'paused';
   notes?: string;
   organizationId?: string;
@@ -166,6 +167,7 @@ export async function createPartner(
     email: string;
     accessKey?: string;
     role?: string;
+    company?: string;
     notes?: string;
   },
   orgId?: string
@@ -184,6 +186,7 @@ export async function createPartner(
     email: partnerInput.email.trim().toLowerCase(),
     accessKey: baseKey,
     role: partnerInput.role?.trim() || 'Outreach Partner',
+    company: partnerInput.company?.trim() || '',
     notes: partnerInput.notes?.trim() || '',
     status: 'active',
     createdAt: now,

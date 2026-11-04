@@ -361,31 +361,31 @@ export default function DraftsApprovalPage() {
             <span>Loading outreach review queue...</span>
           </div>
         ) : drafts.length === 0 ? (
-          <div className="rounded-2xl border border-[#e8e9e5] dark:border-white/[0.08] p-16 text-center bg-white dark:bg-[#1e211d] shadow-sm my-auto max-w-lg mx-auto w-full">
-            <div className="w-12 h-12 rounded-2xl bg-[#4f6653]/10 text-[#4f6653] dark:text-[#afc6ad] flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="w-6 h-6" />
+          <div className="rounded-2xl border border-[#e8e9e5] dark:border-white/[0.08] px-6 py-8 text-center bg-white dark:bg-[#1e211d] shadow-sm my-auto max-w-sm mx-auto w-full">
+            <div className="w-10 h-10 rounded-xl bg-[#4f6653]/10 text-[#4f6653] dark:text-[#afc6ad] flex items-center justify-center mx-auto mb-3">
+              <Sparkles className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-semibold text-[#20211f] dark:text-[#f1f2ee] mb-1.5">
+            <h3 className="text-sm font-semibold text-[#20211f] dark:text-[#f1f2ee] mb-1">
               Zero Pending Drafts
             </h3>
-            <p className="text-xs text-[#777a74] dark:text-[#a2a69e] mb-6 leading-relaxed">
-              No personalized drafts are in the review queue yet. Click below to craft bespoke, 1-to-1 outreach drafts for the leads in your workspace.
+            <p className="text-xs text-[#777a74] dark:text-[#a2a69e] mb-5 leading-relaxed max-w-xs mx-auto">
+              No personalized drafts in the review queue. Craft bespoke, 1-to-1 outreach drafts for your leads below.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-2">
               <button
                 type="button"
                 onClick={handleGenerateDrafts}
                 disabled={generatingDrafts}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#4f6653] hover:bg-[#405444] text-white px-4 py-2 text-sm font-medium transition shadow-sm disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#4f6653] hover:bg-[#405444] text-white px-3.5 py-1.5 text-xs font-medium transition shadow-sm disabled:opacity-50"
               >
                 {generatingDrafts ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Generating drafts...</span>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Generating...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4" />
+                    <Sparkles className="w-3.5 h-3.5" />
                     <span>Generate AI drafts</span>
                   </>
                 )}
@@ -393,10 +393,10 @@ export default function DraftsApprovalPage() {
 
               <Link
                 href="/campaigns"
-                className="inline-flex items-center gap-1.5 px-4 py-2 border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] text-[#20211f] dark:text-[#f1f2ee] rounded-lg text-sm font-medium hover:border-[#aab4a6] transition shadow-sm"
+                className="inline-flex items-center gap-1 px-3 py-1.5 border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] text-[#20211f] dark:text-[#f1f2ee] rounded-lg text-xs font-medium hover:border-[#aab4a6] transition"
               >
                 <span>Discover leads</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
           </div>
@@ -548,153 +548,110 @@ export default function DraftsApprovalPage() {
 
                   {/* AI Copywriting & Optimization Panel */}
                   {showAiEnhancer && (
-                    <div className="border-b border-[#e8e9e5] dark:border-white/[0.08] bg-[#fafaf8] dark:bg-[#1a1c18] p-4 space-y-3.5 max-h-[380px] overflow-y-auto">
-                      <div className="rounded-xl border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] p-4 space-y-3.5 shadow-sm">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <Sparkles className="w-4 h-4 text-[#4f6653] dark:text-[#afc6ad]" />
-                            <span className="text-xs font-semibold text-[#20211f] dark:text-white">
-                              AI Copywriting & Conversion Optimizer
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-[#777a74] dark:text-[#a2a69e]">
-                            Multi-LLM • Meta • Gemini • OpenAI
-                          </span>
+                    <div className="border-b border-[#e8e9e5] dark:border-white/[0.08] bg-[#fafaf8] dark:bg-[#1a1c18] px-4 py-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-1.5 text-xs font-medium text-[#20211f] dark:text-white">
+                          <Sparkles className="w-3.5 h-3.5 text-[#4f6653] dark:text-[#afc6ad]" />
+                          <span>AI Draft Enhancer</span>
                         </div>
-
-                        {/* Quick Goal Selector */}
-                        <div className="space-y-1.5">
-                          <label className="text-xs text-[#777a74] dark:text-[#a2a69e] block font-medium">
-                            Select Enhancement Goal:
-                          </label>
-                          <div className="flex flex-wrap gap-1.5">
-                            {[
-                              { id: 'handcrafted', label: '✍️ Handcrafted & Bespoke (Unique)' },
-                              { id: 'persuasive', label: '🎯 Higher Conversion Hook' },
-                              { id: 'concise', label: '✂️ More Concise (<85 words)' },
-                              { id: 'cta', label: '⚡ Low-Friction CTA' },
-                              { id: 'warmer', label: '🤝 Warmer Advisory Tone' },
-                              { id: 'punchy', label: '💥 Short & Punchy' },
-                              { id: 'custom', label: '✏️ Custom Instruction' },
-                            ].map((g) => (
-                              <button
-                                key={g.id}
-                                type="button"
-                                onClick={() => setAiGoal(g.id as any)}
-                                className={`text-xs px-3 py-1.5 rounded-lg border transition ${
-                                  aiGoal === g.id
-                                    ? 'bg-[#4f6653] text-white border-[#4f6653] font-medium shadow-sm'
-                                    : 'bg-white dark:bg-[#1e211d] border-[#dfe2dc] dark:border-white/10 text-[#777a74] dark:text-[#a2a69e] hover:border-[#aab4a6]'
-                                }`}
-                              >
-                                {g.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Custom instruction input if selected */}
-                        {aiGoal === 'custom' && (
-                          <div>
-                            <input
-                              type="text"
-                              value={aiCustomInstruction}
-                              onChange={(e) => setAiCustomInstruction(e.target.value)}
-                              placeholder="e.g. Focus on our free 1-click audit, sound friendly, keep it casual..."
-                              className="w-full text-xs p-2.5 border border-[#dfe2dc] dark:border-white/10 rounded-xl bg-white dark:bg-[#171916] text-[#20211f] dark:text-[#f1f2ee] focus:outline-none focus:ring-1 focus:ring-[#4f6653] focus:border-[#4f6653]"
-                            />
-                          </div>
-                        )}
-
-                        <div className="flex items-center justify-between pt-1">
-                          <span className="text-[11px] text-[#777a74] dark:text-[#a2a69e]">
-                            Preserves dynamic tokens ({'{first_name}'}, {'{company_name}'}, etc.)
-                          </span>
-
-                          <button
-                            type="button"
-                            onClick={handleEnhanceDraft}
-                            disabled={aiEnhancing}
-                            className="inline-flex items-center gap-1.5 bg-[#4f6653] hover:bg-[#405444] text-white px-4 py-1.5 rounded-lg text-xs font-medium shadow-sm disabled:opacity-50 transition"
-                          >
-                            {aiEnhancing ? (
-                              <>
-                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                                <span>Optimizing copy...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="w-3.5 h-3.5" />
-                                <span>Generate improved copy</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={handleEnhanceDraft}
+                          disabled={aiEnhancing}
+                          className="inline-flex items-center gap-1.5 bg-[#4f6653] hover:bg-[#405444] text-white px-3 py-1 rounded-md text-xs font-medium shadow-sm disabled:opacity-50 transition"
+                        >
+                          {aiEnhancing ? (
+                            <>
+                              <RefreshCw className="w-3 h-3 animate-spin" />
+                              <span>Optimizing...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-3 h-3" />
+                              <span>Optimize Copy</span>
+                            </>
+                          )}
+                        </button>
                       </div>
+
+                      {/* Quick Goal Selector */}
+                      <div className="flex flex-wrap items-center gap-1">
+                        {[
+                          { id: 'handcrafted', label: '✍️ Bespoke' },
+                          { id: 'persuasive', label: '🎯 High Conversion' },
+                          { id: 'concise', label: '✂️ Concise' },
+                          { id: 'cta', label: '⚡ Punchy CTA' },
+                          { id: 'warmer', label: '🤝 Warmer' },
+                          { id: 'punchy', label: '💥 Short' },
+                          { id: 'custom', label: '✏️ Custom' },
+                        ].map((g) => (
+                          <button
+                            key={g.id}
+                            type="button"
+                            onClick={() => setAiGoal(g.id as any)}
+                            className={`text-[11px] px-2 py-0.5 rounded-md border transition ${
+                              aiGoal === g.id
+                                ? 'bg-[#4f6653] text-white border-[#4f6653] font-medium shadow-sm'
+                                : 'bg-white dark:bg-[#1e211d] border-[#dfe2dc] dark:border-white/10 text-[#777a74] dark:text-[#a2a69e] hover:border-[#aab4a6]'
+                            }`}
+                          >
+                            {g.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Custom instruction input if selected */}
+                      {aiGoal === 'custom' && (
+                        <div>
+                          <input
+                            type="text"
+                            value={aiCustomInstruction}
+                            onChange={(e) => setAiCustomInstruction(e.target.value)}
+                            placeholder="e.g. Focus on our free 1-click audit, sound friendly, keep it casual..."
+                            className="w-full text-xs px-2.5 py-1 border border-[#dfe2dc] dark:border-white/10 rounded-md bg-white dark:bg-[#171916] text-[#20211f] dark:text-[#f1f2ee] focus:outline-none focus:ring-1 focus:ring-[#4f6653]"
+                          />
+                        </div>
+                      )}
 
                       {/* Display AI Improvement Results if available */}
                       {aiResult && (
-                        <div className="rounded-xl border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] p-4 space-y-3.5 shadow-sm">
-                          <div className="flex items-center justify-between pb-2 border-b border-[#e8e9e5] dark:border-white/10">
-                            <div className="flex items-center space-x-2">
-                              <Check className="w-4 h-4 text-emerald-500" />
-                              <span className="text-xs font-semibold text-[#20211f] dark:text-white">
-                                Copy Optimized
+                        <div className="rounded-lg border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] p-3 space-y-2 shadow-sm text-xs">
+                          <div className="flex items-center justify-between pb-1 border-b border-[#e8e9e5] dark:border-white/10">
+                            <div className="flex items-center space-x-1.5">
+                              <Check className="w-3.5 h-3.5 text-emerald-500" />
+                              <span className="font-semibold text-[#20211f] dark:text-white">
+                                Copy Optimized ({aiResult.modelUsed})
                               </span>
                             </div>
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[#777a74] dark:text-[#a2a69e]">
-                              {aiResult.modelUsed}
-                            </span>
+                            <div className="flex items-center space-x-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setAiResult(null)}
+                                className="px-2 py-0.5 text-[11px] text-[#777a74] hover:text-[#20211f] dark:hover:text-white"
+                              >
+                                Discard
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleApplyAiEnhancement}
+                                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-medium shadow-sm transition"
+                              >
+                                <Check className="w-3 h-3" />
+                                <span>Apply</span>
+                              </button>
+                            </div>
                           </div>
 
-                          {/* Summary of changes */}
-                          <div className="text-xs text-[#777a74] dark:text-[#a2a69e] bg-[#fafaf8] dark:bg-[#252824] p-3 rounded-xl border border-[#dfe2dc] dark:border-white/10">
-                            <strong className="text-[#20211f] dark:text-white block mb-0.5">
-                              Summary of Improvements:
-                            </strong>
+                          <div className="text-[11px] text-[#777a74] dark:text-[#a2a69e] bg-[#fafaf8] dark:bg-[#252824] p-2 rounded border border-[#dfe2dc] dark:border-white/10">
                             {aiResult.changesSummary}
                           </div>
 
-                          {/* Subject Preview */}
                           {aiResult.improvedSubject && (
-                            <div>
-                              <div className="text-[11px] font-medium text-[#777a74] dark:text-[#a2a69e]">
-                                Improved Subject:
-                              </div>
-                              <div className="text-xs font-medium text-[#20211f] dark:text-[#f1f2ee] mt-0.5">
-                                {aiResult.improvedSubject}
-                              </div>
+                            <div className="text-[11px]">
+                              <span className="text-[#777a74] font-medium mr-1.5">Subject:</span>
+                              <span className="font-semibold text-[#20211f] dark:text-[#f1f2ee]">{aiResult.improvedSubject}</span>
                             </div>
                           )}
-
-                          {/* Body Preview */}
-                          <div>
-                            <div className="text-[11px] font-medium text-[#777a74] dark:text-[#a2a69e] mb-1">
-                              Improved Body Preview:
-                            </div>
-                            <div className="text-xs whitespace-pre-wrap bg-[#fafaf8] dark:bg-[#252824] p-3 rounded-xl border border-[#dfe2dc] dark:border-white/10 text-[#20211f] dark:text-[#f1f2ee] max-h-48 overflow-y-auto leading-relaxed">
-                              {aiResult.improvedBody}
-                            </div>
-                          </div>
-
-                          {/* Apply & Discard Controls */}
-                          <div className="flex items-center justify-end space-x-2 pt-2 border-t border-[#e8e9e5] dark:border-white/10">
-                            <button
-                              type="button"
-                              onClick={() => setAiResult(null)}
-                              className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#777a74] hover:text-[#20211f] dark:hover:text-white transition"
-                            >
-                              Discard
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleApplyAiEnhancement}
-                              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium shadow-sm transition"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                              <span>Apply to draft</span>
-                            </button>
-                          </div>
                         </div>
                       )}
                     </div>
