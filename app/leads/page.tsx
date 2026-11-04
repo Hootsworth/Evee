@@ -1044,31 +1044,28 @@ export default function LeadsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#090a0f] text-[#000000] dark:text-[#ffffff] transition-colors duration-150">
-      {/* Brand 3-Color Ribbon Accent (DESIGN.md) */}
-      <div className="brand-gradient-h w-full" />
-
-      {/* Hero Band: deep green page header */}
-      <section className="bg-[#28352d] text-white border-b border-white/[0.08] px-6 py-10 sm:py-14 relative overflow-hidden ui-grid-bg">
-        <div className="max-w-7xl mx-auto flex flex-col xl:flex-row xl:items-end justify-between gap-6 relative z-10">
-          <div className="max-w-xl">
-            <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-2">
-              <span>Prospect directory</span>
+    <div className="min-h-screen bg-[#f7f7f5] dark:bg-[#171916] text-[#20211f] dark:text-[#f1f2ee] transition-colors duration-150">
+      {/* Workspace Leads Header */}
+      <header className="border-b border-[#e8e9e5] dark:border-white/[0.08] px-5 sm:px-8 py-8 sm:py-10">
+        <div className="max-w-7xl mx-auto flex flex-col xl:flex-row xl:items-end justify-between gap-6">
+          <div className="max-w-2xl">
+            <div className="flex items-center space-x-2 text-xs font-medium text-[#4f6653] dark:text-[#afc6ad] mb-2.5">
+              <span>Workspace prospect directory</span>
               <span>•</span>
-              <span className="ui-badge text-emerald-400 bg-emerald-500/10 border-emerald-500/20">
-                EVEE AI DIRECTORY
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#4f6653]/10 text-[#4f6653] dark:text-[#afc6ad]">
+                AI DIRECTORY
               </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-medium tracking-tight text-white">
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#20211f] dark:text-[#f1f2ee]">
               Leads
             </h1>
-            <p className="text-sm text-[#959494] mt-2 font-normal leading-relaxed">
-              Search, organize, and enrich your prospect list. Review contact details and manage outreach from one place.
+            <p className="text-sm text-[#777a74] dark:text-[#a2a69e] mt-2 leading-relaxed">
+              Search, organize, and enrich your prospect list. Review contact details, clean proxies, and launch outreach from one workspace.
             </p>
           </div>
 
-          {/* Action CTAs: 5 Core Workflow Actions in a Single Sleek Row */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 shrink-0">
+          {/* Action CTAs: Clean rounded action buttons */}
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             {/* 1. Import CSV */}
             <button
               onClick={() => {
@@ -1076,9 +1073,9 @@ export default function LeadsPage() {
                 setImportResult(null);
               }}
               title="Import prospects from CSV spreadsheet"
-              className="mono-btn h-9 bg-[#313641] hover:bg-[#3d4352] text-white border border-white/[0.12] px-3.5 rounded-[4px] text-xs font-mono font-medium tracking-tight transition flex items-center space-x-2 whitespace-nowrap shadow-sm"
+              className="inline-flex items-center gap-2 rounded-lg border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] px-3.5 py-2 text-sm font-medium text-[#20211f] dark:text-[#f1f2ee] hover:border-[#aab4a6] transition shadow-sm"
             >
-              <UploadCloud className="w-3.5 h-3.5 text-[#bdc8b5]" />
+              <UploadCloud className="w-4 h-4 text-[#777a74] dark:text-[#a2a69e]" />
               <span>Import CSV</span>
             </button>
 
@@ -1093,12 +1090,12 @@ export default function LeadsPage() {
                   ? `AI enrich ${missingEmailCount} leads missing emails`
                   : 'All active leads are enriched'
               }
-              className="mono-btn h-9 bg-[#c8f6f9] hover:bg-[#b2f0f4] text-[#010120] px-3.5 rounded-[4px] text-xs font-mono font-medium tracking-tight transition flex items-center space-x-2 whitespace-nowrap shadow-sm disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] px-3.5 py-2 text-sm font-medium text-[#20211f] dark:text-[#f1f2ee] hover:border-[#aab4a6] transition shadow-sm disabled:opacity-50"
             >
-              <Sparkles className={`w-3.5 h-3.5 ${bulkEnriching ? 'animate-spin' : ''}`} />
+              <Sparkles className={`w-4 h-4 text-[#4f6653] dark:text-[#afc6ad] ${bulkEnriching ? 'animate-spin' : ''}`} />
               <span>{bulkEnriching ? 'Enriching...' : 'Enrich'}</span>
               {missingEmailCount > 0 && !bulkEnriching && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-[#010120]/15 text-[#010120] font-semibold">
+                <span className="px-1.5 py-0.5 rounded-full text-xs font-mono bg-[#4f6653]/10 text-[#4f6653] dark:text-[#afc6ad] font-semibold">
                   {missingEmailCount}
                 </span>
               )}
@@ -1108,16 +1105,16 @@ export default function LeadsPage() {
             <button
               onClick={() => setShowDuplicatesModal(true)}
               title="Identify and delete duplicate leads & redundant contacts"
-              className={`mono-btn h-9 px-3.5 rounded-[4px] text-xs font-mono font-medium tracking-tight transition flex items-center space-x-2 whitespace-nowrap border shadow-sm ${
+              className={`inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition shadow-sm ${
                 totalDuplicateLeadsCount > 0
-                  ? 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/30'
-                  : 'bg-[#313641] hover:bg-[#3d4352] text-white border-white/[0.12]'
+                  ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15'
+                  : 'border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] text-[#20211f] dark:text-[#f1f2ee] hover:border-[#aab4a6]'
               }`}
             >
-              <CopyX className="w-3.5 h-3.5 text-amber-400" />
+              <CopyX className="w-4 h-4 text-amber-500" />
               <span>Deduplicate</span>
               {totalDuplicateLeadsCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-500/25 text-amber-300 font-semibold border border-amber-500/30">
+                <span className="px-1.5 py-0.5 rounded-full text-xs font-mono bg-amber-500/20 text-amber-700 dark:text-amber-300 font-semibold">
                   {totalDuplicateLeadsCount}
                 </span>
               )}
@@ -1127,16 +1124,16 @@ export default function LeadsPage() {
             <button
               onClick={() => setShowEmailAuditModal(true)}
               title="AI detect and clean fake emails, proxies, and social handles"
-              className={`mono-btn h-9 px-3.5 rounded-[4px] text-xs font-mono font-medium tracking-tight transition flex items-center space-x-2 whitespace-nowrap border shadow-sm ${
+              className={`inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition shadow-sm ${
                 totalFlaggedEmailsCount > 0
-                  ? 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border-rose-500/30'
-                  : 'bg-[#313641] hover:bg-[#3d4352] text-white border-white/[0.12]'
+                  ? 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400 hover:bg-rose-500/15'
+                  : 'border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] text-[#20211f] dark:text-[#f1f2ee] hover:border-[#aab4a6]'
               }`}
             >
-              <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+              <ShieldAlert className="w-4 h-4 text-rose-500" />
               <span>Audit Emails</span>
               {totalFlaggedEmailsCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-rose-500/25 text-rose-300 font-semibold border border-rose-500/30">
+                <span className="px-1.5 py-0.5 rounded-full text-xs font-mono bg-rose-500/20 text-rose-700 dark:text-rose-300 font-semibold">
                   {totalFlaggedEmailsCount}
                 </span>
               )}
@@ -1146,7 +1143,6 @@ export default function LeadsPage() {
             <button
               onClick={() => {
                 if (selectedIds.size === 0) {
-                  // Select all filtered by default if none selected
                   setSelectedIds(new Set(filtered.map((b) => b.id)));
                 }
                 setOutreachStep('recipients');
@@ -1158,34 +1154,34 @@ export default function LeadsPage() {
                 setShowOutreachModal(true);
               }}
               title="Launch unified direct outreach campaign"
-              className="mono-btn h-9 bg-white hover:bg-[#ebebeb] text-[#010120] px-4 rounded-[4px] text-xs font-mono font-semibold tracking-tight transition flex items-center space-x-2 whitespace-nowrap shadow-sm"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#4f6653] hover:bg-[#405444] text-white px-4 py-2 text-sm font-medium transition shadow-sm"
             >
-              <Send className="w-3.5 h-3.5 text-[#010120]" />
+              <Send className="w-4 h-4" />
               <span>Start Outreach</span>
               {selectedIds.size > 0 && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-[#010120]/15 text-[#010120] font-bold">
+                <span className="px-2 py-0.5 rounded-full text-xs bg-white/20 text-white font-semibold">
                   {selectedIds.size}
                 </span>
               )}
             </button>
           </div>
         </div>
-      </section>
+      </header>
 
-      {/* Main Canvas Body: Clean hairline borders, 4px radius */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      {/* Main Canvas Body */}
+      <main className="max-w-7xl mx-auto px-5 sm:px-8 py-8">
         {/* Feedback message banner */}
         {enrichMessage && (
           <div
-            className={`mb-6 p-4 rounded-[4px] border text-xs font-mono flex items-center justify-between ${
+            className={`mb-6 p-4 rounded-xl border text-sm flex items-center justify-between shadow-sm ${
               enrichMessage.type === 'success'
-                ? 'bg-[#c8f6f9]/20 border-[#c8f6f9]/60 text-emerald-800 dark:text-[#c8f6f9]'
-                : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300'
+                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-800 dark:text-emerald-300'
+                : 'bg-rose-500/10 border-rose-500/20 text-rose-800 dark:text-rose-300'
             }`}
           >
             <div className="flex items-center space-x-2.5">
               {enrichMessage.type === 'success' ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-[#c8f6f9] shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               ) : (
                 <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
               )}
@@ -1198,44 +1194,54 @@ export default function LeadsPage() {
         )}
 
         {/* Filter, Search & Selection Bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-[#959494] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[#777a74] dark:text-[#a2a69e] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Filter by company, email, city, category..."
+              placeholder="Search company, email, city, category..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#0f1017] rounded-[4px] text-xs font-mono focus:outline-none focus:border-[#000000] dark:focus:border-white transition text-[#000000] dark:text-white"
+              className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] text-[#20211f] dark:text-[#f1f2ee] placeholder-[#959494] focus:outline-none focus:ring-1 focus:ring-[#4f6653] focus:border-[#4f6653] transition shadow-sm"
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="mono-eyebrow text-[#959494] text-[11px] font-mono mr-1">STATUS:</span>
+          <div className="inline-flex items-center gap-1 p-1 bg-[#edebe8] dark:bg-[#252824] rounded-xl border border-[#dfe2dc]/70 dark:border-white/5 overflow-x-auto no-scrollbar max-w-full">
             {[
-              { id: 'active', label: `ACTIVE (${activeBusinesses.length})` },
-              { id: 'sent', label: `SENT (${sentBusinessesCount || totalSentCount})` },
-              { id: 'missing_email', label: `NO EMAIL (${missingEmailCount})` },
+              { id: 'active', label: 'Active', count: activeBusinesses.length },
+              { id: 'sent', label: 'Sent', count: sentBusinessesCount || totalSentCount },
+              { id: 'missing_email', label: 'No Email', count: missingEmailCount },
               ...(totalFlaggedEmailsCount > 0
-                ? [{ id: 'flagged_emails', label: `FLAGGED EMAILS (${totalFlaggedEmailsCount})` }]
+                ? [{ id: 'flagged_emails', label: 'Flagged', count: totalFlaggedEmailsCount }]
                 : []),
               ...(totalDuplicateLeadsCount > 0
-                ? [{ id: 'duplicates', label: `DUPLICATES (${totalDuplicateLeadsCount})` }]
+                ? [{ id: 'duplicates', label: 'Duplicates', count: totalDuplicateLeadsCount }]
                 : []),
-              { id: 'archived', label: `ARCHIVED (${archivedCount})` },
-              { id: 'all', label: `ALL (${businesses.length})` },
-              { id: 'suppressed', label: 'SUPPRESSED' },
-            ].map((st) => (
+              { id: 'archived', label: 'Archived', count: archivedCount },
+              { id: 'all', label: 'All', count: businesses.length },
+              { id: 'suppressed', label: 'Suppressed', count: 0 },
+            ].map((tab) => (
               <button
-                key={st.id}
-                onClick={() => setStatusFilter(st.id as any)}
-                className={`mono-btn text-xs px-3 py-1.5 rounded-[4px] transition font-mono uppercase tracking-wider ${
-                  statusFilter === st.id
-                    ? 'bg-[#000000] dark:bg-white text-white dark:text-[#000000] font-semibold'
-                    : 'bg-white dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.08] text-[#959494] hover:text-[#000000] dark:hover:text-white'
+                key={tab.id}
+                onClick={() => setStatusFilter(tab.id as any)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap ${
+                  statusFilter === tab.id
+                    ? 'bg-white dark:bg-[#1e211d] text-[#20211f] dark:text-white shadow-sm font-semibold'
+                    : 'text-[#777a74] dark:text-[#a2a69e] hover:text-[#20211f] dark:hover:text-white'
                 }`}
               >
-                {st.label}
+                <span>{tab.label}</span>
+                {tab.count > 0 && (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                      statusFilter === tab.id
+                        ? 'bg-[#4f6653]/10 text-[#4f6653] dark:text-[#afc6ad] font-semibold'
+                        : 'opacity-70'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -1243,7 +1249,7 @@ export default function LeadsPage() {
 
         {/* Sent / Contacted Banner when viewing Sent */}
         {statusFilter === 'sent' && (
-          <div className="mb-6 p-4 rounded-[4px] border border-blue-500/30 bg-blue-500/10 text-blue-900 dark:text-blue-200 font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="mb-6 p-4 rounded-xl border border-blue-500/20 bg-blue-500/10 text-blue-900 dark:text-blue-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
             <div className="flex items-center space-x-2.5">
               <MailCheck className="w-4 h-4 text-blue-500 shrink-0" />
               <div>
@@ -1252,7 +1258,7 @@ export default function LeadsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-blue-500/20 text-blue-800 dark:text-blue-300 text-[11px] font-semibold">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-800 dark:text-blue-300 text-[11px] font-semibold">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>DUPLICATE PROTECTED</span>
               </span>
@@ -1262,7 +1268,7 @@ export default function LeadsPage() {
 
         {/* Missing Email Banner when viewing No Email */}
         {statusFilter === 'missing_email' && (
-          <div className="mb-6 p-4 rounded-[4px] border border-pink-500/30 bg-pink-500/10 text-pink-800 dark:text-pink-300 font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="mb-6 p-4 rounded-xl border border-pink-500/20 bg-pink-500/10 text-pink-900 dark:text-pink-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
             <div className="flex items-center space-x-2.5">
               <Archive className="w-4 h-4 text-pink-500 shrink-0" />
               <div>
@@ -1274,7 +1280,7 @@ export default function LeadsPage() {
               <button
                 onClick={handleArchiveAllMissingEmail}
                 disabled={archiving}
-                className="mono-btn bg-pink-600 hover:bg-pink-700 text-white px-3.5 py-1.5 rounded-[4px] text-xs font-mono uppercase tracking-wider whitespace-nowrap disabled:opacity-50 flex items-center space-x-2 shrink-0"
+                className="inline-flex items-center gap-1.5 bg-pink-600 hover:bg-pink-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-50 shrink-0 shadow-sm"
               >
                 <Archive className={`w-3.5 h-3.5 ${archiving ? 'animate-spin' : ''}`} />
                 <span>{archiving ? 'Archiving...' : `Archive All No-Email (${missingEmailCount})`}</span>
@@ -1285,7 +1291,7 @@ export default function LeadsPage() {
 
         {/* Flagged Email Banner when viewing Flagged Emails */}
         {statusFilter === 'flagged_emails' && (
-          <div className="mb-6 p-4 rounded-[4px] border border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-300 font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="mb-6 p-4 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-900 dark:text-rose-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
             <div className="flex items-center space-x-2.5">
               <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0" />
               <div>
@@ -1295,7 +1301,7 @@ export default function LeadsPage() {
             </div>
             <button
               onClick={() => setShowEmailAuditModal(true)}
-              className="mono-btn bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-1.5 rounded-[4px] text-xs font-mono uppercase tracking-wider whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-medium transition shadow-sm"
             >
               Open Email Cleaner
             </button>
@@ -1304,7 +1310,7 @@ export default function LeadsPage() {
 
         {/* Duplicate Banner when viewing Duplicates */}
         {statusFilter === 'duplicates' && (
-          <div className="mb-6 p-4 rounded-[4px] border border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300 font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="mb-6 p-4 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
             <div className="flex items-center space-x-2.5">
               <CopyX className="w-4 h-4 text-amber-500 shrink-0" />
               <div>
@@ -1314,65 +1320,67 @@ export default function LeadsPage() {
             </div>
             <button
               onClick={() => setShowDuplicatesModal(true)}
-              className="mono-btn bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-1.5 rounded-[4px] text-xs font-mono uppercase tracking-wider whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-medium transition shadow-sm"
             >
               Open Duplicate Manager
             </button>
           </div>
         )}
 
-        {/* Lead Table / List: lead table style */}
+        {/* Lead Table / List */}
         {loading ? (
-          <div className="py-20 text-center font-mono text-xs text-[#959494]">Loading discovered leads...</div>
+          <div className="py-24 text-center text-sm text-[#777a74] dark:text-[#a2a69e] flex items-center justify-center gap-2">
+            <RefreshCw className="w-4 h-4 animate-spin text-[#4f6653]" />
+            <span>Loading prospect directory...</span>
+          </div>
         ) : filtered.length === 0 && statusFilter === 'sent' && sentRecords.length === 0 ? (
-          <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-16 text-center bg-white dark:bg-[#0f1017]">
-            <MailCheck className="w-8 h-8 text-[#959494] mx-auto mb-3 opacity-60" />
-            <p className="text-xs text-[#959494] font-mono mb-2">No outreach emails have been sent yet.</p>
-            <p className="text-[11px] text-[#959494] font-mono opacity-80">
+          <div className="rounded-2xl border border-[#e8e9e5] dark:border-white/[0.08] p-16 text-center bg-white dark:bg-[#1e211d] shadow-sm">
+            <MailCheck className="w-10 h-10 text-[#777a74] mx-auto mb-3 opacity-60" />
+            <h3 className="text-sm font-semibold text-[#20211f] dark:text-[#f1f2ee] mb-1.5">No outreach sent yet</h3>
+            <p className="text-xs text-[#777a74] dark:text-[#a2a69e] max-w-md mx-auto leading-relaxed">
               When you launch outreach campaigns, contacted businesses and emails will appear here and be protected from accidental duplicate sends.
             </p>
           </div>
         ) : filtered.length === 0 && statusFilter !== 'sent' ? (
-          <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-16 text-center bg-white dark:bg-[#0f1017]">
-            <p className="text-xs text-[#959494] font-mono mb-4">No prospects match your search criteria.</p>
+          <div className="rounded-2xl border border-[#e8e9e5] dark:border-white/[0.08] p-16 text-center bg-white dark:bg-[#1e211d] shadow-sm">
+            <p className="text-sm text-[#777a74] dark:text-[#a2a69e] mb-4">No prospects match your search criteria.</p>
             <button
               onClick={() => setShowCsvModal(true)}
-              className="mono-btn bg-[#000000] dark:bg-white text-white dark:text-[#000000] px-4 py-2 rounded-[4px] text-xs font-mono uppercase tracking-wider inline-flex items-center space-x-2"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#4f6653] hover:bg-[#405444] text-white px-4 py-2 text-sm font-medium transition shadow-sm"
             >
-              <UploadCloud className="w-3.5 h-3.5" />
-              <span>IMPORT PROSPECTS FROM CSV</span>
+              <UploadCloud className="w-4 h-4" />
+              <span>Import prospects from CSV</span>
             </button>
           </div>
         ) : (
-          <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] overflow-hidden bg-white dark:bg-[#0f1017]">
+          <div className="rounded-2xl border border-[#e8e9e5] dark:border-white/[0.08] overflow-hidden bg-white dark:bg-[#1e211d] shadow-sm">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs font-mono">
-                {/* data-table-header */}
-                <thead className="bg-[#f4f4f5] dark:bg-[#14161f] border-b border-[#ebebeb] dark:border-white/[0.08] text-[#959494]">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-[#fafaf8] dark:bg-[#232622] border-b border-[#e8e9e5] dark:border-white/[0.08] text-[11px] font-semibold text-[#777a74] dark:text-[#a2a69e] uppercase tracking-wider">
                   <tr>
-                    <th className="py-3 px-4 w-10">
+                    <th className="py-3.5 px-4 w-10">
                       <button
                         type="button"
                         onClick={handleSelectAll}
-                        className="text-[#959494] hover:text-[#000000] dark:hover:text-white flex items-center"
+                        className="text-[#777a74] hover:text-[#20211f] dark:hover:text-white flex items-center transition"
                         title={selectedIds.size === filtered.length ? 'Deselect all' : 'Select all'}
                       >
                         {selectedIds.size === filtered.length && filtered.length > 0 ? (
-                          <CheckSquare className="w-4 h-4 text-[#000000] dark:text-white" />
+                          <CheckSquare className="w-4 h-4 text-[#4f6653] dark:text-[#afc6ad]" />
                         ) : (
                           <Square className="w-4 h-4" />
                         )}
                       </button>
                     </th>
-                    <th className="py-3 px-4 font-medium tracking-[0.55px] uppercase">BUSINESS NAME</th>
-                    <th className="py-3 px-4 font-medium tracking-[0.55px] uppercase">CONTACT & EMAIL</th>
-                    <th className="py-3 px-4 font-medium tracking-[0.55px] uppercase">CATEGORY</th>
-                    <th className="py-3 px-4 font-medium tracking-[0.55px] uppercase">LOCATION</th>
-                    <th className="py-3 px-4 font-medium tracking-[0.55px] uppercase">STATUS</th>
-                    <th className="py-3 px-4 font-medium tracking-[0.55px] uppercase text-right">ACTION</th>
+                    <th className="py-3.5 px-4">BUSINESS NAME</th>
+                    <th className="py-3.5 px-4">CONTACT & EMAIL</th>
+                    <th className="py-3.5 px-4">CATEGORY</th>
+                    <th className="py-3.5 px-4">LOCATION</th>
+                    <th className="py-3.5 px-4">STATUS</th>
+                    <th className="py-3.5 px-4 text-right">ACTION</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#ebebeb] dark:divide-white/[0.06]">
+                <tbody className="divide-y divide-[#e8e9e5] dark:divide-white/[0.06]">
                   {filtered.map((b) => {
                     const isSelected = selectedIds.has(b.id);
                     const hasEmail = Boolean(b.general_business_email);
@@ -1382,10 +1390,10 @@ export default function LeadsPage() {
                     return (
                       <tr
                         key={b.id}
-                        className={`transition group ${
+                        className={`transition-colors group ${
                           isSelected
-                            ? 'bg-[#c8f6f9]/10 dark:bg-white/[0.03]'
-                            : 'hover:bg-[#f8fafc] dark:hover:bg-[#14161f]'
+                            ? 'bg-[#4f6653]/5 dark:bg-white/[0.04]'
+                            : 'hover:bg-[#f9faf8] dark:hover:bg-[#262a25]'
                         }`}
                       >
                         {/* Checkbox */}
@@ -1393,64 +1401,76 @@ export default function LeadsPage() {
                           <button
                             type="button"
                             onClick={() => handleToggleSelect(b.id)}
-                            className="text-[#959494] hover:text-[#000000] dark:hover:text-white flex items-center"
+                            className="text-[#777a74] hover:text-[#20211f] dark:hover:text-white flex items-center transition"
                           >
                             {isSelected ? (
-                              <CheckSquare className="w-4 h-4 text-[#000000] dark:text-white" />
+                              <CheckSquare className="w-4 h-4 text-[#4f6653] dark:text-[#afc6ad]" />
                             ) : (
                               <Square className="w-4 h-4" />
                             )}
                           </button>
                         </td>
 
-                        {/* Business Name */}
-                        <td className="py-3.5 px-4 font-sans">
-                          <div className="flex items-center space-x-1.5 flex-wrap">
-                            <Link
-                              href={`/leads/${b.id}`}
-                              className="font-medium text-sm text-[#000000] dark:text-white hover:underline flex items-center space-x-1.5"
-                            >
-                              <span>{b.display_name}</span>
-                              <ChevronRight className="w-3.5 h-3.5 text-[#959494] group-hover:translate-x-0.5 transition-transform" />
-                            </Link>
-                            {isLeadSent(b) && (
-                              <span
-                                title={
-                                  getLeadSentInfo(b)?.sentAt
-                                    ? `Contacted on ${new Date(getLeadSentInfo(b).sentAt).toLocaleDateString()}`
-                                    : 'Contacted previously'
-                                }
-                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-semibold uppercase"
-                              >
-                                <MailCheck className="w-2.5 h-2.5 text-blue-500" />
-                                <span>Sent</span>
-                              </span>
-                            )}
-                            {allDuplicateLeadIds.has(b.id) && (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-semibold uppercase">
-                                <CopyX className="w-2.5 h-2.5" />
-                                Duplicate
-                              </span>
-                            )}
+                        {/* Business Name with Company Initials Avatar */}
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-9 h-9 rounded-xl bg-[#4f6653]/10 text-[#4f6653] dark:text-[#afc6ad] font-semibold flex items-center justify-center shrink-0 text-xs">
+                              {b.display_name?.slice(0, 2).toUpperCase() || 'CO'}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Link
+                                  href={`/leads/${b.id}`}
+                                  className="font-medium text-sm text-[#20211f] dark:text-[#f1f2ee] hover:text-[#4f6653] dark:hover:text-[#afc6ad] transition truncate"
+                                >
+                                  {b.display_name}
+                                </Link>
+                                {isLeadSent(b) && (
+                                  <span
+                                    title={
+                                      getLeadSentInfo(b)?.sentAt
+                                        ? `Contacted on ${new Date(getLeadSentInfo(b).sentAt).toLocaleDateString()}`
+                                        : 'Contacted previously'
+                                    }
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20"
+                                  >
+                                    <MailCheck className="w-3 h-3 text-blue-500" />
+                                    <span>Sent</span>
+                                  </span>
+                                )}
+                                {allDuplicateLeadIds.has(b.id) && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                                    <CopyX className="w-3 h-3" />
+                                    <span>Duplicate</span>
+                                  </span>
+                                )}
+                              </div>
+                              {b.official_website_url && (
+                                <a
+                                  href={b.official_website_url.startsWith('http') ? b.official_website_url : `https://${b.official_website_url}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-[#777a74] dark:text-[#a2a69e] hover:underline flex items-center gap-1 mt-0.5 truncate max-w-xs"
+                                >
+                                  <span>{b.official_website_url.replace(/^https?:\/\//, '')}</span>
+                                  <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                                </a>
+                              )}
+                            </div>
                           </div>
-                          {b.official_website_url && (
-                            <span className="text-[11px] text-[#959494] font-mono block mt-0.5 truncate max-w-xs">
-                              {b.official_website_url}
-                            </span>
-                          )}
                         </td>
 
-                        {/* Contact & Email with Live Free AI/Web Discovery */}
-                        <td className="py-3.5 px-4 font-mono">
+                        {/* Contact & Email */}
+                        <td className="py-3.5 px-4">
                           {hasEmail ? (
                             <div>
-                              <div className="flex items-center space-x-1.5 flex-wrap gap-y-1 text-[#000000] dark:text-white font-normal">
-                                <Mail className="w-3 h-3 text-[#959494] shrink-0" />
-                                <span>{b.general_business_email}</span>
+                              <div className="flex items-center space-x-1.5 flex-wrap gap-y-1 text-sm text-[#20211f] dark:text-[#f1f2ee]">
+                                <Mail className="w-3.5 h-3.5 text-[#777a74] dark:text-[#a2a69e] shrink-0" />
+                                <span className="font-mono text-xs">{b.general_business_email}</span>
                                 {isLeadSent(b) && (
                                   <span
                                     title="Email already delivered or in flight"
-                                    className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-mono bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 font-semibold uppercase shrink-0"
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 font-medium shrink-0"
                                   >
                                     <MailCheck className="w-2.5 h-2.5 text-blue-500" />
                                     <span>CONTACTED</span>
@@ -1459,7 +1479,7 @@ export default function LeadsPage() {
                                 {flaggedEmailsMap.has(b.id) && (
                                   <span
                                     title={flaggedEmailsMap.get(b.id)!.flag.reason}
-                                    className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-mono bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 font-semibold uppercase shrink-0"
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 font-medium shrink-0"
                                   >
                                     <ShieldAlert className="w-2.5 h-2.5" />
                                     <span>{flaggedEmailsMap.get(b.id)!.flag.categoryLabel}</span>
@@ -1467,7 +1487,7 @@ export default function LeadsPage() {
                                 )}
                               </div>
                               {contactName && (
-                                <div className="text-[11px] text-[#959494] mt-0.5">
+                                <div className="text-xs text-[#777a74] dark:text-[#a2a69e] mt-0.5">
                                   {contactName}
                                 </div>
                               )}
@@ -1477,86 +1497,80 @@ export default function LeadsPage() {
                               type="button"
                               onClick={() => handleEnrichSingle(b.id)}
                               disabled={isEnrichingThis || bulkEnriching}
-                              className="mono-btn px-2.5 py-1 rounded-[4px] bg-white dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.12] text-[#000000] dark:text-white hover:bg-[#f4f4f5] dark:hover:bg-[#1c1d27] flex items-center space-x-1.5 text-[11px] font-mono tracking-wider uppercase transition disabled:opacity-50"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#252824] hover:bg-[#f4f5f2] dark:hover:bg-white/[0.08] text-xs font-medium text-[#20211f] dark:text-[#f1f2ee] transition disabled:opacity-50"
                               title="Crawl contact pages, infer via Gemini AI, and verify MX"
                             >
-                              <Sparkles className={`w-3 h-3 ${isEnrichingThis ? 'animate-spin' : ''}`} />
-                              <span>{isEnrichingThis ? 'FINDING...' : 'FIND EMAIL'}</span>
+                              <Sparkles className={`w-3 h-3 text-[#4f6653] dark:text-[#afc6ad] ${isEnrichingThis ? 'animate-spin' : ''}`} />
+                              <span>{isEnrichingThis ? 'Finding…' : 'Find email'}</span>
                             </button>
                           )}
                         </td>
 
                         {/* Category */}
-                        <td className="py-3.5 px-4 text-[#959494]">
-                          <span className="px-2 py-0.5 rounded-[4px] bg-[#f4f4f5] dark:bg-[#14161f] text-[#000000] dark:text-white text-[11px] font-mono border border-[#ebebeb] dark:border-white/[0.08]">
+                        <td className="py-3.5 px-4 text-[#777a74] dark:text-[#a2a69e]">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f0f2ee] dark:bg-white/[0.05] text-[#555953] dark:text-[#a2a69e]">
                             {b.business_type}
                           </span>
                         </td>
 
                         {/* Location */}
-                        <td className="py-3.5 px-4 text-[#959494]">
-                          {b.city}, {b.country_code}
+                        <td className="py-3.5 px-4 text-xs text-[#777a74] dark:text-[#a2a69e]">
+                          <div className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3 opacity-60" />
+                            <span>{b.city}, {b.country_code}</span>
+                          </div>
                         </td>
 
                         {/* Status */}
                         <td className="py-3.5 px-4">
                           <div className="flex flex-col gap-1 items-start">
                             <span
-                              className={`px-2 py-0.5 rounded-[4px] font-mono text-[10px] uppercase tracking-wider ${
+                              className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                 b.record_status === 'active'
-                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
                                   : b.record_status === 'archived'
-                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                                  ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
+                                  : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20'
                               }`}
                             >
                               {b.record_status}
                             </span>
-                            {isLeadSent(b) && (
-                              <span
-                                title="Lead has already received outreach"
-                                className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-[4px] text-[9px] font-mono bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-semibold uppercase"
-                              >
-                                <MailCheck className="w-2.5 h-2.5 text-blue-500" />
-                                <span>SENT</span>
-                              </span>
-                            )}
                           </div>
                         </td>
 
                         {/* Actions */}
-                        <td className="py-3.5 px-4 text-right font-mono">
-                          <div className="inline-flex items-center space-x-1.5">
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="inline-flex items-center gap-1.5">
                             {b.record_status === 'archived' ? (
                               <button
                                 type="button"
                                 onClick={() => handleUnarchive([b.id])}
                                 disabled={archiving}
                                 title="Restore lead to active directory"
-                                className="mono-btn bg-white dark:bg-[#14161f] hover:bg-emerald-50 dark:hover:bg-emerald-950/20 border border-[#ebebeb] dark:border-white/[0.08] text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-[4px] text-[11px] font-mono inline-flex items-center space-x-1 transition"
+                                className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 text-xs font-medium transition"
                               >
                                 <RotateCcw className="w-3 h-3" />
-                                <span>RESTORE</span>
+                                <span>Restore</span>
                               </button>
                             ) : (
                               <button
                                 type="button"
                                 onClick={() => handleArchive([b.id])}
                                 disabled={archiving}
-                                title="Archive lead (removes from active outreach)"
-                                className="mono-btn bg-white dark:bg-[#14161f] hover:bg-amber-50 dark:hover:bg-amber-950/20 border border-[#ebebeb] dark:border-white/[0.08] text-[#959494] hover:text-amber-600 dark:hover:text-amber-400 px-2.5 py-1 rounded-[4px] text-[11px] font-mono inline-flex items-center space-x-1 transition"
+                                title="Archive lead"
+                                className="inline-flex items-center gap-1 rounded-lg border border-[#dfe2dc] dark:border-white/10 hover:bg-[#f4f5f2] dark:hover:bg-white/[0.05] text-[#777a74] hover:text-[#20211f] dark:hover:text-white px-2.5 py-1 text-xs font-medium transition"
                               >
                                 <Archive className="w-3 h-3" />
-                                <span>ARCHIVE</span>
+                                <span>Archive</span>
                               </button>
                             )}
 
                             <Link
                               href={`/leads/${b.id}`}
-                              className="mono-btn bg-white dark:bg-[#14161f] hover:bg-[#f4f4f5] dark:hover:bg-[#1c1d27] border border-[#ebebeb] dark:border-white/[0.08] text-[#000000] dark:text-white px-3 py-1 rounded-[4px] text-[11px] font-mono inline-flex items-center space-x-1"
+                              className="inline-flex items-center gap-1 rounded-lg border border-[#dfe2dc] dark:border-white/10 hover:bg-[#f4f5f2] dark:hover:bg-white/[0.05] text-[#20211f] dark:text-[#f1f2ee] px-2.5 py-1 text-xs font-medium transition"
                             >
-                              <span>EVIDENCE</span>
-                              <ChevronRight className="w-3 h-3" />
+                              <span>Evidence</span>
+                              <ChevronRight className="w-3 h-3 text-[#777a74]" />
                             </Link>
 
                             <button
@@ -1564,9 +1578,9 @@ export default function LeadsPage() {
                               onClick={() => handleDeleteLead(b.id, b.display_name)}
                               disabled={deletingLeadId === b.id}
                               title="Delete lead permanently"
-                              className="mono-btn bg-white dark:bg-[#14161f] hover:bg-rose-50 dark:hover:bg-rose-950/20 border border-[#ebebeb] dark:border-white/[0.08] text-[#959494] hover:text-rose-600 dark:hover:text-rose-400 p-1.5 rounded-[4px] text-[11px] font-mono inline-flex items-center transition"
+                              className="inline-flex items-center rounded-lg border border-transparent hover:border-rose-200 dark:hover:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-[#777a74] hover:text-rose-600 dark:hover:text-rose-400 p-1.5 transition"
                             >
-                              <Trash2 className={`w-3 h-3 ${deletingLeadId === b.id ? 'animate-spin' : ''}`} />
+                              <Trash2 className={`w-3.5 h-3.5 ${deletingLeadId === b.id ? 'animate-spin' : ''}`} />
                             </button>
                           </div>
                         </td>
@@ -1581,50 +1595,50 @@ export default function LeadsPage() {
 
         {/* Dedicated Outbound Dispatch Registry when viewing SENT */}
         {statusFilter === 'sent' && sentRecords.length > 0 && (
-          <div className="mt-8 space-y-3 font-mono">
+          <div className="mt-8 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="mono-eyebrow text-[#959494] text-[11px] font-semibold uppercase flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-[#777a74] dark:text-[#a2a69e] uppercase tracking-wider flex items-center gap-1.5">
                 <MailCheck className="w-3.5 h-3.5 text-blue-500" />
-                OUTBOUND DISPATCH REGISTRY ({sentRecords.length} EMAILS CONTACTED / QUEUED)
+                Outbound Dispatch Registry ({sentRecords.length} emails contacted / queued)
               </span>
-              <span className="text-[11px] text-[#959494] flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3 text-emerald-500" />
+              <span className="text-xs text-[#777a74] dark:text-[#a2a69e] flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
                 Deduplication active (cannot be emailed twice)
               </span>
             </div>
-            <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] overflow-hidden bg-white dark:bg-[#0f1017]">
+            <div className="rounded-2xl border border-[#e8e9e5] dark:border-white/[0.08] overflow-hidden bg-white dark:bg-[#1e211d] shadow-sm">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs font-mono">
-                  <thead className="bg-[#f4f4f5] dark:bg-[#14161f] border-b border-[#ebebeb] dark:border-white/[0.08] text-[#959494]">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-[#fafaf8] dark:bg-[#232622] border-b border-[#e8e9e5] dark:border-white/[0.08] text-[11px] font-semibold text-[#777a74] dark:text-[#a2a69e] uppercase tracking-wider">
                     <tr>
-                      <th className="py-2.5 px-4 uppercase">RECIPIENT EMAIL</th>
-                      <th className="py-2.5 px-4 uppercase">COMPANY / PROSPECT</th>
-                      <th className="py-2.5 px-4 uppercase">SUBJECT</th>
-                      <th className="py-2.5 px-4 uppercase">SENT AT</th>
-                      <th className="py-2.5 px-4 uppercase text-right">STATUS</th>
+                      <th className="py-3 px-4 uppercase">RECIPIENT EMAIL</th>
+                      <th className="py-3 px-4 uppercase">COMPANY / PROSPECT</th>
+                      <th className="py-3 px-4 uppercase">SUBJECT</th>
+                      <th className="py-3 px-4 uppercase">SENT AT</th>
+                      <th className="py-3 px-4 uppercase text-right">STATUS</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#ebebeb] dark:divide-white/[0.06]">
+                  <tbody className="divide-y divide-[#e8e9e5] dark:divide-white/[0.06]">
                     {sentRecords.map((rec) => (
-                      <tr key={rec.id} className="hover:bg-[#f8fafc] dark:hover:bg-white/[0.02]">
-                        <td className="py-3 px-4 font-mono font-medium text-black dark:text-white flex items-center gap-1.5">
-                          <Mail className="w-3 h-3 text-[#959494]" />
+                      <tr key={rec.id} className="hover:bg-[#f9faf8] dark:hover:bg-[#262a25] transition-colors">
+                        <td className="py-3 px-4 font-mono text-xs font-medium text-[#20211f] dark:text-[#f1f2ee] flex items-center gap-1.5">
+                          <Mail className="w-3.5 h-3.5 text-[#777a74]" />
                           <span>{rec.email}</span>
                         </td>
-                        <td className="py-3 px-4 text-[#959494] truncate max-w-[200px]">{rec.companyName}</td>
-                        <td className="py-3 px-4 text-black dark:text-white truncate max-w-xs">{rec.subject}</td>
-                        <td className="py-3 px-4 text-[#959494] whitespace-nowrap">
+                        <td className="py-3 px-4 text-xs text-[#777a74] dark:text-[#a2a69e] truncate max-w-[200px]">{rec.companyName}</td>
+                        <td className="py-3 px-4 text-xs text-[#20211f] dark:text-[#f1f2ee] truncate max-w-xs">{rec.subject}</td>
+                        <td className="py-3 px-4 text-xs text-[#777a74] dark:text-[#a2a69e] whitespace-nowrap">
                           {rec.sentAt ? new Date(rec.sentAt).toLocaleString() : 'Recent'}
                         </td>
                         <td className="py-3 px-4 text-right">
                           <span
-                            className={`px-2 py-0.5 rounded-[4px] text-[10px] uppercase font-semibold ${
+                            className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium ${
                               rec.status === 'succeeded' || rec.status === 'sent'
-                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                                : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+                                : 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20'
                             }`}
                           >
-                            {rec.status === 'succeeded' ? 'DELIVERED' : rec.status}
+                            {rec.status === 'succeeded' ? 'Delivered' : rec.status}
                           </span>
                         </td>
                       </tr>
@@ -1637,12 +1651,13 @@ export default function LeadsPage() {
         )}
       </main>
 
-      {/* Floating Action Bar when Leads are selected (DESIGN.md Level 3 Elevation) */}
+      {/* Floating Action Bar when Leads are selected */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#28352d] text-white border border-white/[0.16] rounded-[4px] px-5 py-3 shadow-2xl flex items-center space-x-4 animate-in fade-in slide-in-from-bottom-4">
-          <div className="font-mono text-xs flex items-center space-x-2">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#1e211d] dark:bg-[#252824] text-white rounded-2xl px-5 py-3 shadow-2xl border border-white/10 flex items-center space-x-3.5 animate-in fade-in slide-in-from-bottom-4">
+          <div className="text-xs font-medium flex items-center space-x-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400" />
             <span>
-              <strong>{selectedIds.size}</strong> {selectedIds.size === 1 ? 'LEAD' : 'LEADS'} SELECTED
+              <strong>{selectedIds.size}</strong> {selectedIds.size === 1 ? 'lead' : 'leads'} selected
             </span>
           </div>
 
@@ -1652,10 +1667,10 @@ export default function LeadsPage() {
             <button
               onClick={() => handleBulkEnrich(selectedMissingEmail.map((b) => b.id))}
               disabled={bulkEnriching}
-              className="mono-btn bg-[#313641] hover:bg-[#3d4352] text-white border border-white/[0.12] px-3 py-1.5 rounded-[4px] text-xs font-mono font-medium uppercase tracking-wider flex items-center space-x-1.5 transition disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition disabled:opacity-50"
             >
-              <Sparkles className="w-3 h-3 text-[#bdc8b5]" />
-              <span>ENRICH ({selectedMissingEmail.length})</span>
+              <Sparkles className="w-3 h-3 text-[#afc6ad]" />
+              <span>Enrich ({selectedMissingEmail.length})</span>
             </button>
           )}
 
@@ -1663,33 +1678,33 @@ export default function LeadsPage() {
             <button
               onClick={() => handleUnarchive(Array.from(selectedIds))}
               disabled={archiving}
-              className="mono-btn bg-[#313641] hover:bg-emerald-950/40 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-[4px] text-xs font-mono font-medium uppercase tracking-wider flex items-center space-x-1.5 transition disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-medium transition disabled:opacity-50"
             >
               <RotateCcw className="w-3 h-3" />
-              <span>RESTORE ({selectedIds.size})</span>
+              <span>Restore ({selectedIds.size})</span>
             </button>
           ) : (
             <button
               onClick={() => handleArchive(Array.from(selectedIds))}
               disabled={archiving}
-              className="mono-btn bg-[#313641] hover:bg-rose-950/40 text-rose-300 border border-rose-500/30 px-3 py-1.5 rounded-[4px] text-xs font-mono font-medium uppercase tracking-wider flex items-center space-x-1.5 transition disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition disabled:opacity-50"
             >
-              <Archive className="w-3 h-3 text-[#71866e]" />
-              <span>ARCHIVE ({selectedIds.size})</span>
+              <Archive className="w-3 h-3 opacity-70" />
+              <span>Archive ({selectedIds.size})</span>
             </button>
           )}
 
           <button
             onClick={handleDeleteSelected}
             disabled={deletingDuplicates}
-            className="mono-btn bg-[#313641] hover:bg-rose-950/40 text-rose-300 border border-rose-500/30 px-3 py-1.5 rounded-[4px] text-xs font-mono font-medium uppercase tracking-wider flex items-center space-x-1.5 transition disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-medium transition disabled:opacity-50"
           >
-            <Trash2 className="w-3 h-3 text-rose-400" />
-            <span>DELETE ({selectedIds.size})</span>
+            <Trash2 className="w-3 h-3" />
+            <span>Delete ({selectedIds.size})</span>
           </button>
 
           {selectedAlreadySentCount > 0 && (
-            <label className="flex items-center space-x-1.5 cursor-pointer text-xs font-mono bg-blue-500/20 px-2.5 py-1.5 rounded-[4px] border border-blue-400/30 text-blue-200">
+            <label className="flex items-center space-x-1.5 cursor-pointer text-xs bg-blue-500/20 px-2.5 py-1.5 rounded-lg border border-blue-400/30 text-blue-200">
               <input
                 type="checkbox"
                 checked={excludeAlreadySent}
@@ -1710,54 +1725,52 @@ export default function LeadsPage() {
               setDispatchResults([]);
               setShowOutreachModal(true);
             }}
-            className="mono-btn bg-white hover:bg-[#ebebeb] text-[#010120] px-4 py-1.5 rounded-[4px] text-xs font-mono font-medium uppercase tracking-wider flex items-center space-x-1.5 transition"
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#4f6653] hover:bg-[#405444] text-white text-xs font-medium shadow-sm transition"
           >
-            <Send className="w-3 h-3 text-[#010120]" />
-            <span>START OUTREACH</span>
+            <Send className="w-3 h-3" />
+            <span>Start Outreach</span>
           </button>
 
           <button
             onClick={handleClearSelection}
-            className="text-xs font-mono text-[#959494] hover:text-white transition"
+            className="text-xs text-[#959494] hover:text-white transition"
           >
-            CLEAR
+            Clear
           </button>
         </div>
       )}
 
       {/* Outreach Dispatch Modal: Strictly unified with CSV Direct Outreach */}
       {showOutreachModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.12] rounded-[4px] w-full max-w-5xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 space-y-6">
-            <div className="brand-gradient-h -mx-6 -mt-6 sm:-mx-8 sm:-mt-8 mb-6" />
-
-            <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08] gap-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1e211d] border border-[#e8e9e5] dark:border-white/10 rounded-2xl w-full max-w-5xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 space-y-6 shadow-2xl">
+            <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-[#e8e9e5] dark:border-white/[0.08] gap-4">
               <div>
-                <div className="flex items-center gap-2 text-[10px] font-mono tracking-wider uppercase mb-1 whitespace-nowrap">
-                  <span className="inline-flex items-center gap-1 text-[#959494] font-medium">
-                    <Send className="w-2.5 h-2.5 text-[#71866e]" />
+                <div className="flex items-center gap-2 text-xs font-medium text-[#4f6653] dark:text-[#afc6ad] mb-1">
+                  <span className="inline-flex items-center gap-1 font-medium">
+                    <Send className="w-3 h-3 text-[#4f6653] dark:text-[#afc6ad]" />
                     OUTREACH PIPELINE
                   </span>
-                  <span className="text-[#959494]/40">•</span>
-                  <span className="inline-flex items-center gap-1 text-[#71866e] font-semibold">
-                    <Sparkles className="w-2.5 h-2.5" />
+                  <span>•</span>
+                  <span className="inline-flex items-center gap-1 font-semibold">
+                    <Sparkles className="w-3 h-3" />
                     AI ENGINE
                   </span>
                 </div>
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <h3 className="text-xl font-medium tracking-tight text-black dark:text-white whitespace-nowrap">
+                  <h3 className="text-xl font-semibold tracking-tight text-[#20211f] dark:text-[#f1f2ee] whitespace-nowrap">
                     Direct Outreach to Leads
                   </h3>
-                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#f8fafc] dark:bg-white/[0.06] border border-[#ebebeb] dark:border-white/[0.08] text-[#959494] inline-flex items-center gap-1 whitespace-nowrap">
-                    <Users className="w-3 h-3 text-[#959494]" />
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#f0f2ee] dark:bg-white/[0.06] border border-[#dfe2dc] dark:border-white/[0.08] text-[#777a74] dark:text-[#a2a69e] inline-flex items-center gap-1 whitespace-nowrap">
+                    <Users className="w-3 h-3" />
                     {activeRecipients.length} ready
                   </span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
-                {/* Stepper Pill Indicator with Icons */}
-                <div className="flex items-center space-x-1 bg-[#f8fafc] dark:bg-[#313641]/40 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-1 text-xs font-mono">
+                {/* Stepper Pill Indicator */}
+                <div className="flex items-center space-x-1 bg-[#edebe8] dark:bg-[#252824] border border-[#dfe2dc]/70 dark:border-white/5 rounded-xl p-1 text-xs">
                   {[
                     { id: 'recipients', icon: Users, label: 'Candidates' },
                     { id: 'template', icon: PenLine, label: 'Compose' },
@@ -1769,10 +1782,10 @@ export default function LeadsPage() {
                     return (
                       <span
                         key={s.id}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[3px] text-[11px] font-mono whitespace-nowrap transition ${
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition ${
                           active
-                            ? 'bg-black dark:bg-white text-white dark:text-black font-semibold shadow-sm'
-                            : 'text-[#959494]'
+                            ? 'bg-white dark:bg-[#1e211d] text-[#20211f] dark:text-white font-semibold shadow-sm'
+                            : 'text-[#777a74] dark:text-[#a2a69e]'
                         }`}
                       >
                         <StepIcon className="w-3 h-3 shrink-0" />
@@ -1786,7 +1799,7 @@ export default function LeadsPage() {
                   type="button"
                   onClick={handleOpenInFullCsvOutreach}
                   title="Open in Full-Screen CSV Outreach Page"
-                  className="mono-btn hidden md:inline-flex items-center gap-1 text-xs text-[#71866e] hover:underline font-mono px-2 py-1 rounded hover:bg-[#71866e]/10 transition whitespace-nowrap"
+                  className="hidden md:inline-flex items-center gap-1 text-xs text-[#4f6653] dark:text-[#afc6ad] hover:underline font-medium px-2.5 py-1 rounded-lg hover:bg-[#4f6653]/10 transition whitespace-nowrap"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   <span>Full Page</span>
@@ -1794,7 +1807,7 @@ export default function LeadsPage() {
 
                 <button
                   onClick={() => setShowOutreachModal(false)}
-                  className="text-[#959494] hover:text-black dark:hover:text-white p-1 rounded hover:bg-neutral-100 dark:hover:bg-white/[0.08] transition"
+                  className="text-[#777a74] hover:text-[#20211f] dark:hover:text-white p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-white/[0.08] transition"
                   aria-label="Close dialog"
                 >
                   <X className="w-5 h-5" />
@@ -2757,22 +2770,20 @@ export default function LeadsPage() {
 
       {/* CSV Import Modal: Strictly matching DESIGN.md */}
       {showCsvModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#0f1017] border border-[#ebebeb] dark:border-white/[0.12] rounded-[4px] w-full max-w-2xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 space-y-6">
-            <div className="brand-gradient-h -mx-6 -mt-6 sm:-mx-8 sm:-mt-8 mb-6" />
-
-            <div className="flex items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1e211d] border border-[#e8e9e5] dark:border-white/10 rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 space-y-6 shadow-2xl">
+            <div className="flex items-center justify-between pb-4 border-b border-[#e8e9e5] dark:border-white/[0.08]">
               <div>
-                <div className="mono-eyebrow text-[#959494] font-mono text-[11px] font-medium tracking-[0.55px] uppercase">
+                <div className="text-xs font-medium text-[#4f6653] dark:text-[#afc6ad] uppercase tracking-wider">
                   DATA INGESTION
                 </div>
-                <h3 className="text-xl font-medium tracking-tight text-[#000000] dark:text-white mt-1">
+                <h3 className="text-xl font-semibold tracking-tight text-[#20211f] dark:text-[#f1f2ee] mt-1">
                   Import Prospects from CSV
                 </h3>
               </div>
               <button
                 onClick={() => setShowCsvModal(false)}
-                className="text-[#959494] hover:text-[#000000] dark:hover:text-white p-1"
+                className="text-[#777a74] hover:text-[#20211f] dark:hover:text-white p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-white/[0.08] transition"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2780,13 +2791,13 @@ export default function LeadsPage() {
 
             {/* Success state */}
             {importResult ? (
-              <div className="space-y-4 py-2 font-mono text-xs">
-                <div className="p-4 rounded-[4px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 space-y-1">
-                  <div className="font-medium flex items-center space-x-2 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              <div className="space-y-4 py-2 text-sm">
+                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 space-y-1">
+                  <div className="font-semibold flex items-center space-x-2 text-sm">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                     <span>CSV Leads Successfully Ingested</span>
                   </div>
-                  <div className="mt-2 space-y-0.5 text-[11px]">
+                  <div className="mt-2 space-y-0.5 text-xs text-[#777a74] dark:text-[#a2a69e]">
                     <div>• <strong>{importResult.importedCount}</strong> new leads added to directory</div>
                     <div>• <strong>{importResult.duplicateCount}</strong> duplicates deduplicated</div>
                     {importResult.enrichedCount > 0 && (
@@ -2795,15 +2806,15 @@ export default function LeadsPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-4 border-t border-[#ebebeb] dark:border-white/[0.08]">
+                <div className="flex justify-end pt-4 border-t border-[#e8e9e5] dark:border-white/[0.08]">
                   <button
                     onClick={() => {
                       setShowCsvModal(false);
                       setImportResult(null);
                     }}
-                    className="mono-btn bg-[#000000] dark:bg-white text-white dark:text-[#000000] px-5 py-2 rounded-[4px] text-xs font-mono uppercase font-medium"
+                    className="inline-flex items-center rounded-lg bg-[#4f6653] hover:bg-[#405444] text-white px-5 py-2 text-sm font-medium shadow-sm transition"
                   >
-                    CLOSE & VIEW LEADS
+                    Close & view leads
                   </button>
                 </div>
               </div>
@@ -2813,13 +2824,13 @@ export default function LeadsPage() {
                   <div className="space-y-4">
                     <div
                       onClick={() => fileInputRef.current?.click()}
-                      className="border border-dashed border-[#ebebeb] dark:border-white/[0.12] hover:border-[#000000] dark:hover:border-white rounded-[4px] p-8 text-center cursor-pointer transition bg-[#f8fafc] dark:bg-[#14161f]"
+                      className="border-2 border-dashed border-[#dfe2dc] dark:border-white/10 hover:border-[#4f6653] dark:hover:border-[#afc6ad] rounded-2xl p-8 text-center cursor-pointer transition bg-[#fafaf8] dark:bg-[#252824]"
                     >
-                      <UploadCloud className="w-8 h-8 text-[#959494] mx-auto mb-3" />
-                      <div className="text-xs font-mono font-medium text-[#000000] dark:text-white">
-                        CLICK TO UPLOAD CSV OR DRAG AND DROP
+                      <UploadCloud className="w-8 h-8 text-[#777a74] dark:text-[#a2a69e] mx-auto mb-3" />
+                      <div className="text-sm font-medium text-[#20211f] dark:text-[#f1f2ee]">
+                        Click to upload CSV or drag and drop
                       </div>
-                      <div className="text-[11px] text-[#959494] font-mono mt-1">
+                      <div className="text-xs text-[#777a74] dark:text-[#a2a69e] mt-1">
                         Requires Company Name. Email, Website, Phone, and City are auto-detected.
                       </div>
                       <input
@@ -2832,28 +2843,28 @@ export default function LeadsPage() {
                     </div>
 
                     <div className="text-center">
-                      <span className="text-[11px] text-[#959494] font-mono uppercase tracking-wider">OR</span>
+                      <span className="text-xs text-[#777a74] dark:text-[#a2a69e] uppercase tracking-wider">or</span>
                     </div>
 
                     <button
                       type="button"
                       onClick={handleLoadSampleCsv}
-                      className="w-full py-2.5 px-4 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] text-xs font-mono text-[#000000] dark:text-white hover:bg-[#f8fafc] dark:hover:bg-[#14161f] transition uppercase tracking-wider"
+                      className="w-full py-2.5 px-4 rounded-xl border border-[#dfe2dc] dark:border-white/10 text-xs font-medium text-[#20211f] dark:text-[#f1f2ee] hover:bg-[#f4f5f2] dark:hover:bg-white/[0.05] transition"
                     >
                       Use Sample B2B Prospects CSV
                     </button>
                   </div>
                 ) : (
                   <div className="space-y-5">
-                    <div className="flex items-center justify-between p-3 bg-[#f8fafc] dark:bg-[#14161f] rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] text-xs font-mono">
-                      <span className="text-[#000000] dark:text-white truncate max-w-xs">{fileName}</span>
-                      <span className="text-[#959494]">{csvResult.rows.length} rows detected</span>
+                    <div className="flex items-center justify-between p-3.5 bg-[#fafaf8] dark:bg-[#252824] rounded-xl border border-[#dfe2dc] dark:border-white/10 text-sm">
+                      <span className="text-[#20211f] dark:text-[#f1f2ee] font-medium truncate max-w-xs">{fileName}</span>
+                      <span className="text-xs text-[#777a74] dark:text-[#a2a69e]">{csvResult.rows.length} rows detected</span>
                     </div>
 
                     {/* Mapping Selectors */}
                     <div>
-                      <div className="mono-eyebrow text-[#959494] text-[11px] mb-2 font-mono">
-                        COLUMN MAPPING (AUTO-DETECTED)
+                      <div className="text-xs font-semibold text-[#777a74] dark:text-[#a2a69e] uppercase tracking-wider mb-2">
+                        Column Mapping (Auto-Detected)
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         {[
@@ -2865,7 +2876,7 @@ export default function LeadsPage() {
                           { key: 'city', label: 'City / Location' },
                         ].map((field) => (
                           <div key={field.key} className="space-y-1">
-                            <label className="text-[10px] font-mono text-[#959494]">
+                            <label className="text-xs text-[#777a74] dark:text-[#a2a69e]">
                               {field.label}
                             </label>
                             <div className="relative">
@@ -2877,7 +2888,7 @@ export default function LeadsPage() {
                                     [field.key]: e.target.value || null,
                                   })
                                 }
-                                className="w-full appearance-none text-xs font-mono bg-white dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] pl-2.5 pr-7 py-1.5 focus:outline-none focus:border-[#000000] dark:focus:border-white text-[#000000] dark:text-white cursor-pointer"
+                                className="w-full appearance-none text-xs bg-white dark:bg-[#1e211d] border border-[#dfe2dc] dark:border-white/10 rounded-xl pl-2.5 pr-7 py-2 focus:outline-none focus:ring-1 focus:ring-[#4f6653] focus:border-[#4f6653] text-[#20211f] dark:text-[#f1f2ee] cursor-pointer"
                               >
                                 <option value="">-- None --</option>
                                 {csvResult.headers.map((h: string) => (
@@ -2886,7 +2897,7 @@ export default function LeadsPage() {
                                   </option>
                                 ))}
                               </select>
-                              <ChevronDown className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-[#959494] pointer-events-none" />
+                              <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-[#777a74] pointer-events-none" />
                             </div>
                           </div>
                         ))}
@@ -2894,14 +2905,14 @@ export default function LeadsPage() {
                     </div>
 
                     {/* Auto-Enrich Toggle */}
-                    <div className="p-3 bg-[#f8fafc] dark:bg-[#14161f] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] flex items-center justify-between">
+                    <div className="p-3.5 bg-[#fafaf8] dark:bg-[#252824] border border-[#dfe2dc] dark:border-white/10 rounded-xl flex items-center justify-between">
                       <div className="flex items-center space-x-2.5">
-                        <Sparkles className="w-4 h-4 text-[#bdc8b5] shrink-0" />
+                        <Sparkles className="w-4 h-4 text-[#4f6653] dark:text-[#afc6ad] shrink-0" />
                         <div>
-                          <div className="text-xs font-mono text-[#000000] dark:text-white font-medium">
+                          <div className="text-xs text-[#20211f] dark:text-[#f1f2ee] font-medium">
                             Auto-enrich missing emails on import
                           </div>
-                          <div className="text-[11px] text-[#959494] font-mono">
+                          <div className="text-[11px] text-[#777a74] dark:text-[#a2a69e]">
                             Uses Deep Web Crawler & Free Gemini AI with DNS MX checks.
                           </div>
                         </div>
@@ -2910,12 +2921,12 @@ export default function LeadsPage() {
                         type="checkbox"
                         checked={autoEnrichOnImport}
                         onChange={(e) => setAutoEnrichOnImport(e.target.checked)}
-                        className="w-4 h-4 accent-[#000000] dark:accent-white cursor-pointer"
+                        className="w-4 h-4 accent-[#4f6653] cursor-pointer"
                       />
                     </div>
 
                     {/* Action buttons */}
-                    <div className="flex items-center justify-between pt-4 border-t border-[#ebebeb] dark:border-white/[0.08]">
+                    <div className="flex items-center justify-between pt-4 border-t border-[#e8e9e5] dark:border-white/[0.08]">
                       <button
                         type="button"
                         onClick={() => {
@@ -2923,7 +2934,7 @@ export default function LeadsPage() {
                           setCsvContent('');
                           setFileName('');
                         }}
-                        className="text-xs font-mono text-[#959494] hover:underline"
+                        className="text-xs text-[#777a74] hover:underline"
                       >
                         Choose different file
                       </button>
@@ -2932,10 +2943,10 @@ export default function LeadsPage() {
                         type="button"
                         onClick={handleImportLeads}
                         disabled={importing || !mapping.companyName}
-                        className="mono-btn bg-[#000000] dark:bg-white text-white dark:text-[#000000] px-5 py-2.5 rounded-[4px] text-xs font-mono uppercase font-medium flex items-center space-x-2 disabled:opacity-50"
+                        className="inline-flex items-center gap-2 rounded-lg bg-[#4f6653] hover:bg-[#405444] text-white px-5 py-2 text-sm font-medium transition shadow-sm disabled:opacity-50"
                       >
-                        <UploadCloud className={`w-3.5 h-3.5 ${importing ? 'animate-spin' : ''}`} />
-                        <span>{importing ? 'IMPORTING & ENRICHING...' : `IMPORT ${csvResult.rows.length} LEADS`}</span>
+                        <UploadCloud className={`w-4 h-4 ${importing ? 'animate-spin' : ''}`} />
+                        <span>{importing ? 'Importing & enriching...' : `Import ${csvResult.rows.length} leads`}</span>
                       </button>
                     </div>
                   </div>
@@ -2948,25 +2959,23 @@ export default function LeadsPage() {
 
       {/* Duplicate Leads & Contacts Manager Modal */}
       {showDuplicatesModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.12] rounded-[4px] w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6">
-            <div className="brand-gradient-h -mx-6 -mt-6 sm:-mx-8 sm:-mt-8 mb-6" />
-
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1e211d] border border-[#e8e9e5] dark:border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6 shadow-2xl">
             {/* Modal Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08] gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#e8e9e5] dark:border-white/[0.08] gap-4">
               <div>
-                <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
-                  <span className="flex items-center gap-1 text-[#71866e]">
-                    <Sparkles className="w-3 h-3" />
-                    EVEE AI DEDUPLICATION ENGINE
+                <div className="flex items-center space-x-2 text-xs font-medium text-[#4f6653] dark:text-[#afc6ad] mb-1">
+                  <span className="flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    AI DEDUPLICATION ENGINE
                   </span>
                   <span>•</span>
                   <span>DIRECTORY INTEGRITY</span>
                 </div>
-                <h3 className="text-xl font-medium tracking-tight text-black dark:text-white">
+                <h3 className="text-xl font-semibold tracking-tight text-[#20211f] dark:text-[#f1f2ee]">
                   Duplicate Leads & Contacts Manager
                 </h3>
-                <p className="text-xs text-[#959494] font-mono mt-0.5">
+                <p className="text-xs text-[#777a74] dark:text-[#a2a69e] mt-0.5">
                   Cluster-based identity matching by canonical domain, general email, company name & city.
                 </p>
               </div>
@@ -2976,16 +2985,16 @@ export default function LeadsPage() {
                   <button
                     onClick={handleDeleteAllDuplicates}
                     disabled={deletingDuplicates}
-                    className="mono-btn bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-1.5 rounded-[4px] text-xs font-mono font-medium uppercase tracking-wider flex items-center space-x-1.5 transition active:scale-95 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-medium transition active:scale-95 disabled:opacity-50 shadow-sm"
                   >
                     <Trash2 className={`w-3.5 h-3.5 ${deletingDuplicates ? 'animate-spin' : ''}`} />
-                    <span>PURGE ALL DUPLICATES ({totalDuplicateLeadsCount + totalDuplicateContactsCount})</span>
+                    <span>Purge all duplicates ({totalDuplicateLeadsCount + totalDuplicateContactsCount})</span>
                   </button>
                 )}
 
                 <button
                   onClick={() => setShowDuplicatesModal(false)}
-                  className="text-[#959494] hover:text-black dark:hover:text-white p-1"
+                  className="text-[#777a74] hover:text-[#20211f] dark:hover:text-white p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-white/[0.08] transition"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -3238,25 +3247,23 @@ export default function LeadsPage() {
 
       {/* AI Email Quality & Proxy Cleaner Modal */}
       {showEmailAuditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.12] rounded-[4px] w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6">
-            <div className="brand-gradient-h -mx-6 -mt-6 sm:-mx-8 sm:-mt-8 mb-6" />
-
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1e211d] border border-[#e8e9e5] dark:border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6 shadow-2xl">
             {/* Modal Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08] gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#e8e9e5] dark:border-white/[0.08] gap-4">
               <div>
-                <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
-                  <span className="flex items-center gap-1 text-[#71866e]">
-                    <ShieldAlert className="w-3 h-3 text-[#71866e]" />
+                <div className="flex items-center space-x-2 text-xs font-medium text-[#4f6653] dark:text-[#afc6ad] mb-1">
+                  <span className="flex items-center gap-1">
+                    <ShieldAlert className="w-3.5 h-3.5" />
                     AI EMAIL QUALITY & DELIVERABILITY AUDIT
                   </span>
                   <span>•</span>
                   <span>INBOX HYGIENE</span>
                 </div>
-                <h3 className="text-xl font-medium tracking-tight text-black dark:text-white">
+                <h3 className="text-xl font-semibold tracking-tight text-[#20211f] dark:text-[#f1f2ee]">
                   Fake, Proxy & Duplicate Email Cleaner
                 </h3>
-                <p className="text-xs text-[#959494] font-mono mt-0.5">
+                <p className="text-xs text-[#777a74] dark:text-[#a2a69e] mt-0.5">
                   Filters aggregator delivery proxies (@swiggy.com, @redirect.foursquare.com), social profile handles (@instagram.com), fake placeholders, and duplicates.
                 </p>
               </div>
@@ -3267,17 +3274,17 @@ export default function LeadsPage() {
                     type="button"
                     onClick={handleArchiveAllFlagged}
                     disabled={cleaningFlagged}
-                    className="mono-btn bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-1.5 rounded-[4px] text-xs font-mono uppercase tracking-wider flex items-center space-x-1.5 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-50 shadow-sm"
                   >
                     <Archive className={`w-3.5 h-3.5 ${cleaningFlagged ? 'animate-spin' : ''}`} />
-                    <span>ARCHIVE ALL FLAGGED ({totalFlaggedEmailsCount})</span>
+                    <span>Archive all flagged ({totalFlaggedEmailsCount})</span>
                   </button>
                 )}
 
                 <button
                   type="button"
                   onClick={() => setShowEmailAuditModal(false)}
-                  className="p-1 text-[#959494] hover:text-black dark:hover:text-white transition"
+                  className="p-1.5 text-[#777a74] hover:text-[#20211f] dark:hover:text-white rounded-lg hover:bg-neutral-100 dark:hover:bg-white/[0.08] transition"
                 >
                   <X className="w-5 h-5" />
                 </button>

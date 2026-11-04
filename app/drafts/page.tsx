@@ -288,87 +288,87 @@ export default function DraftsApprovalPage() {
   });
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#010120] text-[#000000] dark:text-[#ffffff] transition-colors duration-150 flex flex-col">
-      {/* 2px Signature Gradient Ribbon */}
-      <div className="brand-gradient-h w-full" />
-
-      {/* Hero Band: Canvas Dark #010120 */}
-      <section className="bg-[#28352d] text-white border-b border-white/[0.08] px-6 py-8 relative overflow-hidden ui-grid-bg">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4 relative z-10">
+    <div className="min-h-screen bg-[#f7f7f5] dark:bg-[#171916] text-[#20211f] dark:text-[#f1f2ee] transition-colors duration-150 flex flex-col">
+      {/* Workspace Drafts Header */}
+      <header className="border-b border-[#e8e9e5] dark:border-white/[0.08] px-5 sm:px-8 py-8 sm:py-10">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-[#959494] uppercase mb-1">
-              <span>Message review</span>
+            <div className="flex items-center space-x-2 text-xs font-medium text-[#4f6653] dark:text-[#afc6ad] mb-2.5">
+              <span>Message review studio</span>
               <span>•</span>
-              <span className="ui-badge text-emerald-400 bg-emerald-500/10 border-emerald-500/20">
-                 Review
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#4f6653]/10 text-[#4f6653] dark:text-[#afc6ad]">
+                AI OUTREACH REVIEW
               </span>
             </div>
-            <h1 className="text-3xl font-medium tracking-tight text-white">
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#20211f] dark:text-[#f1f2ee]">
               Drafts
             </h1>
-            <p className="text-xs text-[#959494] mt-1 font-normal max-w-xl">
-              Review personalized messages before they are sent.
+            <p className="text-sm text-[#777a74] dark:text-[#a2a69e] mt-2 max-w-xl leading-relaxed">
+              Review, edit, and approve personalized messages before they are dispatched to prospects.
             </p>
           </div>
 
-          {/* Top Actions & Keyboard Shortcut Cheatsheet Pill */}
-          <div className="flex items-center space-x-2.5">
+          {/* Top Actions & Keyboard Shortcut Cheatsheet */}
+          <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={handleGenerateDrafts}
               disabled={generatingDrafts}
-              className="mono-btn inline-flex items-center space-x-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-[4px] text-xs font-semibold shadow-sm transition active:scale-95 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#4f6653] hover:bg-[#405444] text-white px-4 py-2 text-sm font-medium transition shadow-sm disabled:opacity-50"
             >
               {generatingDrafts ? (
                 <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>GENERATING DRAFTS...</span>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Generating drafts...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>+ GENERATE AI DRAFTS</span>
+                  <Sparkles className="w-4 h-4" />
+                  <span>+ Generate AI drafts</span>
                 </>
               )}
             </button>
 
-            <div className="hidden lg:flex items-center space-x-3 px-3 py-1.5 rounded-[4px] bg-[#313641]/50 border border-white/[0.08] text-[10px] font-mono text-[#959494]">
-              <Keyboard className="w-3.5 h-3.5 text-[#71866e]" />
-              <span><strong className="text-white">A</strong> APPROVE</span>
+            <div className="hidden lg:flex items-center space-x-3 px-3.5 py-2 rounded-lg bg-white dark:bg-[#1e211d] border border-[#dfe2dc] dark:border-white/10 text-xs text-[#777a74] dark:text-[#a2a69e] shadow-sm">
+              <Keyboard className="w-3.5 h-3.5 text-[#4f6653] dark:text-[#afc6ad]" />
+              <span><strong className="text-[#20211f] dark:text-white font-medium">A</strong> Approve</span>
               <span>•</span>
-              <span><strong className="text-white">R</strong> REJECT</span>
+              <span><strong className="text-[#20211f] dark:text-white font-medium">R</strong> Reject</span>
               <span>•</span>
-              <span><strong className="text-white">J/K</strong> NAVIGATE</span>
+              <span><strong className="text-[#20211f] dark:text-white font-medium">J/K</strong> Navigate</span>
             </div>
           </div>
         </div>
-      </section>
+      </header>
 
       {/* Draft review workspace */}
-      <div className="flex-1 max-w-7xl w-full mx-auto px-6 py-6 flex flex-col">
+      <div className="flex-1 max-w-7xl w-full mx-auto px-5 sm:px-8 py-8 flex flex-col">
         {/* Status / Alert Banner */}
         {statusMessage && (
-          <div className="mb-4 px-3.5 py-2 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/40 flex items-center justify-between text-xs font-mono">
-            <span>{statusMessage}</span>
-            <button onClick={() => setStatusMessage(null)} className="text-[#959494] hover:text-black dark:hover:text-white">
-              <X className="w-3.5 h-3.5" />
+          <div className="mb-6 px-4 py-3 rounded-xl border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] flex items-center justify-between text-xs font-medium text-[#20211f] dark:text-[#f1f2ee] shadow-sm">
+            <div className="flex items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-[#4f6653] dark:text-[#afc6ad]" />
+              <span>{statusMessage}</span>
+            </div>
+            <button onClick={() => setStatusMessage(null)} className="text-[#777a74] hover:text-[#20211f] dark:hover:text-white">
+              <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
         {loading ? (
-          <div className="py-24 text-center font-mono text-xs text-[#959494] flex items-center justify-center space-x-2">
-            <RefreshCw className="w-4 h-4 animate-spin text-[#71866e]" />
-            <span>LOADING OUTREACH QUEUE...</span>
+          <div className="py-28 text-center text-sm text-[#777a74] dark:text-[#a2a69e] flex items-center justify-center space-x-2 my-auto">
+            <RefreshCw className="w-4 h-4 animate-spin text-[#4f6653]" />
+            <span>Loading outreach review queue...</span>
           </div>
         ) : drafts.length === 0 ? (
-          <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-16 text-center bg-[#f8fafc] dark:bg-[#313641]/20 my-auto max-w-lg mx-auto w-full">
-            <div className="w-12 h-12 rounded-[6px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+          <div className="rounded-2xl border border-[#e8e9e5] dark:border-white/[0.08] p-16 text-center bg-white dark:bg-[#1e211d] shadow-sm my-auto max-w-lg mx-auto w-full">
+            <div className="w-12 h-12 rounded-2xl bg-[#4f6653]/10 text-[#4f6653] dark:text-[#afc6ad] flex items-center justify-center mx-auto mb-4">
               <Sparkles className="w-6 h-6" />
             </div>
-            <h3 className="text-sm font-mono uppercase tracking-wider font-semibold text-black dark:text-white mb-1.5">
+            <h3 className="text-base font-semibold text-[#20211f] dark:text-[#f1f2ee] mb-1.5">
               Zero Pending Drafts
             </h3>
-            <p className="text-xs text-[#6b7280] dark:text-[#959494] font-normal mb-5 leading-relaxed">
+            <p className="text-xs text-[#777a74] dark:text-[#a2a69e] mb-6 leading-relaxed">
               No personalized drafts are in the review queue yet. Click below to craft bespoke, 1-to-1 outreach drafts for the leads in your workspace.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -376,48 +376,48 @@ export default function DraftsApprovalPage() {
                 type="button"
                 onClick={handleGenerateDrafts}
                 disabled={generatingDrafts}
-                className="mono-btn inline-flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-[4px] text-xs font-semibold shadow-sm transition active:scale-95 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#4f6653] hover:bg-[#405444] text-white px-4 py-2 text-sm font-medium transition shadow-sm disabled:opacity-50"
               >
                 {generatingDrafts ? (
                   <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>GENERATING HANDCRAFTED DRAFTS...</span>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Generating drafts...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>GENERATE AI DRAFTS FOR LEADS</span>
+                    <Sparkles className="w-4 h-4" />
+                    <span>Generate AI drafts</span>
                   </>
                 )}
               </button>
 
               <Link
                 href="/campaigns"
-                className="mono-btn inline-flex items-center space-x-1.5 px-3 py-2 border border-[#ebebeb] dark:border-white/[0.1] bg-white dark:bg-[#010120] text-black dark:text-white rounded-[4px] text-xs font-semibold hover:border-black dark:hover:border-white transition"
+                className="inline-flex items-center gap-1.5 px-4 py-2 border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] text-[#20211f] dark:text-[#f1f2ee] rounded-lg text-sm font-medium hover:border-[#aab4a6] transition shadow-sm"
               >
-                <span>Discover Leads</span>
-                <ArrowRight className="w-3 h-3" />
+                <span>Discover leads</span>
+                <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 items-start">
+          <div className="rounded-2xl bg-white dark:bg-[#1e211d] border border-[#e8e9e5] dark:border-white/[0.08] shadow-sm overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[760px] flex-1">
             {/* PANE 1: Drafts List Queue (4 Cols) */}
-            <div className="lg:col-span-4 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] bg-white dark:bg-[#010120] overflow-hidden flex flex-col h-[750px]">
+            <div className="lg:col-span-4 border-r border-[#e8e9e5] dark:border-white/[0.08] flex flex-col h-[760px]">
               {/* Queue Controls & Filter */}
-              <div className="p-3 border-b border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/30 flex items-center justify-between">
-                <span className="font-mono text-[11px] font-semibold tracking-wider uppercase text-[#000000] dark:text-white">
+              <div className="p-3.5 border-b border-[#e8e9e5] dark:border-white/[0.08] bg-[#fafaf8] dark:bg-[#232622] flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#777a74] dark:text-[#a2a69e]">
                   QUEUE ({filteredDrafts.length})
                 </span>
-                <div className="flex items-center space-x-1">
+                <div className="inline-flex items-center p-1 bg-[#edebe8] dark:bg-[#252824] rounded-lg">
                   {(['all', 'pending', 'approved', 'sent', 'rejected'] as const).map((tab) => (
                     <button
                       key={tab}
                       onClick={() => setFilter(tab)}
-                      className={`text-[9px] font-mono uppercase px-2 py-0.5 rounded-[3px] transition ${
+                      className={`text-[10px] font-medium uppercase px-2 py-0.5 rounded-md transition ${
                         filter === tab
-                          ? 'bg-black dark:bg-white text-white dark:text-black font-semibold'
-                          : 'text-[#6b7280] dark:text-[#959494] hover:text-black dark:hover:text-white'
+                          ? 'bg-white dark:bg-[#1e211d] text-[#20211f] dark:text-white shadow-sm font-semibold'
+                          : 'text-[#777a74] dark:text-[#a2a69e] hover:text-[#20211f] dark:hover:text-white'
                       }`}
                     >
                       {tab}
@@ -427,7 +427,7 @@ export default function DraftsApprovalPage() {
               </div>
 
               {/* Scrollable Drafts Items */}
-              <div className="flex-1 overflow-y-auto divide-y divide-[#ebebeb] dark:divide-white/[0.06]">
+              <div className="flex-1 overflow-y-auto divide-y divide-[#e8e9e5] dark:divide-white/[0.06]">
                 {filteredDrafts.map((draft) => {
                   const isSelected = selectedDraft?.id === draft.id;
                   const isSent = isDraftSent(draft);
@@ -438,43 +438,48 @@ export default function DraftsApprovalPage() {
                     <button
                       key={draft.id}
                       onClick={() => setSelectedDraftId(draft.id)}
-                      className={`w-full text-left p-3.5 transition flex flex-col space-y-1.5 ${
+                      className={`w-full text-left p-4 transition-colors flex flex-col space-y-1.5 ${
                         isSelected
-                          ? 'bg-[#f4f4f5] dark:bg-[#313641]/70 border-l-2 border-[#71866e]'
-                          : 'hover:bg-[#fafafa] dark:hover:bg-white/[0.02]'
+                          ? 'bg-[#4f6653]/5 dark:bg-white/[0.04] border-l-4 border-[#4f6653]'
+                          : 'hover:bg-[#f9faf8] dark:hover:bg-[#262a25]'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-medium text-xs text-black dark:text-white truncate max-w-[190px]">
-                          {draft.business?.display_name || 'Target Prospect'}
-                        </span>
+                        <div className="flex items-center space-x-2.5 truncate max-w-[200px]">
+                          <div className="w-7 h-7 rounded-lg bg-[#4f6653]/10 text-[#4f6653] dark:text-[#afc6ad] text-[11px] font-semibold flex items-center justify-center shrink-0">
+                            {draft.business?.display_name?.slice(0, 2).toUpperCase() || 'CO'}
+                          </div>
+                          <span className="font-medium text-xs text-[#20211f] dark:text-[#f1f2ee] truncate">
+                            {draft.business?.display_name || 'Target Prospect'}
+                          </span>
+                        </div>
                         {isSent ? (
-                          <span className="px-1.5 py-0.2 rounded-[2px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[9px] font-mono uppercase font-semibold">
-                            SENT
+                          <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 text-[10px] font-medium">
+                            Sent
                           </span>
                         ) : isApproved ? (
-                          <span className="px-1.5 py-0.2 rounded-[2px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[9px] font-mono uppercase font-semibold">
-                            APPROVED
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-medium">
+                            Approved
                           </span>
                         ) : isRejected ? (
-                          <span className="px-1.5 py-0.2 rounded-[2px] bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-[9px] font-mono uppercase font-semibold">
-                            REJECTED
+                          <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 text-[10px] font-medium">
+                            Rejected
                           </span>
                         ) : (
-                          <span className="px-1.5 py-0.2 rounded-[2px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[9px] font-mono uppercase font-semibold">
-                            PENDING
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 text-[10px] font-medium">
+                            Pending
                           </span>
                         )}
                       </div>
 
-                      <div className="text-[11px] text-[#6b7280] dark:text-[#959494] truncate">
+                      <div className="text-xs text-[#777a74] dark:text-[#a2a69e] truncate pl-9">
                         {draft.subject || draft.subject_line || 'Untitled Outreach Draft'}
                       </div>
 
-                      <div className="flex items-center space-x-2 text-[10px] font-mono text-[#959494]">
+                      <div className="flex items-center space-x-2 text-[11px] text-[#777a74] dark:text-[#a2a69e] pl-9">
                         <span>{draft.business?.city || 'India'}</span>
                         <span>•</span>
-                        <span className="truncate max-w-[130px]">
+                        <span className="truncate max-w-[140px] font-mono text-[10px]">
                           {draft.contact?.email_address || draft.business?.general_business_email || 'No email'}
                         </span>
                       </div>
@@ -484,15 +489,15 @@ export default function DraftsApprovalPage() {
               </div>
             </div>
 
-            {/* PANE 2: Message editor (5 Cols) */}
-            <div className="lg:col-span-5 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] bg-white dark:bg-[#010120] overflow-hidden flex flex-col h-[750px]">
+            {/* PANE 2: Message composer / reader (5 Cols) */}
+            <div className="lg:col-span-5 border-r border-[#e8e9e5] dark:border-white/[0.08] flex flex-col h-[760px]">
               {selectedDraft ? (
                 <>
-                  {/* Email Chrome Header */}
-                  <div className="p-4 border-b border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/20 space-y-2.5">
+                  {/* Email Envelope Header */}
+                  <div className="p-4 border-b border-[#e8e9e5] dark:border-white/[0.08] bg-[#fafaf8] dark:bg-[#232622] space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-[10px] uppercase tracking-wider text-[#959494]">
-                        EMAIL DRAFT // SUBJECT & RECIPIENT
+                      <span className="text-[11px] uppercase tracking-wider font-semibold text-[#777a74] dark:text-[#a2a69e]">
+                        Email Envelope & Recipient
                       </span>
                       <div className="flex items-center space-x-2">
                         <button
@@ -500,41 +505,41 @@ export default function DraftsApprovalPage() {
                             setShowAiEnhancer(!showAiEnhancer);
                             if (showAiEnhancer) setAiResult(null);
                           }}
-                          className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-[3px] border text-[10px] font-mono font-semibold transition shadow-sm ${
+                          className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-medium transition shadow-sm ${
                             showAiEnhancer
-                              ? 'bg-[#71866e] border-[#71866e] text-white'
-                              : 'bg-black dark:bg-white text-white dark:text-black border-transparent hover:opacity-90'
+                              ? 'bg-[#4f6653] text-white'
+                              : 'bg-white dark:bg-[#1e211d] border border-[#dfe2dc] dark:border-white/10 text-[#20211f] dark:text-[#f1f2ee] hover:border-[#aab4a6]'
                           }`}
                         >
-                          <Sparkles className="w-3 h-3 text-[#71866e]" />
-                          <span>{showAiEnhancer ? 'CLOSE AI OPTIMIZER' : 'IMPROVE WITH AI'}</span>
+                          <Sparkles className="w-3.5 h-3.5 text-[#afc6ad]" />
+                          <span>{showAiEnhancer ? 'Close AI optimizer' : 'Improve with AI'}</span>
                         </button>
 
                         <button
                           onClick={() => setIsEditing(!isEditing)}
-                          className="text-[10px] font-mono uppercase underline text-[#6b7280] dark:text-[#959494] hover:text-black dark:hover:text-white"
+                          className="px-2.5 py-1.5 rounded-lg border border-[#dfe2dc] dark:border-white/10 text-xs font-medium text-[#777a74] hover:text-[#20211f] dark:hover:text-white transition"
                         >
-                          {isEditing ? 'VIEW PREVIEW' : 'EDIT COPY'}
+                          {isEditing ? 'View preview' : 'Edit copy'}
                         </button>
                       </div>
                     </div>
 
-                    <div className="text-xs space-y-1 font-mono">
-                      <div className="flex items-center text-[#6b7280] dark:text-[#959494]">
-                        <span className="w-14 font-semibold text-black dark:text-white">TO:</span>
-                        <span className="text-[#71866e]">
+                    <div className="text-xs space-y-1.5">
+                      <div className="flex items-center text-[#777a74] dark:text-[#a2a69e]">
+                        <span className="w-16 font-semibold text-[#20211f] dark:text-white">TO:</span>
+                        <span className="font-mono text-xs text-[#4f6653] dark:text-[#afc6ad]">
                           {selectedDraft.contact?.email_address ||
                             selectedDraft.business?.general_business_email ||
                             'no-email-discovered@domain.com'}
                         </span>
                       </div>
-                      <div className="flex items-center text-[#6b7280] dark:text-[#959494]">
-                        <span className="w-14 font-semibold text-black dark:text-white">FROM:</span>
-                        <span>Operator &lt;outreach@singulr.tech&gt;</span>
+                      <div className="flex items-center text-[#777a74] dark:text-[#a2a69e]">
+                        <span className="w-16 font-semibold text-[#20211f] dark:text-white">FROM:</span>
+                        <span className="font-mono text-xs">Operator &lt;outreach@singulr.tech&gt;</span>
                       </div>
-                      <div className="flex items-center text-[#6b7280] dark:text-[#959494]">
-                        <span className="w-14 font-semibold text-black dark:text-white">SUBJECT:</span>
-                        <span className="text-black dark:text-white font-medium">
+                      <div className="flex items-center text-[#777a74] dark:text-[#a2a69e]">
+                        <span className="w-16 font-semibold text-[#20211f] dark:text-white">SUBJECT:</span>
+                        <span className="text-[#20211f] dark:text-white font-medium">
                           {selectedDraft.subject || selectedDraft.subject_line}
                         </span>
                       </div>
@@ -543,139 +548,120 @@ export default function DraftsApprovalPage() {
 
                   {/* AI Copywriting & Optimization Panel */}
                   {showAiEnhancer && (
-                    <div className="border-b border-[#ebebeb] dark:border-white/[0.08] bg-[#fafafa] dark:bg-[#070814] p-4 space-y-3.5 max-h-[380px] overflow-y-auto">
-                      {/* Flat Container with Precision Runner */}
-                      <div className="ai-flat-container overflow-hidden">
-                        {aiEnhancing ? (
-                          <div className="w-full h-[2px] bg-neutral-200 dark:bg-white/[0.08] overflow-hidden relative">
-                            <div className="w-1/3 h-full bg-gradient-to-r from-[#fc4c02] via-[#71866e] to-[#bdc8b5] animate-flat-scan" />
+                    <div className="border-b border-[#e8e9e5] dark:border-white/[0.08] bg-[#fafaf8] dark:bg-[#1a1c18] p-4 space-y-3.5 max-h-[380px] overflow-y-auto">
+                      <div className="rounded-xl border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] p-4 space-y-3.5 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Sparkles className="w-4 h-4 text-[#4f6653] dark:text-[#afc6ad]" />
+                            <span className="text-xs font-semibold text-[#20211f] dark:text-white">
+                              AI Copywriting & Conversion Optimizer
+                            </span>
                           </div>
-                        ) : (
-                          <div className="brand-gradient-h w-full" />
+                          <span className="text-[10px] text-[#777a74] dark:text-[#a2a69e]">
+                            Multi-LLM • Meta • Gemini • OpenAI
+                          </span>
+                        </div>
+
+                        {/* Quick Goal Selector */}
+                        <div className="space-y-1.5">
+                          <label className="text-xs text-[#777a74] dark:text-[#a2a69e] block font-medium">
+                            Select Enhancement Goal:
+                          </label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {[
+                              { id: 'handcrafted', label: '✍️ Handcrafted & Bespoke (Unique)' },
+                              { id: 'persuasive', label: '🎯 Higher Conversion Hook' },
+                              { id: 'concise', label: '✂️ More Concise (<85 words)' },
+                              { id: 'cta', label: '⚡ Low-Friction CTA' },
+                              { id: 'warmer', label: '🤝 Warmer Advisory Tone' },
+                              { id: 'punchy', label: '💥 Short & Punchy' },
+                              { id: 'custom', label: '✏️ Custom Instruction' },
+                            ].map((g) => (
+                              <button
+                                key={g.id}
+                                type="button"
+                                onClick={() => setAiGoal(g.id as any)}
+                                className={`text-xs px-3 py-1.5 rounded-lg border transition ${
+                                  aiGoal === g.id
+                                    ? 'bg-[#4f6653] text-white border-[#4f6653] font-medium shadow-sm'
+                                    : 'bg-white dark:bg-[#1e211d] border-[#dfe2dc] dark:border-white/10 text-[#777a74] dark:text-[#a2a69e] hover:border-[#aab4a6]'
+                                }`}
+                              >
+                                {g.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Custom instruction input if selected */}
+                        {aiGoal === 'custom' && (
+                          <div>
+                            <input
+                              type="text"
+                              value={aiCustomInstruction}
+                              onChange={(e) => setAiCustomInstruction(e.target.value)}
+                              placeholder="e.g. Focus on our free 1-click audit, sound friendly, keep it casual..."
+                              className="w-full text-xs p-2.5 border border-[#dfe2dc] dark:border-white/10 rounded-xl bg-white dark:bg-[#171916] text-[#20211f] dark:text-[#f1f2ee] focus:outline-none focus:ring-1 focus:ring-[#4f6653] focus:border-[#4f6653]"
+                            />
+                          </div>
                         )}
 
-                        <div className="p-3.5 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              <Sparkles className="w-3.5 h-3.5 text-[#71866e]" />
-                              <span className="font-mono text-xs font-semibold uppercase text-black dark:text-white">
-                                AI Copywriting & Conversion Optimizer
-                              </span>
-                            </div>
-                            <span className="text-[10px] font-mono text-[#959494]">
-                              Multi-LLM // Meta • Gemini • OpenAI
-                            </span>
-                          </div>
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-[11px] text-[#777a74] dark:text-[#a2a69e]">
+                            Preserves dynamic tokens ({'{first_name}'}, {'{company_name}'}, etc.)
+                          </span>
 
-                          {/* Quick Goal Selector */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-mono uppercase text-[#959494] block">
-                              Select Enhancement Goal:
-                            </label>
-                            <div className="flex flex-wrap gap-1.5">
-                              {[
-                                { id: 'handcrafted', label: '✍️ Handcrafted & Bespoke (Unique)' },
-                                { id: 'persuasive', label: '🎯 Higher Conversion Hook' },
-                                { id: 'concise', label: '✂️ More Concise (<85 words)' },
-                                { id: 'cta', label: '⚡ Low-Friction CTA' },
-                                { id: 'warmer', label: '🤝 Warmer Advisory Tone' },
-                                { id: 'punchy', label: '💥 Short & Punchy' },
-                                { id: 'custom', label: '✏️ Custom Instruction' },
-                              ].map((g) => (
-                                <button
-                                  key={g.id}
-                                  type="button"
-                                  onClick={() => setAiGoal(g.id as any)}
-                                  className={`text-[10px] font-mono px-2.5 py-1 rounded-[3px] border transition ${
-                                    aiGoal === g.id
-                                      ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white font-semibold'
-                                      : 'bg-white dark:bg-[#14161f] border-[#ebebeb] dark:border-white/[0.1] text-[#6b7280] dark:text-[#959494] hover:text-black dark:hover:text-white'
-                                  }`}
-                                >
-                                  {g.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Custom instruction input if selected */}
-                          {aiGoal === 'custom' && (
-                            <div>
-                              <input
-                                type="text"
-                                value={aiCustomInstruction}
-                                onChange={(e) => setAiCustomInstruction(e.target.value)}
-                                placeholder="e.g. Focus on our free 1-click audit, sound friendly, keep it casual..."
-                                className="w-full text-xs font-mono p-2 border border-[#ebebeb] dark:border-white/[0.08] rounded-[3px] bg-white dark:bg-[#010120] text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
-                              />
-                            </div>
-                          )}
-
-                          <div className="flex items-center justify-between pt-1">
-                            <span className="text-[10px] font-mono text-[#959494]">
-                              Preserves dynamic tokens ({'{first_name}'}, {'{company_name}'}, etc.)
-                            </span>
-
-                            <button
-                              type="button"
-                              onClick={handleEnhanceDraft}
-                              disabled={aiEnhancing}
-                              className="mono-btn bg-black dark:bg-white text-white dark:text-black px-3.5 py-1.5 rounded-[3px] text-xs font-mono font-semibold flex items-center space-x-1.5 hover:opacity-90 disabled:opacity-50 transition"
-                            >
-                              {aiEnhancing ? (
-                                <>
-                                  <RefreshCw className="w-3 h-3 animate-spin" />
-                                  <span>OPTIMIZING COPY...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Sparkles className="w-3 h-3 text-[#71866e]" />
-                                  <span>GENERATE IMPROVED COPY</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={handleEnhanceDraft}
+                            disabled={aiEnhancing}
+                            className="inline-flex items-center gap-1.5 bg-[#4f6653] hover:bg-[#405444] text-white px-4 py-1.5 rounded-lg text-xs font-medium shadow-sm disabled:opacity-50 transition"
+                          >
+                            {aiEnhancing ? (
+                              <>
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                <span>Optimizing copy...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-3.5 h-3.5" />
+                                <span>Generate improved copy</span>
+                              </>
+                            )}
+                          </button>
                         </div>
                       </div>
 
                       {/* Display AI Improvement Results if available */}
                       {aiResult && (
-                        <div className="border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] bg-white dark:bg-[#010120] p-3.5 space-y-3">
-                          <div className="flex items-center justify-between pb-2 border-b border-[#ebebeb] dark:border-white/[0.06]">
+                        <div className="rounded-xl border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] p-4 space-y-3.5 shadow-sm">
+                          <div className="flex items-center justify-between pb-2 border-b border-[#e8e9e5] dark:border-white/10">
                             <div className="flex items-center space-x-2">
-                              <Check className="w-3.5 h-3.5 text-emerald-500" />
-                              <span className="text-xs font-mono font-semibold text-black dark:text-white uppercase">
+                              <Check className="w-4 h-4 text-emerald-500" />
+                              <span className="text-xs font-semibold text-[#20211f] dark:text-white">
                                 Copy Optimized
                               </span>
                             </div>
-                            <span className="text-[9px] font-mono px-2 py-0.5 rounded-[2px] bg-black/5 dark:bg-white/10 text-black dark:text-white border border-[#ebebeb] dark:border-white/[0.1]">
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[#777a74] dark:text-[#a2a69e]">
                               {aiResult.modelUsed}
                             </span>
                           </div>
 
                           {/* Summary of changes */}
-                          <div className="text-xs font-sans text-[#4b5563] dark:text-[#9ca3af] bg-[#f8fafc] dark:bg-[#14161f] p-2.5 rounded-[3px] border border-[#ebebeb] dark:border-white/[0.06]">
-                            <strong className="text-black dark:text-white font-mono text-[11px] block mb-0.5">
+                          <div className="text-xs text-[#777a74] dark:text-[#a2a69e] bg-[#fafaf8] dark:bg-[#252824] p-3 rounded-xl border border-[#dfe2dc] dark:border-white/10">
+                            <strong className="text-[#20211f] dark:text-white block mb-0.5">
                               Summary of Improvements:
                             </strong>
                             {aiResult.changesSummary}
                           </div>
 
-                          {aiResult.keyImprovementTips && aiResult.keyImprovementTips.length > 0 && (
-                            <ul className="text-[11px] font-mono text-[#6b7280] dark:text-[#959494] space-y-0.5 list-disc list-inside">
-                              {aiResult.keyImprovementTips.map((tip, i) => (
-                                <li key={i}>{tip}</li>
-                              ))}
-                            </ul>
-                          )}
-
                           {/* Subject Preview */}
                           {aiResult.improvedSubject && (
                             <div>
-                              <div className="text-[10px] font-mono uppercase text-[#959494]">
+                              <div className="text-[11px] font-medium text-[#777a74] dark:text-[#a2a69e]">
                                 Improved Subject:
                               </div>
-                              <div className="text-xs font-mono font-medium text-black dark:text-white mt-0.5">
+                              <div className="text-xs font-medium text-[#20211f] dark:text-[#f1f2ee] mt-0.5">
                                 {aiResult.improvedSubject}
                               </div>
                             </div>
@@ -683,30 +669,30 @@ export default function DraftsApprovalPage() {
 
                           {/* Body Preview */}
                           <div>
-                            <div className="text-[10px] font-mono uppercase text-[#959494] mb-1">
+                            <div className="text-[11px] font-medium text-[#777a74] dark:text-[#a2a69e] mb-1">
                               Improved Body Preview:
                             </div>
-                            <div className="text-xs font-sans whitespace-pre-wrap bg-[#f8fafc] dark:bg-[#14161f] p-3 rounded-[3px] border border-[#ebebeb] dark:border-white/[0.06] text-black dark:text-white max-h-48 overflow-y-auto">
+                            <div className="text-xs whitespace-pre-wrap bg-[#fafaf8] dark:bg-[#252824] p-3 rounded-xl border border-[#dfe2dc] dark:border-white/10 text-[#20211f] dark:text-[#f1f2ee] max-h-48 overflow-y-auto leading-relaxed">
                               {aiResult.improvedBody}
                             </div>
                           </div>
 
                           {/* Apply & Discard Controls */}
-                          <div className="flex items-center justify-end space-x-2 pt-2 border-t border-[#ebebeb] dark:border-white/[0.06]">
+                          <div className="flex items-center justify-end space-x-2 pt-2 border-t border-[#e8e9e5] dark:border-white/10">
                             <button
                               type="button"
                               onClick={() => setAiResult(null)}
-                              className="mono-btn px-3 py-1.5 rounded-[3px] text-[11px] font-mono text-[#6b7280] dark:text-[#959494] hover:text-black dark:hover:text-white"
+                              className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#777a74] hover:text-[#20211f] dark:hover:text-white transition"
                             >
-                              DISCARD
+                              Discard
                             </button>
                             <button
                               type="button"
                               onClick={handleApplyAiEnhancement}
-                              className="mono-btn px-4 py-1.5 rounded-[3px] bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-mono font-semibold flex items-center space-x-1.5 shadow-sm"
+                              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium shadow-sm transition"
                             >
                               <Check className="w-3.5 h-3.5" />
-                              <span>APPLY TO DRAFT</span>
+                              <span>Apply to draft</span>
                             </button>
                           </div>
                         </div>
@@ -715,77 +701,77 @@ export default function DraftsApprovalPage() {
                   )}
 
                   {/* Email Body Content */}
-                  <div className="p-5 flex-1 overflow-y-auto">
+                  <div className="p-6 flex-1 overflow-y-auto">
                     {isEditing ? (
                       <textarea
                         value={editedBody}
                         onChange={(e) => setEditedBody(e.target.value)}
                         rows={16}
-                        className="w-full text-xs font-mono p-3 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] bg-white dark:bg-[#010120] text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-white"
+                        className="w-full text-sm leading-relaxed p-4 border border-[#dfe2dc] dark:border-white/10 rounded-xl bg-white dark:bg-[#171916] text-[#20211f] dark:text-[#f1f2ee] focus:outline-none focus:ring-1 focus:ring-[#4f6653] focus:border-[#4f6653] transition shadow-sm font-sans"
                       />
                     ) : (
-                      <div className="prose dark:prose-invert max-w-none text-xs leading-relaxed font-sans whitespace-pre-wrap text-[#1f2937] dark:text-[#e4e4e7]">
+                      <div className="text-sm leading-relaxed font-sans whitespace-pre-wrap text-[#20211f] dark:text-[#f1f2ee]">
                         {editedBody || selectedDraft.body_text}
                       </div>
                     )}
                   </div>
 
-                  {/* Action Bar (Level 3 Elevation) */}
-                  <div className="p-3 border-t border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/30 flex items-center justify-between gap-2">
+                  {/* Action Bar */}
+                  <div className="p-4 border-t border-[#e8e9e5] dark:border-white/[0.08] bg-[#fafaf8] dark:bg-[#232622] flex items-center justify-between gap-3">
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => handleReject(selectedDraft.id)}
                         disabled={actionLoading === selectedDraft.id}
-                        className="mono-btn px-3 py-1.5 rounded-[4px] border border-rose-300 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-[11px] font-semibold flex items-center space-x-1"
+                        className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-rose-300 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-xs font-medium transition"
                       >
                         <X className="w-3.5 h-3.5" />
-                        <span>REJECT [R]</span>
+                        <span>Reject [R]</span>
                       </button>
 
                       <button
                         onClick={() => handleApprove(selectedDraft.id)}
                         disabled={actionLoading === selectedDraft.id}
-                        className="mono-btn px-3.5 py-1.5 rounded-[4px] bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold flex items-center space-x-1 shadow-sm"
+                        className="inline-flex items-center gap-1 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium shadow-sm transition"
                       >
                         <Check className="w-3.5 h-3.5" />
-                        <span>APPROVE [A]</span>
+                        <span>Approve [A]</span>
                       </button>
                     </div>
 
                     {isDraftSent(selectedDraft) ? (
-                      <span className="px-3.5 py-1.5 rounded-[4px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[11px] font-mono uppercase font-semibold flex items-center space-x-1.5">
-                        <MailCheck className="w-3.5 h-3.5" />
-                        <span>DISPATCHED</span>
+                      <span className="px-3.5 py-2 rounded-lg bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 text-xs font-medium flex items-center space-x-1.5">
+                        <MailCheck className="w-3.5 h-3.5 text-blue-500" />
+                        <span>Dispatched</span>
                       </span>
                     ) : (
                       <button
                         onClick={() => handleQueueForSend(selectedDraft)}
                         disabled={actionLoading === selectedDraft.id || selectedDraft.approval_status !== 'approved'}
                         title={selectedDraft.approval_status !== 'approved' ? 'Approve draft first' : 'Queue email'}
-                        className={`mono-btn px-3.5 py-1.5 rounded-[4px] text-[11px] font-semibold flex items-center space-x-1.5 transition ${
+                        className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium shadow-sm transition ${
                           selectedDraft.approval_status === 'approved'
-                            ? 'bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800'
+                            ? 'bg-[#4f6653] hover:bg-[#405444] text-white'
                             : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-400 cursor-not-allowed'
                         }`}
                       >
                         <Send className="w-3.5 h-3.5" />
-                        <span>DISPATCH [S]</span>
+                        <span>Dispatch [S]</span>
                       </button>
                     )}
                   </div>
                 </>
               ) : (
-                <div className="m-auto text-center font-mono text-xs text-[#959494]">
+                <div className="m-auto text-center text-xs text-[#777a74] dark:text-[#a2a69e]">
                   Select a draft from the queue to inspect.
                 </div>
               )}
             </div>
 
             {/* PANE 3: Lead Dossier & AI Rationalization (3 Cols) */}
-            <div className="lg:col-span-3 border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] bg-white dark:bg-[#010120] overflow-hidden flex flex-col h-[750px]">
-              <div className="p-3 border-b border-[#ebebeb] dark:border-white/[0.08] bg-[#f8fafc] dark:bg-[#313641]/30">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-[#000000] dark:text-white font-semibold">
-                  TARGET DOSSIER
+            <div className="lg:col-span-3 bg-[#fafaf8]/50 dark:bg-[#191b17]/50 flex flex-col h-[760px]">
+              <div className="p-3.5 border-b border-[#e8e9e5] dark:border-white/[0.08]">
+                <span className="text-xs uppercase tracking-wider text-[#777a74] dark:text-[#a2a69e] font-semibold">
+                  Target Dossier
                 </span>
               </div>
 
@@ -793,8 +779,8 @@ export default function DraftsApprovalPage() {
                 <div className="p-4 space-y-4 flex-1 overflow-y-auto text-xs">
                   {/* Target Overview */}
                   <div className="space-y-1">
-                    <div className="text-[10px] font-mono uppercase text-[#959494]">Company</div>
-                    <div className="font-medium text-black dark:text-white text-sm">
+                    <div className="text-[10px] uppercase font-semibold text-[#777a74] dark:text-[#a2a69e]">Company</div>
+                    <div className="font-semibold text-[#20211f] dark:text-white text-sm">
                       {selectedDraft.business?.display_name}
                     </div>
                     {selectedDraft.business?.website_url && (
@@ -802,62 +788,59 @@ export default function DraftsApprovalPage() {
                         href={selectedDraft.business.website_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[11px] font-mono text-[#71866e] hover:underline flex items-center space-x-1 pt-0.5"
+                        className="text-xs text-[#4f6653] dark:text-[#afc6ad] hover:underline flex items-center space-x-1 pt-0.5"
                       >
                         <span>{selectedDraft.business.website_url.replace(/^https?:\/\//, '')}</span>
-                        <ExternalLink className="w-2.5 h-2.5" />
+                        <ExternalLink className="w-3 h-3" />
                       </a>
                     )}
                   </div>
 
                   {/* Geography & Industry */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#ebebeb] dark:border-white/[0.06]">
+                  <div className="grid grid-cols-2 gap-2 pt-3 border-t border-[#e8e9e5] dark:border-white/10">
                     <div>
-                      <div className="text-[9px] font-mono uppercase text-[#959494]">City</div>
-                      <div className="font-mono text-[11px] text-black dark:text-white mt-0.5">
+                      <div className="text-[10px] uppercase font-semibold text-[#777a74] dark:text-[#a2a69e]">City</div>
+                      <div className="text-xs text-[#20211f] dark:text-white mt-0.5">
                         {selectedDraft.business?.city || 'India'}
                       </div>
                     </div>
                     <div>
-                      <div className="text-[9px] font-mono uppercase text-[#959494]">Category</div>
-                      <div className="font-mono text-[11px] text-black dark:text-white mt-0.5 truncate">
+                      <div className="text-[10px] uppercase font-semibold text-[#777a74] dark:text-[#a2a69e]">Category</div>
+                      <div className="text-xs text-[#20211f] dark:text-white mt-0.5 truncate">
                         {selectedDraft.business?.primary_industry || 'B2B SMB'}
                       </div>
                     </div>
                   </div>
 
-                  {/* AI Rationalization (Flat Technical Design) */}
-                  <div className="ai-flat-container overflow-hidden">
-                    <div className="brand-gradient-h w-full" />
-                    <div className="p-3.5 space-y-1.5">
-                      <div className="flex items-center space-x-2 text-[10px] font-mono uppercase text-black dark:text-white font-semibold">
-                        <span className="w-1.5 h-1.5 rounded-[1px] bg-[#71866e]" />
-                        <span>AI RESEARCH ANGLE</span>
-                      </div>
-                      <p className="text-[11px] text-[#6b7280] dark:text-[#959494] font-mono leading-relaxed">
-                        {selectedDraft.rationale ||
-                          'Synthesized from website metadata and verified deliverability records. Tailored offer focusing on digital workflows and conversion improvements.'}
-                      </p>
+                  {/* AI Rationalization */}
+                  <div className="rounded-xl border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] p-3.5 space-y-2 shadow-sm">
+                    <div className="flex items-center space-x-2 text-xs font-semibold text-[#20211f] dark:text-white">
+                      <Sparkles className="w-3.5 h-3.5 text-[#4f6653] dark:text-[#afc6ad]" />
+                      <span>AI RESEARCH ANGLE</span>
                     </div>
+                    <p className="text-xs text-[#777a74] dark:text-[#a2a69e] leading-relaxed">
+                      {selectedDraft.rationale ||
+                        'Synthesized from website metadata and verified deliverability records. Tailored offer focusing on digital workflows and conversion improvements.'}
+                    </p>
                   </div>
 
                   {/* Pre-Flight Health Checklist */}
-                  <div className="pt-2 border-t border-[#ebebeb] dark:border-white/[0.06] space-y-2">
-                    <div className="text-[10px] font-mono uppercase text-[#959494]">
-                      DELIVERABILITY PRE-FLIGHT
+                  <div className="pt-3 border-t border-[#e8e9e5] dark:border-white/10 space-y-2.5">
+                    <div className="text-[10px] uppercase font-semibold text-[#777a74] dark:text-[#a2a69e]">
+                      Deliverability Pre-Flight
                     </div>
-                    <div className="space-y-1.5 font-mono text-[10px]">
+                    <div className="space-y-2 text-xs">
                       <div className="flex items-center justify-between">
-                        <span className="text-[#6b7280] dark:text-[#959494]">MX Valid:</span>
-                        <span className="text-emerald-500 font-semibold">PASSED</span>
+                        <span className="text-[#777a74] dark:text-[#a2a69e]">MX Valid:</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">PASSED</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-[#6b7280] dark:text-[#959494]">Suppression Check:</span>
-                        <span className="text-emerald-500 font-semibold">CLEAN</span>
+                        <span className="text-[#777a74] dark:text-[#a2a69e]">Suppression Check:</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">CLEAN</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-[#6b7280] dark:text-[#959494]">Unsubscribe Header:</span>
-                        <span className="text-emerald-500 font-semibold">INJECTED</span>
+                        <span className="text-[#777a74] dark:text-[#a2a69e]">Unsubscribe Header:</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">INJECTED</span>
                       </div>
                     </div>
                   </div>
