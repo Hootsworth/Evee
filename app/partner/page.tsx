@@ -32,8 +32,8 @@ import {
 } from 'lucide-react';
 import { parseAndAnalyzeCsv, CsvColumnMapping, replaceTemplateVariables } from '@/lib/csv/parser';
 
-// Claude's Signature 4-Spoke Radial Spark Mark
-function ClaudeStar({ className = 'w-4 h-4 text-[#cc785c]' }: { className?: string }) {
+// Evee's 4-Spoke Radial Spark Mark
+function EveeStar({ className = 'w-4 h-4 text-[#cc785c]' }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
       <path d="M12 2C12.4 7.2 16.8 11.6 22 12C16.8 12.4 12.4 16.8 12 22C11.6 16.8 7.2 12.4 2 12C7.2 11.6 11.6 7.2 12 2Z" />
@@ -635,7 +635,7 @@ function PartnerPortalContent() {
     return (
       <div className="min-h-screen bg-[#faf9f5] dark:bg-[#141413] flex items-center justify-center p-6 text-[#141413] dark:text-[#faf9f5]">
         <div className="flex flex-col items-center space-y-3">
-          <ClaudeStar className="w-8 h-8 text-[#cc785c] animate-pulse" />
+          <EveeStar className="w-8 h-8 text-[#cc785c] animate-pulse" />
           <p className="text-xs font-serif tracking-wide text-[#6c6a64] dark:text-[#a09d96]">
             Connecting to Partner Workspace...
           </p>
@@ -645,17 +645,18 @@ function PartnerPortalContent() {
   }
 
   // ----------------------------------------------------
-  // RENDER: Claude Editorial Sign-In Screen
+  // RENDER: Evee Editorial Sign-In Screen
   // ----------------------------------------------------
   if (!partner) {
     return (
       <div className="min-h-screen bg-[#faf9f5] dark:bg-[#141413] flex flex-col justify-between p-6 sm:p-10 text-[#141413] dark:text-[#faf9f5] font-sans transition-colors duration-150">
-        {/* Top bar with Claude Star and Theme Switcher */}
+        {/* Top bar with Evee Star and Theme Switcher */}
         <div className="flex items-center justify-between max-w-5xl mx-auto w-full">
           <div className="flex items-center space-x-2.5">
-            <ClaudeStar className="w-5 h-5 text-[#cc785c]" />
-            <span className="font-serif text-base tracking-tight font-normal">Claude</span>
-            <span className="text-[11px] font-mono text-[#6c6a64] dark:text-[#a09d96]">/ partner</span>
+            <EveeStar className="w-5 h-5 text-[#cc785c]" />
+            <span className="font-serif text-base tracking-tight font-normal text-[#141413] dark:text-[#faf9f5]">
+              Evee | Partner
+            </span>
           </div>
 
           <button
@@ -734,31 +735,31 @@ function PartnerPortalContent() {
 
         {/* Footer */}
         <div className="max-w-5xl mx-auto w-full text-center text-[11px] text-[#8e8b82]">
-          Claude Partner Interface • Warm Editorial Edition
+          Evee.ai • Partner Portal
         </div>
       </div>
     );
   }
 
   // ----------------------------------------------------
-  // RENDER: Authenticated Claude Partner Workspace
+  // RENDER: Authenticated Evee Partner Workspace
   // ----------------------------------------------------
   return (
     <div className="min-h-screen bg-[#faf9f5] dark:bg-[#141413] text-[#141413] dark:text-[#faf9f5] font-sans antialiased pb-24 transition-colors duration-150">
-      {/* Top Claude Editorial Navigation Bar */}
+      {/* Top Editorial Navigation Bar */}
       <header className="sticky top-0 z-40 bg-[#faf9f5]/95 dark:bg-[#141413]/95 backdrop-blur-md border-b border-[#e6dfd8] dark:border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3.5">
             <div className="w-8 h-8 rounded-lg bg-[#cc785c] text-white flex items-center justify-center shadow-sm">
-              <ClaudeStar className="w-4 h-4 text-white" />
+              <EveeStar className="w-4 h-4 text-white" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
                 <span className="font-serif text-base tracking-tight font-normal text-[#141413] dark:text-[#faf9f5]">
-                  Claude
+                  Evee | Partner
                 </span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-[#cc785c]/10 text-[#cc785c] dark:bg-[#cc785c]/20 dark:text-[#e89a80] border border-[#cc785c]/25">
-                  PARTNER PORTAL
+                  PORTAL
                 </span>
               </div>
               <p className="text-[11px] text-[#6c6a64] dark:text-[#a09d96] truncate max-w-xs font-sans">
@@ -824,12 +825,12 @@ function PartnerPortalContent() {
           </p>
         </div>
 
-        {/* KPI Strip in Claude Card Aesthetic */}
+        {/* KPI Strip in Editorial Card Aesthetic */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white dark:bg-[#1f1e1b] p-5 rounded-xl border border-[#e6dfd8] dark:border-white/10 shadow-[0_1px_3px_rgba(20,20,19,0.04)]">
             <div className="flex items-center justify-between text-xs text-[#6c6a64] dark:text-[#a09d96] mb-1 font-medium">
               <span>Allotted Leads</span>
-              <ClaudeStar className="w-3.5 h-3.5 text-[#cc785c]" />
+              <EveeStar className="w-3.5 h-3.5 text-[#cc785c]" />
             </div>
             <div className="text-3xl font-serif font-normal text-[#141413] dark:text-[#faf9f5]">{leads.length}</div>
             <div className="text-[11px] text-[#8e8b82] mt-1">Assigned to your sub-portal</div>
@@ -936,7 +937,7 @@ function PartnerPortalContent() {
             />
           </div>
 
-          {/* Claude Style Category Tabs */}
+          {/* Category Tabs */}
           <div className="inline-flex items-center gap-1 p-1 bg-[#efe9de] dark:bg-[#1f1e1b] rounded-lg border border-[#e6dfd8] dark:border-white/10 overflow-x-auto no-scrollbar">
             {[
               { id: 'all', label: 'All Allotted', count: leads.length },
@@ -1147,7 +1148,7 @@ function PartnerPortalContent() {
           <div className="bg-white dark:bg-[#1f1e1b] border border-[#e6dfd8] dark:border-white/10 rounded-xl w-full max-w-lg p-6 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-[#e6dfd8] dark:border-white/10">
               <div className="flex items-center space-x-2">
-                <ClaudeStar className="w-5 h-5 text-[#cc785c]" />
+                <EveeStar className="w-5 h-5 text-[#cc785c]" />
                 <div>
                   <h3 className="font-serif font-normal text-lg text-[#141413] dark:text-[#faf9f5]">
                     Add Lead to My Portal
@@ -1541,7 +1542,7 @@ function PartnerPortalContent() {
       )}
 
       {/* ---------------------------------------------------- */}
-      {/* MODAL: Outreach Studio (Claude Editorial 4 Steps) */}
+      {/* MODAL: Outreach Studio (Editorial 4 Steps) */}
       {/* ---------------------------------------------------- */}
       {showOutreachModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -1549,7 +1550,7 @@ function PartnerPortalContent() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#e6dfd8] dark:border-white/10 gap-2">
               <div className="flex items-center space-x-2">
-                <ClaudeStar className="w-4 h-4 text-[#cc785c]" />
+                <EveeStar className="w-4 h-4 text-[#cc785c]" />
                 <div>
                   <h3 className="font-serif font-normal text-lg text-[#141413] dark:text-[#faf9f5]">
                     Direct Outreach Studio
@@ -1883,7 +1884,7 @@ export default function PartnerPortalPage() {
       fallback={
         <div className="min-h-screen bg-[#faf9f5] dark:bg-[#141413] flex items-center justify-center p-6 text-[#141413] dark:text-[#faf9f5]">
           <div className="flex flex-col items-center space-y-3">
-            <ClaudeStar className="w-8 h-8 text-[#cc785c] animate-pulse" />
+            <EveeStar className="w-8 h-8 text-[#cc785c] animate-pulse" />
             <p className="text-xs font-serif text-[#6c6a64] dark:text-[#a09d96]">Loading Partner Workspace...</p>
           </div>
         </div>
