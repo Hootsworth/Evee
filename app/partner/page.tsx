@@ -29,8 +29,15 @@ import {
   ArrowLeft,
   Sun,
   Moon,
+  Download,
 } from 'lucide-react';
-import { parseAndAnalyzeCsv, CsvColumnMapping, replaceTemplateVariables } from '@/lib/csv/parser';
+import {
+  parseAndAnalyzeCsv,
+  CsvColumnMapping,
+  replaceTemplateVariables,
+  exportLeadsToCsv,
+  downloadCsvFile,
+} from '@/lib/csv/parser';
 
 // Evee's 4-Spoke Radial Spark Mark
 function EveeStar({ className = 'w-4 h-4 text-[#cc785c]' }: { className?: string }) {
@@ -536,6 +543,23 @@ function PartnerPortalContent() {
     }
   };
 
+  const handleExportPartnerCsv = () => {
+    if (leads.length === 0) {
+      alert('No allotted leads to download.');
+      return;
+    }
+    const partnerAllotment = partner
+      ? { [partner.id]: { partnerName: partner.name, partnerEmail: partner.email } }
+      : undefined;
+
+    const csvContent = exportLeadsToCsv(leads, {
+      allotments: partnerAllotment,
+    });
+    const dateStr = new Date().toISOString().split('T')[0];
+    const safePartnerSlug = partner?.name ? partner.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'allotted';
+    downloadCsvFile(csvContent, `evee-partner-leads-${safePartnerSlug}-${dateStr}.csv`);
+  };
+
   // Candidates for Outreach Studio
   const candidateRecipients = useMemo(() => {
     const baseList = selectedIds.size > 0 ? leads.filter((l) => selectedIds.has(l.id)) : readyLeads;
@@ -885,6 +909,21 @@ function PartnerPortalContent() {
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-[#6c6a64] dark:text-[#a09d96]" />
               <span>Import CSV</span>
+            </button>
+
+            <button
+              onClick={handleExportPartnerCsv}
+              disabled={leads.length === 0}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#e6dfd8] dark:border-white/10 bg-white dark:bg-[#1f1e1b] hover:bg-[#f5f0e8] dark:hover:bg-[#252320] text-xs font-medium text-[#141413] dark:text-[#faf9f5] transition shadow-sm disabled:opacity-50"
+              title="Download your allotted leads as CSV"
+            >
+              <Download className="w-3.5 h-3.5 text-[#6c6a64] dark:text-[#a09d96]" />
+              <span>Download CSV</span>
+              {leads.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[10px] font-mono">
+                  {leads.length}
+                </span>
+              )}
             </button>
 
             <button

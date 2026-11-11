@@ -47,8 +47,11 @@ import {
   CopyX,
   Check,
   Clock,
+  Download,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { parseAndAnalyzeCsv, CsvColumnMapping, replaceTemplateVariables } from '@/lib/csv/parser';
+import { exportLeadsToCsv, downloadCsvFile } from '@/lib/csv/exporter';
 import {
   identifyDuplicateLeads,
   identifyDuplicateContacts,
@@ -85,6 +88,10 @@ export default function LeadsPage() {
 
   // Multi-selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // CSV Export state
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportScope, setExportScope] = useState<'all' | 'filtered' | 'selected'>('all');
 
   // Partner Allotment State
   const [partnersList, setPartnersList] = useState<any[]>([]);
@@ -1117,6 +1124,42 @@ export default function LeadsPage() {
     router.push('/campaigns/csv');
   };
 
+  const handleExportCsv = (scope?: 'all' | 'filtered' | 'selected') => {
+    const chosenScope = scope || exportScope;
+    let exportList: any[] = [];
+    let exportFilename = 'evee-leads-all';
+
+    if (chosenScope === 'selected' && selectedIds.size > 0) {
+      exportList = businesses.filter((b) => selectedIds.has(b.id));
+      exportFilename = `evee-leads-selected-${exportList.length}`;
+    } else if (chosenScope === 'filtered') {
+      exportList = filtered;
+      exportFilename = `evee-leads-filtered-${exportList.length}`;
+    } else {
+      exportList = businesses;
+      exportFilename = `evee-leads-all-${exportList.length}`;
+    }
+
+    if (exportList.length === 0) {
+      setEnrichMessage({ text: 'No leads available to export.', type: 'error' });
+      return;
+    }
+
+    const csvContent = exportLeadsToCsv(exportList, {
+      allotments,
+      sentEmailSet: sentEmails,
+      sentBusinessIdSet: sentBusinessIds,
+    });
+
+    const dateStr = new Date().toISOString().split('T')[0];
+    downloadCsvFile(csvContent, `${exportFilename}-${dateStr}.csv`);
+    setShowExportModal(false);
+    setEnrichMessage({
+      text: `Downloaded ${exportList.length} ${exportList.length === 1 ? 'lead' : 'leads'} as CSV successfully.`,
+      type: 'success',
+    });
+  };
+
   return (
     <div className="min-h-screen bg-[#f7f7f5] dark:bg-[#171916] text-[#20211f] dark:text-[#f1f2ee] transition-colors duration-150">
       {/* Workspace Leads Header */}
@@ -1151,6 +1194,32 @@ export default function LeadsPage() {
             >
               <UploadCloud className="w-4 h-4 text-[#777a74] dark:text-[#a2a69e]" />
               <span>Import CSV</span>
+            </button>
+
+            {/* Download CSV */}
+            <button
+              onClick={() => {
+                if (selectedIds.size > 0 || (filtered.length > 0 && filtered.length !== businesses.length)) {
+                  setExportScope(selectedIds.size > 0 ? 'selected' : 'filtered');
+                  setShowExportModal(true);
+                } else {
+                  handleExportCsv('all');
+                }
+              }}
+              title="Download leads as CSV spreadsheet"
+              className="inline-flex items-center gap-2 rounded-lg border border-[#dfe2dc] dark:border-white/10 bg-white dark:bg-[#1e211d] px-3.5 py-2 text-sm font-medium text-[#20211f] dark:text-[#f1f2ee] hover:border-[#aab4a6] transition shadow-sm"
+            >
+              <Download className="w-4 h-4 text-[#777a74] dark:text-[#a2a69e]" />
+              <span>Download CSV</span>
+              {selectedIds.size > 0 ? (
+                <span className="px-1.5 py-0.5 rounded-full text-xs font-mono bg-[#4f6653]/10 text-[#4f6653] dark:text-[#afc6ad] font-semibold">
+                  {selectedIds.size}
+                </span>
+              ) : (
+                <span className="px-1.5 py-0.5 rounded-full text-xs font-mono bg-black/5 dark:bg-white/10 text-[#777a74] dark:text-[#a2a69e]">
+                  {businesses.length}
+                </span>
+              )}
             </button>
 
             {/* 2. Enrich */}
@@ -1802,6 +1871,15 @@ export default function LeadsPage() {
           >
             <Trash2 className="w-3 h-3" />
             <span>Delete ({selectedIds.size})</span>
+          </button>
+
+          <button
+            onClick={() => handleExportCsv('selected')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition"
+            title="Download selected leads as CSV"
+          >
+            <Download className="w-3 h-3 text-[#afc6ad]" />
+            <span>Download CSV ({selectedIds.size})</span>
           </button>
 
           <button
@@ -3066,6 +3144,168 @@ export default function LeadsPage() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* CSV Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-[#1e211d] border border-[#e8e9e5] dark:border-white/10 rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-[#e8e9e5] dark:border-white/[0.08]">
+              <div className="flex items-center space-x-2.5">
+                <div className="p-2 rounded-lg bg-[#4f6653]/10 text-[#4f6653] dark:text-[#afc6ad]">
+                  <Download className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-base text-[#20211f] dark:text-[#f1f2ee]">
+                    Download Leads as CSV
+                  </h3>
+                  <p className="text-xs text-[#777a74] dark:text-[#a2a69e]">
+                    Export standard RFC 4180 spreadsheet for Excel & Sheets
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="text-[#777a74] hover:text-[#20211f] dark:hover:text-white p-1 rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-xs font-semibold text-[#777a74] dark:text-[#a2a69e] uppercase tracking-wider">
+                Select Scope
+              </label>
+
+              <div className="space-y-2">
+                {/* Option 1: All Leads */}
+                <label
+                  className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition ${
+                    exportScope === 'all'
+                      ? 'border-[#4f6653] bg-[#4f6653]/5 dark:bg-[#4f6653]/10'
+                      : 'border-[#e8e9e5] dark:border-white/10 hover:bg-[#fafaf8] dark:hover:bg-[#252824]'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="radio"
+                      name="exportScope"
+                      value="all"
+                      checked={exportScope === 'all'}
+                      onChange={() => setExportScope('all')}
+                      className="text-[#4f6653] focus:ring-[#4f6653]"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-[#20211f] dark:text-[#f1f2ee]">
+                        All Leads in Workspace
+                      </div>
+                      <div className="text-xs text-[#777a74] dark:text-[#a2a69e]">
+                        Complete prospect list with contacts & scores
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[#777a74] dark:text-[#a2a69e]">
+                    {businesses.length}
+                  </span>
+                </label>
+
+                {/* Option 2: Filtered Leads */}
+                {filtered.length !== businesses.length && (
+                  <label
+                    className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition ${
+                      exportScope === 'filtered'
+                        ? 'border-[#4f6653] bg-[#4f6653]/5 dark:bg-[#4f6653]/10'
+                        : 'border-[#e8e9e5] dark:border-white/10 hover:bg-[#fafaf8] dark:hover:bg-[#252824]'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="radio"
+                        name="exportScope"
+                        value="filtered"
+                        checked={exportScope === 'filtered'}
+                        onChange={() => setExportScope('filtered')}
+                        className="text-[#4f6653] focus:ring-[#4f6653]"
+                      />
+                      <div>
+                        <div className="text-sm font-medium text-[#20211f] dark:text-[#f1f2ee]">
+                          Current Filtered View
+                        </div>
+                        <div className="text-xs text-[#777a74] dark:text-[#a2a69e]">
+                          Leads matching current search and tab filters
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[#777a74] dark:text-[#a2a69e]">
+                      {filtered.length}
+                    </span>
+                  </label>
+                )}
+
+                {/* Option 3: Selected Leads */}
+                {selectedIds.size > 0 && (
+                  <label
+                    className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition ${
+                      exportScope === 'selected'
+                        ? 'border-[#4f6653] bg-[#4f6653]/5 dark:bg-[#4f6653]/10'
+                        : 'border-[#e8e9e5] dark:border-white/10 hover:bg-[#fafaf8] dark:hover:bg-[#252824]'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="radio"
+                        name="exportScope"
+                        value="selected"
+                        checked={exportScope === 'selected'}
+                        onChange={() => setExportScope('selected')}
+                        className="text-[#4f6653] focus:ring-[#4f6653]"
+                      />
+                      <div>
+                        <div className="text-sm font-medium text-[#20211f] dark:text-[#f1f2ee]">
+                          Selected Leads Only
+                        </div>
+                        <div className="text-xs text-[#777a74] dark:text-[#a2a69e]">
+                          Only the leads you manually checked in the table
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-[#4f6653]/10 text-[#4f6653] dark:text-[#afc6ad]">
+                      {selectedIds.size}
+                    </span>
+                  </label>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-[#fafaf8] dark:bg-[#232622] rounded-xl p-3.5 border border-[#e8e9e5] dark:border-white/[0.08] text-xs text-[#777a74] dark:text-[#a2a69e] space-y-1">
+              <div className="flex items-center gap-1.5 font-medium text-[#20211f] dark:text-[#f1f2ee]">
+                <FileSpreadsheet className="w-3.5 h-3.5 text-[#4f6653] dark:text-[#afc6ad]" />
+                <span>Includes complete data schema:</span>
+              </div>
+              <p className="leading-relaxed">
+                Company name, website, verified emails, phone numbers, contact names & roles, location, outreach status, confidence scores, and partner allotments.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#e8e9e5] dark:border-white/[0.08]">
+              <button
+                type="button"
+                onClick={() => setShowExportModal(false)}
+                className="px-4 py-2 rounded-lg text-sm text-[#777a74] dark:text-[#a2a69e] hover:bg-black/5 dark:hover:bg-white/5 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExportCsv()}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4f6653] hover:bg-[#405444] text-white text-sm font-medium transition shadow-sm"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download CSV</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
