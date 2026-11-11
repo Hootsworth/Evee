@@ -5,6 +5,11 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { decryptSecret } from '@/lib/compliance/encryption';
 import { getEmailProvider } from '@/lib/providers/email';
 import { checkSuppression, normalizeEmail } from '@/lib/compliance/suppression';
+import {
+  selectNextSendingMailbox,
+  recordMailboxSend,
+  recordMailboxFailure,
+} from '@/lib/deliverability/rotator';
 
 export async function isSuppressed(
   identifier: { email?: string | null },
@@ -50,6 +55,8 @@ export interface DispatchEmailResult {
   providerMessageId?: string;
   error?: string;
   suppressed?: boolean;
+  rotatedMailbox?: string;
+  domain?: string;
 }
 
 export async function getActiveEmailProvider(organizationId?: string | null) {
@@ -137,7 +144,21 @@ export async function sendEmailWithSafetyChecks(options: DispatchEmailOptions): 
     }
   }
 
-  const { provider, fromEmail, isConfigured } = await getActiveEmailProvider(options.organizationId);
+  // Deliverability Gate: Multi-Inbox Rotation & Spacing Engine
+  let rotatedSelection: Awaited<ReturnType<typeof selectNextSendingMailbox>> = null;
+  if (options.organizationId && !options.isTestSend) {
+    try {
+      rotatedSelection = await selectNextSendingMailbox({
+        organizationId: options.organizationId,
+        recipientEmail: recipient,
+      });
+    } catch (e) {
+      console.warn('Mailbox rotation lookup skipped:', e);
+    }
+  }
+
+  const { provider, fromEmail: defaultFromEmail } = await getActiveEmailProvider(options.organizationId);
+  const effectiveFromEmail = rotatedSelection?.mailbox.email || defaultFromEmail;
 
   const idempotencyKey = options.idempotencyKey || `csv-dispatch-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -146,17 +167,31 @@ export async function sendEmailWithSafetyChecks(options: DispatchEmailOptions): 
     subject: options.subject,
     bodyText: options.bodyText,
     bodyHtml: options.bodyHtml,
-    from: fromEmail,
+    from: effectiveFromEmail,
     idempotencyKey,
   });
 
   if (result.status === 'sent') {
+    if (rotatedSelection && options.organizationId) {
+      await recordMailboxSend(options.organizationId, rotatedSelection.mailbox.id, recipient);
+    }
     return {
       success: true,
       provider: provider.name,
       providerMessageId: result.providerMessageId,
+      rotatedMailbox: rotatedSelection?.mailbox.email,
+      domain: rotatedSelection?.domain.domain,
     };
   } else {
+    if (rotatedSelection && options.organizationId) {
+      const isBounce = result.error?.toLowerCase().includes('bounce') || false;
+      await recordMailboxFailure(
+        options.organizationId,
+        rotatedSelection.mailbox.id,
+        result.error || 'Failed send',
+        isBounce
+      );
+    }
     return {
       success: false,
       provider: provider.name,

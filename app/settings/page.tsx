@@ -26,12 +26,13 @@ import {
   Building2,
   CheckCircle2,
   Zap,
+  Layers,
 } from 'lucide-react';
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'smtp' | 'ai' | 'places' | 'enrichment' | 'connectors' | 'suppression' | 'dns' | 'webhooks' | 'audit'>('smtp');
+  const [activeTab, setActiveTab] = useState<'smtp' | 'ai' | 'places' | 'enrichment' | 'connectors' | 'suppression' | 'dns' | 'webhooks' | 'audit' | 'inbox_pool'>('smtp');
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Connectors & Integrations Hub state
@@ -266,6 +267,187 @@ export default function SettingsPage() {
     }
   }, [activeTab]);
 
+  // Multi-Inbox Pool & Deliverability State
+  const [inboxPoolDomains, setInboxPoolDomains] = useState<any[]>([]);
+  const [inboxPoolMailboxes, setInboxPoolMailboxes] = useState<any[]>([]);
+  const [inboxPoolSummary, setInboxPoolSummary] = useState<any>(null);
+  const [loadingInboxPool, setLoadingInboxPool] = useState(false);
+  const [testingDnsDomainId, setTestingDnsDomainId] = useState<string | null>(null);
+
+  // New Domain form
+  const [showAddDomainModal, setShowAddDomainModal] = useState(false);
+  const [newDomainName, setNewDomainName] = useState('');
+  const [newDomainLimit, setNewDomainLimit] = useState(200);
+  const [addingDomain, setAddingDomain] = useState(false);
+
+  // New Mailbox form
+  const [showAddMailboxModal, setShowAddMailboxModal] = useState(false);
+  const [newMailboxDomainId, setNewMailboxDomainId] = useState('');
+  const [newMailboxEmail, setNewMailboxEmail] = useState('');
+  const [newMailboxSenderName, setNewMailboxSenderName] = useState('');
+  const [newMailboxDailyLimit, setNewMailboxDailyLimit] = useState(40);
+  const [newMailboxProvider, setNewMailboxProvider] = useState<'smtp' | 'google' | 'microsoft' | 'resend'>('smtp');
+  const [newMailboxWarmup, setNewMailboxWarmup] = useState(true);
+  const [addingMailbox, setAddingMailbox] = useState(false);
+
+  const fetchInboxPool = async () => {
+    setLoadingInboxPool(true);
+    try {
+      const res = await fetch('/api/settings/inbox-pool');
+      const data = await res.json();
+      if (res.ok) {
+        setInboxPoolDomains(data.domains || []);
+        setInboxPoolMailboxes(data.mailboxes || []);
+        setInboxPoolSummary(data.summary || null);
+        if (data.domains?.[0] && !newMailboxDomainId) {
+          setNewMailboxDomainId(data.domains[0].id);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load inbox pool:', e);
+    } finally {
+      setLoadingInboxPool(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'inbox_pool') {
+      fetchInboxPool();
+    }
+  }, [activeTab]);
+
+  const handleAddDomain = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newDomainName) return;
+    setAddingDomain(true);
+    try {
+      const res = await fetch('/api/settings/inbox-pool', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_domain',
+          domain: newDomainName,
+          dailyLimit: newDomainLimit,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({ text: `Domain ${newDomainName} registered and verified.`, type: 'success' });
+        setNewDomainName('');
+        setShowAddDomainModal(false);
+        fetchInboxPool();
+      } else {
+        setMessage({ text: data.error || 'Failed to add domain', type: 'error' });
+      }
+    } catch (e: any) {
+      setMessage({ text: e.message, type: 'error' });
+    } finally {
+      setAddingDomain(false);
+    }
+  };
+
+  const handleAddMailbox = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newMailboxEmail || !newMailboxSenderName || !newMailboxDomainId) return;
+    setAddingMailbox(true);
+    try {
+      const res = await fetch('/api/settings/inbox-pool', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_mailbox',
+          domainId: newMailboxDomainId,
+          email: newMailboxEmail,
+          senderName: newMailboxSenderName,
+          dailyLimit: newMailboxDailyLimit,
+          provider: newMailboxProvider,
+          warmupEnabled: newMailboxWarmup,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({ text: `Mailbox ${newMailboxEmail} added to rotation pool.`, type: 'success' });
+        setNewMailboxEmail('');
+        setNewMailboxSenderName('');
+        setShowAddMailboxModal(false);
+        fetchInboxPool();
+      } else {
+        setMessage({ text: data.error || 'Failed to add mailbox', type: 'error' });
+      }
+    } catch (e: any) {
+      setMessage({ text: e.message, type: 'error' });
+    } finally {
+      setAddingMailbox(false);
+    }
+  };
+
+  const handleRemoveDomain = async (domainId: string) => {
+    if (!confirm('Are you sure you want to remove this sending domain? All attached mailboxes will also be removed.')) return;
+    try {
+      const res = await fetch(`/api/settings/inbox-pool?domainId=${encodeURIComponent(domainId)}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setMessage({ text: 'Sending domain removed from pool.', type: 'success' });
+        fetchInboxPool();
+      }
+    } catch (e: any) {
+      setMessage({ text: e.message, type: 'error' });
+    }
+  };
+
+  const handleRemoveMailbox = async (mailboxId: string) => {
+    if (!confirm('Are you sure you want to remove this mailbox from the rotation pool?')) return;
+    try {
+      const res = await fetch(`/api/settings/inbox-pool?mailboxId=${encodeURIComponent(mailboxId)}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setMessage({ text: 'Mailbox removed from pool.', type: 'success' });
+        fetchInboxPool();
+      }
+    } catch (e: any) {
+      setMessage({ text: e.message, type: 'error' });
+    }
+  };
+
+  const handleTestDns = async (domainId: string) => {
+    setTestingDnsDomainId(domainId);
+    try {
+      const res = await fetch('/api/settings/inbox-pool/test-dns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domainId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({ text: `DNS audit complete for ${data.domain?.domain}.`, type: 'success' });
+        fetchInboxPool();
+      } else {
+        setMessage({ text: data.error || 'DNS audit failed', type: 'error' });
+      }
+    } catch (e: any) {
+      setMessage({ text: e.message, type: 'error' });
+    } finally {
+      setTestingDnsDomainId(null);
+    }
+  };
+
+  const handleToggleBreaker = async (domainId: string, currentOverride: boolean) => {
+    try {
+      const res = await fetch('/api/settings/inbox-pool/circuit-breaker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domainId, override: currentOverride }),
+      });
+      if (res.ok) {
+        fetchInboxPool();
+      }
+    } catch (e: any) {
+      setMessage({ text: e.message, type: 'error' });
+    }
+  };
+
   const handleSaveProviders = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setSaving(true);
@@ -464,6 +646,7 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: 'smtp', label: 'Outbound Mailer', icon: Mail, badge: smtpConfigured ? 'Connected' : 'Setup' },
+    { id: 'inbox_pool', label: 'Multi-Inbox Pool', icon: Layers, badge: 'Rotation' },
     { id: 'ai', label: 'AI Engine (Multi-LLM)', icon: Sparkles, badge: aiKeyConfigured ? `${aiProvider.toUpperCase()}` : 'Key Required' },
     { id: 'connectors', label: 'Connectors & Integrations', icon: Cpu, badge: 'Hub' },
     { id: 'dns', label: 'DNS & Deliverability', icon: Globe, badge: 'Pre-Flight' },
@@ -658,6 +841,433 @@ export default function SettingsPage() {
                     </button>
                   </div>
                 </form>
+              </div>
+            )}
+
+            {/* TAB: Multi-Inbox Pool & Rotation Governance */}
+            {activeTab === 'inbox_pool' && (
+              <div className="space-y-6 text-xs font-mono">
+                {/* Header summary */}
+                <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-6 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#ebebeb] dark:border-white/[0.08] gap-3">
+                    <div>
+                      <div className="text-[10px] text-[#71866e] uppercase tracking-widest font-bold">
+                        ENTERPRISE DELIVERABILITY INFRASTRUCTURE
+                      </div>
+                      <h2 className="text-base font-semibold text-black dark:text-white mt-0.5">
+                        Multi-Inbox Rotation & Domain Governance
+                      </h2>
+                      <p className="text-[#959494] text-[11px] mt-0.5 max-w-xl">
+                        Pool sending domains and inboxes. Balances load via Least-Recently-Used rotation, enforces daily mailbox limits (35–50/day), spaces recipient domains, and trips automated circuit breakers.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => setShowAddDomainModal(true)}
+                        className="mono-btn px-3 py-2 bg-black dark:bg-white text-white dark:text-black rounded-[4px] text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>ADD DOMAIN</span>
+                      </button>
+                      <button
+                        onClick={() => setShowAddMailboxModal(true)}
+                        disabled={inboxPoolDomains.length === 0}
+                        className="mono-btn px-3 py-2 border border-[#ebebeb] dark:border-white/[0.15] hover:bg-neutral-100 dark:hover:bg-white/5 rounded-[4px] text-xs font-semibold inline-flex items-center gap-1.5 transition disabled:opacity-50"
+                      >
+                        <Mail className="w-3.5 h-3.5" />
+                        <span>ADD MAILBOX</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Summary Metric Strip */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
+                    <div className="p-3 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-[#fcfcfc] dark:bg-white/[0.02]">
+                      <div className="text-[10px] text-[#959494] uppercase">DOMAINS</div>
+                      <div className="text-xl font-bold text-black dark:text-white mt-0.5">
+                        {inboxPoolSummary?.domainsCount ?? inboxPoolDomains.length}
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-[#fcfcfc] dark:bg-white/[0.02]">
+                      <div className="text-[10px] text-[#959494] uppercase">ACTIVE MAILBOXES</div>
+                      <div className="text-xl font-bold text-black dark:text-white mt-0.5">
+                        {inboxPoolSummary?.activeMailboxesCount ?? inboxPoolMailboxes.length}
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-[#fcfcfc] dark:bg-white/[0.02]">
+                      <div className="text-[10px] text-[#959494] uppercase">DAILY CAPACITY</div>
+                      <div className="text-xl font-bold text-black dark:text-white mt-0.5">
+                        {inboxPoolSummary?.totalDailyCapacity ?? 0}
+                        <span className="text-[10px] font-normal text-[#959494] ml-1">emails/day</span>
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-[#fcfcfc] dark:bg-white/[0.02]">
+                      <div className="text-[10px] text-[#959494] uppercase">AVG BOUNCE RATE</div>
+                      <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                        {((inboxPoolSummary?.averageBounceRate ?? 0) * 100).toFixed(2)}%
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-[#fcfcfc] dark:bg-white/[0.02]">
+                      <div className="text-[10px] text-[#959494] uppercase">CIRCUIT BREAKERS</div>
+                      <div className="text-xl font-bold text-black dark:text-white mt-0.5">
+                        {inboxPoolSummary?.circuitBreakersActive ?? 0}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 1: Connected Sending Domains */}
+                <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-6 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#ebebeb] dark:border-white/[0.08]">
+                    <h3 className="font-semibold text-black dark:text-white uppercase tracking-wider text-[11px]">
+                      Connected Sending Domains ({inboxPoolDomains.length})
+                    </h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    {inboxPoolDomains.map((domain) => (
+                      <div
+                        key={domain.id}
+                        className={`p-4 rounded-[4px] border transition ${
+                          domain.circuitBreakerTripped
+                            ? 'border-rose-500/30 bg-rose-500/5'
+                            : 'border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120]'
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-black dark:text-white">
+                                {domain.domain}
+                              </span>
+                              <span
+                                className={`text-[9px] uppercase px-1.5 py-0.2 rounded-[2px] font-bold ${
+                                  domain.circuitBreakerTripped
+                                    ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                                    : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                                }`}
+                              >
+                                {domain.circuitBreakerTripped ? 'CIRCUIT BREAKER TRIPPED' : 'HEALTHY'}
+                              </span>
+                              {domain.circuitBreakerReason && (
+                                <span className="text-[10px] text-rose-500 truncate max-w-xs">
+                                  ({domain.circuitBreakerReason})
+                                </span>
+                              )}
+                            </div>
+
+                            {/* DNS health indicators */}
+                            <div className="flex items-center gap-2 mt-2">
+                              <span
+                                className={`text-[10px] px-2 py-0.5 rounded-[2px] font-bold ${
+                                  domain.dns?.spf ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-500'
+                                }`}
+                              >
+                                SPF: {domain.dns?.spf ? 'PASS' : 'FAIL'}
+                              </span>
+                              <span
+                                className={`text-[10px] px-2 py-0.5 rounded-[2px] font-bold ${
+                                  domain.dns?.dkim ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-500'
+                                }`}
+                              >
+                                DKIM: {domain.dns?.dkim ? 'PASS' : 'FAIL'}
+                              </span>
+                              <span
+                                className={`text-[10px] px-2 py-0.5 rounded-[2px] font-bold ${
+                                  domain.dns?.dmarc ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-500'
+                                }`}
+                              >
+                                DMARC: {domain.dns?.dmarc ? 'PASS' : 'WARN'}
+                              </span>
+                              <span
+                                className={`text-[10px] px-2 py-0.5 rounded-[2px] font-bold ${
+                                  domain.dns?.mx ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-500'
+                                }`}
+                              >
+                                MX: {domain.dns?.mx ? 'PASS' : 'FAIL'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleTestDns(domain.id)}
+                              disabled={testingDnsDomainId === domain.id}
+                              className="mono-btn px-2.5 py-1.5 border border-[#ebebeb] dark:border-white/10 hover:bg-neutral-100 dark:hover:bg-white/5 rounded-[4px] text-[11px] font-medium transition"
+                            >
+                              <RefreshCw className={`w-3 h-3 inline mr-1 ${testingDnsDomainId === domain.id ? 'animate-spin' : ''}`} />
+                              <span>AUDIT DNS</span>
+                            </button>
+                            <button
+                              onClick={() => handleToggleBreaker(domain.id, domain.circuitBreakerTripped)}
+                              className={`mono-btn px-2.5 py-1.5 rounded-[4px] text-[11px] font-medium transition ${
+                                domain.circuitBreakerTripped
+                                  ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                                  : 'border border-rose-500/30 text-rose-500 hover:bg-rose-500/10'
+                              }`}
+                            >
+                              <span>{domain.circuitBreakerTripped ? 'RESET BREAKER' : 'TRIP BREAKER'}</span>
+                            </button>
+                            <button
+                              onClick={() => handleRemoveDomain(domain.id)}
+                              className="p-1.5 text-[#959494] hover:text-rose-500 transition"
+                              title="Delete Domain"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Section 2: Pooled Mailboxes with Quota Gauges */}
+                <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] p-6 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#ebebeb] dark:border-white/[0.08]">
+                    <h3 className="font-semibold text-black dark:text-white uppercase tracking-wider text-[11px]">
+                      Pooled Mailboxes ({inboxPoolMailboxes.length})
+                    </h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    {inboxPoolMailboxes.map((mailbox) => {
+                      const pctUsed = Math.min(100, Math.round((mailbox.dailySentCount / Math.max(1, mailbox.dailyLimit)) * 100));
+                      return (
+                        <div
+                          key={mailbox.id}
+                          className="p-4 rounded-[4px] border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-black dark:text-white truncate">
+                                {mailbox.email}
+                              </span>
+                              <span className="text-[10px] text-[#959494]">
+                                ({mailbox.senderName})
+                              </span>
+                              <span
+                                className={`text-[9px] uppercase px-1.5 py-0.2 rounded-[2px] font-bold ${
+                                  mailbox.status === 'active'
+                                    ? 'bg-emerald-500/10 text-emerald-500'
+                                    : mailbox.status === 'warming'
+                                    ? 'bg-blue-500/10 text-blue-500'
+                                    : 'bg-amber-500/10 text-amber-500'
+                                }`}
+                              >
+                                {mailbox.status}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-4 mt-2 text-[11px] text-[#959494]">
+                              <span>Provider: <strong>{mailbox.provider.toUpperCase()}</strong></span>
+                              <span>Domain: <strong>{mailbox.domainName}</strong></span>
+                              {mailbox.warmupEnabled && (
+                                <span className="text-blue-500">Warmup Active</span>
+                              )}
+                              {mailbox.lastUsedAt && (
+                                <span>Last sent: {new Date(mailbox.lastUsedAt).toLocaleTimeString()}</span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-4 shrink-0">
+                            {/* Daily send quota gauge */}
+                            <div className="w-36 text-right">
+                              <div className="flex justify-between text-[10px] text-[#959494] mb-1">
+                                <span>Daily Usage</span>
+                                <span className="font-bold text-black dark:text-white">
+                                  {mailbox.dailySentCount} / {mailbox.dailyLimit}
+                                </span>
+                              </div>
+                              <div className="w-full h-1.5 bg-neutral-100 dark:bg-white/10 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full transition-all duration-300 ${
+                                    pctUsed >= 100
+                                      ? 'bg-amber-500'
+                                      : pctUsed >= 80
+                                      ? 'bg-blue-500'
+                                      : 'bg-emerald-500'
+                                  }`}
+                                  style={{ width: `${pctUsed}%` }}
+                                />
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={() => handleRemoveMailbox(mailbox.id)}
+                              className="p-1.5 text-[#959494] hover:text-rose-500 transition"
+                              title="Delete Mailbox"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Deliverability Safeguards Explainer */}
+                <div className="p-4 rounded-[4px] border border-[#71866e]/30 bg-[#71866e]/5 text-black dark:text-white space-y-1.5">
+                  <div className="font-bold text-[11px] text-[#71866e] uppercase tracking-wider">
+                    AUTOMATED ROTATION & LOAD BALANCING SAFEGUARDS
+                  </div>
+                  <p className="text-[11px] text-[#959494] leading-relaxed">
+                    Outreach dispatches automatically select the least-utilized healthy mailbox in the pool. When an inbox reaches its daily ceiling (35–50 sends), the engine seamlessly rolls over to subsequent inboxes. If an inbox experiences a bounce rate exceeding 2.0% or fails DKIM/SPF checks, an automated circuit breaker immediately isolates the domain to protect overall enterprise deliverability.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Add Sending Domain Modal */}
+            {showAddDomainModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm font-mono text-xs">
+                <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] w-full max-w-md p-6 space-y-4 shadow-2xl">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#ebebeb] dark:border-white/[0.08]">
+                    <span className="font-bold text-sm text-black dark:text-white uppercase">ADD SENDING DOMAIN</span>
+                    <button onClick={() => setShowAddDomainModal(false)} className="text-[#959494] hover:text-black dark:hover:text-white">✕</button>
+                  </div>
+
+                  <form onSubmit={handleAddDomain} className="space-y-4">
+                    <div>
+                      <label className="block text-[#959494] uppercase mb-1">DOMAIN NAME</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. outreach-team.com"
+                        value={newDomainName}
+                        onChange={(e) => setNewDomainName(e.target.value)}
+                        className="w-full border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-2.5 text-black dark:text-white"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[#959494] uppercase mb-1">MAX DAILY SENDS (DOMAIN CAP)</label>
+                      <input
+                        type="number"
+                        min="20"
+                        max="1000"
+                        value={newDomainLimit}
+                        onChange={(e) => setNewDomainLimit(Number(e.target.value))}
+                        className="w-full border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-2.5 text-black dark:text-white"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t border-[#ebebeb] dark:border-white/[0.08]">
+                      <button
+                        type="button"
+                        onClick={() => setShowAddDomainModal(false)}
+                        className="mono-btn px-3 py-2 border border-[#ebebeb] dark:border-white/10 text-[#959494] rounded-[4px]"
+                      >
+                        CANCEL
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={addingDomain || !newDomainName}
+                        className="mono-btn px-3 py-2 bg-black dark:bg-white text-white dark:text-black rounded-[4px] font-semibold"
+                      >
+                        {addingDomain ? 'AUDITING DNS...' : 'REGISTER & VERIFY'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Add Mailbox Modal */}
+            {showAddMailboxModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm font-mono text-xs">
+                <div className="bg-white dark:bg-[#010120] border border-[#ebebeb] dark:border-white/[0.08] rounded-[4px] w-full max-w-md p-6 space-y-4 shadow-2xl">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#ebebeb] dark:border-white/[0.08]">
+                    <span className="font-bold text-sm text-black dark:text-white uppercase">ADD POOLED MAILBOX</span>
+                    <button onClick={() => setShowAddMailboxModal(false)} className="text-[#959494] hover:text-black dark:hover:text-white">✕</button>
+                  </div>
+
+                  <form onSubmit={handleAddMailbox} className="space-y-4">
+                    <div>
+                      <label className="block text-[#959494] uppercase mb-1">SELECT SENDING DOMAIN</label>
+                      <select
+                        value={newMailboxDomainId}
+                        onChange={(e) => setNewMailboxDomainId(e.target.value)}
+                        className="w-full border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-2.5 text-black dark:text-white"
+                        required
+                      >
+                        {inboxPoolDomains.map((d) => (
+                          <option key={d.id} value={d.id}>{d.domain}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[#959494] uppercase mb-1">EMAIL ADDRESS</label>
+                      <input
+                        type="email"
+                        placeholder="e.g. sarah@tryevee.com"
+                        value={newMailboxEmail}
+                        onChange={(e) => setNewMailboxEmail(e.target.value)}
+                        className="w-full border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-2.5 text-black dark:text-white"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[#959494] uppercase mb-1">SENDER DISPLAY NAME</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Sarah Chen"
+                        value={newMailboxSenderName}
+                        onChange={(e) => setNewMailboxSenderName(e.target.value)}
+                        className="w-full border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-2.5 text-black dark:text-white"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[#959494] uppercase mb-1">DAILY LIMIT (RECOMMENDED: 35-50)</label>
+                      <input
+                        type="number"
+                        min="5"
+                        max="200"
+                        value={newMailboxDailyLimit}
+                        onChange={(e) => setNewMailboxDailyLimit(Number(e.target.value))}
+                        className="w-full border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-2.5 text-black dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[#959494] uppercase mb-1">MAIL PROVIDER</label>
+                      <select
+                        value={newMailboxProvider}
+                        onChange={(e) => setNewMailboxProvider(e.target.value as any)}
+                        className="w-full border border-[#ebebeb] dark:border-white/[0.08] bg-white dark:bg-[#010120] rounded-[4px] p-2.5 text-black dark:text-white"
+                      >
+                        <option value="smtp">SMTP / App Password</option>
+                        <option value="google">Google Workspace</option>
+                        <option value="microsoft">Microsoft 365</option>
+                        <option value="resend">Resend</option>
+                      </select>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t border-[#ebebeb] dark:border-white/[0.08]">
+                      <button
+                        type="button"
+                        onClick={() => setShowAddMailboxModal(false)}
+                        className="mono-btn px-3 py-2 border border-[#ebebeb] dark:border-white/10 text-[#959494] rounded-[4px]"
+                      >
+                        CANCEL
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={addingMailbox || !newMailboxEmail || !newMailboxSenderName}
+                        className="mono-btn px-3 py-2 bg-black dark:bg-white text-white dark:text-black rounded-[4px] font-semibold"
+                      >
+                        {addingMailbox ? 'ADDING...' : 'ADD TO POOL'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
             )}
 
