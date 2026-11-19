@@ -13,6 +13,7 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
   const isAuthPage = pathname === '/auth';
+  const isPartnerPortal = pathname.startsWith('/partner') && pathname !== '/partners';
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -41,7 +42,7 @@ export default function RootLayout({
         <ThemeProvider>
           {!isAuthPage && <NavBar />}
           <main className="flex-1 flex flex-col">{children}</main>
-          {!isAuthPage && <Footer />}
+          {!isAuthPage && !isPartnerPortal && <Footer />}
         </ThemeProvider>
       </body>
     </html>
