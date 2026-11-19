@@ -59,13 +59,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Recipients array is required for live dispatch' }, { status: 400 });
     }
 
-    const allottedIds = new Set(await getPartnerAllottedLeadIds(partner.id));
+    const allottedIds = new Set(await getPartnerAllottedLeadIds(partner.id, partner.organizationId));
     const admin = createAdminClient();
 
     // Check sent emails to avoid duplicates
-    const { data: previousSends } = await admin
+    let previousSendsQuery = admin
       .from('outreach_messages')
       .select('recipient_email, business_id');
+    if (partner.organizationId) previousSendsQuery = previousSendsQuery.eq('organization_id', partner.organizationId);
+    const { data: previousSends } = await previousSendsQuery;
 
     const sentEmailsSet = new Set(
       (previousSends || []).map((s) => s.recipient_email?.toLowerCase().trim()).filter(Boolean)
@@ -126,6 +128,7 @@ export async function POST(req: NextRequest) {
         if (sendRes.success) {
           // Record in outreach_messages with partner tag
           await admin.from('outreach_messages').insert({
+            organization_id: partner.organizationId,
             business_id: bizId || null,
             recipient_email: normEmail,
             subject: renderedSubject,

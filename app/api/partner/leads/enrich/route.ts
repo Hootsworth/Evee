@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { businessId, enrichAllMissing } = body;
 
-    const allottedIds = await getPartnerAllottedLeadIds(partner.id);
+    const allottedIds = await getPartnerAllottedLeadIds(partner.id, partner.organizationId);
     if (allottedIds.length === 0) {
       return NextResponse.json({ error: 'No leads allotted to your account' }, { status: 400 });
     }
@@ -30,18 +30,21 @@ export async function POST(req: NextRequest) {
       if (!allottedIds.includes(businessId)) {
         return NextResponse.json({ error: 'Unauthorized: Lead not allotted to your account' }, { status: 403 });
       }
-      const { data: b } = await admin
+      let businessQuery = admin
         .from('businesses')
         .select('id, display_name, official_website_url, city, general_business_email')
-        .eq('id', businessId)
-        .single();
+        .eq('id', businessId);
+      if (partner.organizationId) businessQuery = businessQuery.eq('organization_id', partner.organizationId);
+      const { data: b } = await businessQuery.single();
       if (b) targetBusinesses.push(b);
     } else if (enrichAllMissing) {
-      const { data: bList } = await admin
+      let businessesQuery = admin
         .from('businesses')
         .select('id, display_name, official_website_url, city, general_business_email')
         .in('id', allottedIds)
         .is('general_business_email', null);
+      if (partner.organizationId) businessesQuery = businessesQuery.eq('organization_id', partner.organizationId);
+      const { data: bList } = await businessesQuery;
       targetBusinesses = bList || [];
     }
 
@@ -67,10 +70,12 @@ export async function POST(req: NextRequest) {
         if (discoveredEmail && discoveredEmail.includes('@')) {
           const normEmail = normalizeEmail(discoveredEmail);
 
-          await admin
+          let updateQuery = admin
             .from('businesses')
             .update({ general_business_email: normEmail })
             .eq('id', b.id);
+          if (partner.organizationId) updateQuery = updateQuery.eq('organization_id', partner.organizationId);
+          await updateQuery;
 
           await admin.from('contacts').insert({
             business_id: b.id,

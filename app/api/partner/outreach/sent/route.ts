@@ -13,14 +13,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthenticated partner' }, { status: 401 });
     }
 
-    const allottedIds = await getPartnerAllottedLeadIds(partner.id);
+    const allottedIds = await getPartnerAllottedLeadIds(partner.id, partner.organizationId);
     const admin = createAdminClient();
 
     // Fetch messages where either metadata.partnerId === partner.id OR business_id in allottedIds
-    const { data: messages } = await admin
+    let messagesQuery = admin
       .from('outreach_messages')
       .select('id, business_id, recipient_email, subject, sent_at, delivery_status, metadata')
       .order('sent_at', { ascending: false });
+    if (partner.organizationId) messagesQuery = messagesQuery.eq('organization_id', partner.organizationId);
+    const { data: messages } = await messagesQuery;
 
     const partnerSentRecords = (messages || []).filter((m) => {
       const pId = (m.metadata as any)?.partnerId;

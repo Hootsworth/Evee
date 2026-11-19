@@ -31,20 +31,24 @@ interface PartnerStoreData {
   leadAssignments: Record<string, LeadAssignment>; // businessId -> LeadAssignment
 }
 
-const CACHE_FILE_PATH = path.join(process.cwd(), 'data', 'partner_store.json');
+function getCacheFilePath(orgId?: string) {
+  const cacheName = orgId ? `partner_store_${orgId.replace(/[^a-zA-Z0-9_-]/g, '_')}.json` : 'partner_store.json';
+  return path.join(process.cwd(), 'data', cacheName);
+}
 
-function ensureDataDirectory() {
-  const dir = path.dirname(CACHE_FILE_PATH);
+function ensureDataDirectory(orgId?: string) {
+  const dir = path.dirname(getCacheFilePath(orgId));
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
 }
 
-function readLocalCache(): PartnerStoreData {
+function readLocalCache(orgId?: string): PartnerStoreData {
   try {
-    ensureDataDirectory();
-    if (fs.existsSync(CACHE_FILE_PATH)) {
-      const raw = fs.readFileSync(CACHE_FILE_PATH, 'utf-8');
+    const cachePath = getCacheFilePath(orgId);
+    ensureDataDirectory(orgId);
+    if (fs.existsSync(cachePath)) {
+      const raw = fs.readFileSync(cachePath, 'utf-8');
       const parsed = JSON.parse(raw);
       return {
         partners: Array.isArray(parsed.partners) ? parsed.partners : [],
@@ -57,10 +61,11 @@ function readLocalCache(): PartnerStoreData {
   return { partners: [], leadAssignments: {} };
 }
 
-function writeLocalCache(data: PartnerStoreData) {
+function writeLocalCache(data: PartnerStoreData, orgId?: string) {
   try {
-    ensureDataDirectory();
-    fs.writeFileSync(CACHE_FILE_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    const cachePath = getCacheFilePath(orgId);
+    ensureDataDirectory(orgId);
+    fs.writeFileSync(cachePath, JSON.stringify(data, null, 2), 'utf-8');
   } catch (err) {
     console.warn('Could not write local partner cache:', err);
   }
@@ -105,7 +110,7 @@ async function saveOrgSettings(orgId: string, settings: any): Promise<boolean> {
  * Loads all partners and lead assignments combining remote Supabase settings with local cache fallback.
  */
 export async function getStoreData(orgId?: string): Promise<PartnerStoreData> {
-  const local = readLocalCache();
+  const local = readLocalCache(orgId);
   const remote = await getOrgSettings(orgId);
 
   if (remote && remote.settings) {
@@ -113,13 +118,13 @@ export async function getStoreData(orgId?: string): Promise<PartnerStoreData> {
     const remoteAssignments = remote.settings.leadAssignments;
 
     if (Array.isArray(remotePartners)) {
-      local.partners = remotePartners;
+      local.partners = remotePartners.map((partner: Partner) => ({ ...partner, organizationId: remote.orgId }));
     }
     if (remoteAssignments && typeof remoteAssignments === 'object') {
       local.leadAssignments = remoteAssignments;
     }
     // Keep local cache synced
-    writeLocalCache(local);
+    writeLocalCache(local, remote.orgId);
   }
 
   return local;
@@ -129,7 +134,7 @@ export async function getStoreData(orgId?: string): Promise<PartnerStoreData> {
  * Saves store data to both Supabase organization settings and local file cache.
  */
 export async function saveStoreData(data: PartnerStoreData, orgId?: string): Promise<void> {
-  writeLocalCache(data);
+  writeLocalCache(data, orgId);
   const remote = await getOrgSettings(orgId);
   if (remote) {
     const newSettings = {
@@ -151,14 +156,57 @@ export async function getAllPartners(orgId?: string): Promise<Partner[]> {
 }
 
 export async function getPartnerById(partnerId: string, orgId?: string): Promise<Partner | null> {
-  const store = await getStoreData(orgId);
+  if (orgId) {
+    const store = await getStoreData(orgId);
+    return store.partners.find((p) => p.id === partnerId) || null;
+  }
+
+  const organizations = await getAllOrganizationPartnerStores();
+  for (const store of organizations) {
+    const partner = store.partners.find((item) => item.id === partnerId);
+    if (partner) return partner;
+  }
+  const store = await getStoreData();
   return store.partners.find((p) => p.id === partnerId) || null;
 }
 
 export async function getPartnerByAccessKey(accessKey: string, orgId?: string): Promise<Partner | null> {
-  const store = await getStoreData(orgId);
   const cleanKey = accessKey.trim().toLowerCase();
+  if (orgId) {
+    const store = await getStoreData(orgId);
+    return store.partners.find((p) => p.accessKey.trim().toLowerCase() === cleanKey && p.status === 'active') || null;
+  }
+
+  const organizations = await getAllOrganizationPartnerStores();
+  for (const store of organizations) {
+    const partner = store.partners.find((item) => item.accessKey.trim().toLowerCase() === cleanKey && item.status === 'active');
+    if (partner) return partner;
+  }
+  const store = await getStoreData();
   return store.partners.find((p) => p.accessKey.trim().toLowerCase() === cleanKey && p.status === 'active') || null;
+}
+
+async function getAllOrganizationPartnerStores(): Promise<PartnerStoreData[]> {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.from('organizations').select('id, settings');
+    if (error || !data) return [];
+    return data.map((organization) => {
+      const settings = organization.settings || {};
+      return {
+        partners: Array.isArray(settings.partners)
+          ? settings.partners.map((partner: Partner) => ({ ...partner, organizationId: organization.id }))
+          : [],
+        leadAssignments: settings.leadAssignments && typeof settings.leadAssignments === 'object'
+          ? settings.leadAssignments
+          : {},
+      };
+    });
+  } catch (err) {
+    console.warn('Error fetching organization partner stores:', err);
+    return [];
+  }
 }
 
 export async function createPartner(
@@ -189,6 +237,7 @@ export async function createPartner(
     company: partnerInput.company?.trim() || '',
     notes: partnerInput.notes?.trim() || '',
     status: 'active',
+    organizationId: orgId,
     createdAt: now,
     updatedAt: now,
   };

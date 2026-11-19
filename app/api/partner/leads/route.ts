@@ -15,20 +15,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthenticated partner' }, { status: 401 });
     }
 
-    const allottedIds = await getPartnerAllottedLeadIds(partner.id);
+    const allottedIds = await getPartnerAllottedLeadIds(partner.id, partner.organizationId);
     if (allottedIds.length === 0) {
       return NextResponse.json({ businesses: [], partner });
     }
 
     const admin = createAdminClient();
-    const { data: businesses, error } = await admin
+    let businessesQuery = admin
       .from('businesses')
       .select(`
         *,
         contacts (*)
       `)
-      .in('id', allottedIds)
-      .order('created_at', { ascending: false });
+      .in('id', allottedIds);
+    if (partner.organizationId) businessesQuery = businessesQuery.eq('organization_id', partner.organizationId);
+    const { data: businesses, error } = await businessesQuery.order('created_at', { ascending: false });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -62,14 +63,7 @@ export async function POST(req: NextRequest) {
     }
 
     const admin = createAdminClient();
-    // Default organization for the workspace
-    const { data: org } = await admin
-      .from('organizations')
-      .select('id')
-      .eq('slug', 'primary-workspace')
-      .maybeSingle();
-
-    const orgId = org?.id || undefined;
+    const orgId = partner.organizationId;
     const insertedIds: string[] = [];
 
     for (const item of leads) {
@@ -151,7 +145,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Security check: verify this lead is allotted to this partner
-    const allottedIds = await getPartnerAllottedLeadIds(partner.id);
+    const allottedIds = await getPartnerAllottedLeadIds(partner.id, partner.organizationId);
     if (!allottedIds.includes(businessId)) {
       return NextResponse.json({ error: 'Unauthorized: Lead is not allotted to your account' }, { status: 403 });
     }

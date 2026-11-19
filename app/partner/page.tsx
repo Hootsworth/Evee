@@ -236,11 +236,13 @@ function PartnerPortalContent() {
 
       if (leadsRes.ok) {
         const leadsData = await leadsRes.json();
-        setLeads(leadsData.leads || []);
+        // The partner API returns assigned business records as `businesses`.
+        // Accept `leads` too so older/newer API versions remain compatible.
+        setLeads(leadsData.businesses || leadsData.leads || []);
       }
       if (sentRes.ok) {
         const sentData = await sentRes.json();
-        setSentMessages(sentData.messages || []);
+        setSentMessages(sentData.messages || sentData.sentRecords || []);
       }
     } catch (err: any) {
       console.error('[partner portal] data error:', err);
