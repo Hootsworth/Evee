@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { normalizeEmail, normalizePhone } from '@/lib/compliance/suppression';
 import { getUserContext } from '@/lib/auth/context';
-import { assertAuthenticated } from '@/lib/auth/rbac';
+import { assertAuthenticated, assertAuthorized } from '@/lib/auth/rbac';
 
 export async function GET() {
   try {
@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
   try {
     const userCtx = await getUserContext();
     assertAuthenticated(userCtx);
+    assertAuthorized(userCtx, 'operator');
 
     const body = await req.json();
     const admin = createAdminClient();
@@ -65,6 +66,7 @@ export async function DELETE(req: NextRequest) {
   try {
     const userCtx = await getUserContext();
     assertAuthenticated(userCtx);
+    assertAuthorized(userCtx, 'operator');
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');

@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import dns from 'dns';
+import { getUserContext } from '@/lib/auth/context';
+import { assertAuthenticated, assertAuthorized } from '@/lib/auth/rbac';
 
 export async function POST(req: Request) {
   try {
+    const userCtx = await getUserContext(req);
+    assertAuthenticated(userCtx);
+    assertAuthorized(userCtx, 'operator');
+
     const { domain } = await req.json();
 
     if (!domain || typeof domain !== 'string') {
@@ -105,6 +111,7 @@ export async function POST(req: Request) {
       });
     }
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const status = err.statusCode || (err.message?.includes('Unauthenticated') ? 401 : 500);
+    return NextResponse.json({ error: err.message }, { status });
   }
 }

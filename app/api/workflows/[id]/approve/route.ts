@@ -9,7 +9,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const userCtx = await getUserContext();
     assertAuthenticated(userCtx);
-    assertAuthorized(userCtx, 'admin');
+    assertAuthorized(userCtx, 'manager');
 
     const { id } = await params;
     const admin = createAdminClient();

@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updatePartner, deletePartner, getPartnerById } from '@/lib/services/partner-store';
 import { getUserContext } from '@/lib/auth/context';
-import { assertAuthenticated } from '@/lib/auth/rbac';
+import { assertAuthenticated, assertAuthorized } from '@/lib/auth/rbac';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -19,7 +19,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     return NextResponse.json({ success: true, partner });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const status = err.statusCode || (err.message?.includes('Unauthenticated') ? 401 : 500);
+    return NextResponse.json({ error: err.message }, { status });
   }
 }
 
@@ -27,6 +28,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const userCtx = await getUserContext();
     assertAuthenticated(userCtx);
+    assertAuthorized(userCtx, 'manager');
 
     const { id } = await params;
     const body = await req.json();
@@ -38,7 +40,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     return NextResponse.json({ success: true, partner: updated });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const status = err.statusCode || (err.message?.includes('Unauthenticated') ? 401 : 500);
+    return NextResponse.json({ error: err.message }, { status });
   }
 }
 
@@ -46,6 +49,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const userCtx = await getUserContext();
     assertAuthenticated(userCtx);
+    assertAuthorized(userCtx, 'manager');
 
     const { id } = await params;
     const deleted = await deletePartner(id, userCtx.organizationId);

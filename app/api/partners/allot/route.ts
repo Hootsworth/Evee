@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { allotLeadsToPartner, getAllotments, getAllPartners } from '@/lib/services/partner-store';
 import { getUserContext } from '@/lib/auth/context';
-import { assertAuthenticated } from '@/lib/auth/rbac';
+import { assertAuthenticated, assertAuthorized } from '@/lib/auth/rbac';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET() {
@@ -37,7 +37,8 @@ export async function GET() {
       totalAllotted: Object.keys(allotments).length,
     });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const status = err.statusCode || (err.message?.includes('Unauthenticated') ? 401 : 500);
+    return NextResponse.json({ error: err.message }, { status });
   }
 }
 
@@ -45,6 +46,7 @@ export async function POST(req: NextRequest) {
   try {
     const userCtx = await getUserContext();
     assertAuthenticated(userCtx);
+    assertAuthorized(userCtx, 'manager');
 
     const body = await req.json();
     const { businessIds, partnerId } = body;

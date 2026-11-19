@@ -1,7 +1,11 @@
 // Evee - Role-Based Access Control (RBAC) System
-// Roles: admin (full control), operator (drafts, discovery, outreach), viewer (read-only)
+// Roles: admin (workspace control), manager (team and operational control), operator (daily work), viewer (read-only)
 
-export type UserRole = 'admin' | 'operator' | 'viewer';
+export type UserRole = 'admin' | 'manager' | 'operator' | 'viewer';
+
+export function isUserRole(role: unknown): role is UserRole {
+  return role === 'admin' || role === 'manager' || role === 'operator' || role === 'viewer';
+}
 
 export interface Organization {
   id: string;
@@ -44,7 +48,8 @@ export class AuthorizationError extends Error {
 }
 
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
-  admin: 3,
+  admin: 4,
+  manager: 3,
   operator: 2,
   viewer: 1,
 };

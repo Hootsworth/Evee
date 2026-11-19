@@ -2,7 +2,7 @@
 // Enforces cryptographic session verification and database-backed organization membership checks.
 // NEVER trusts client-supplied role or organization headers.
 
-import { UserContext, UserRole, AuthenticationError, AuthorizationError } from './rbac';
+import { UserContext, UserRole, AuthenticationError, AuthorizationError, isUserRole } from './rbac';
 import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
 
 export interface ResolveContextOptions {
@@ -102,7 +102,10 @@ export async function resolveUserContext(
         }
 
         const orgRecord = (activeMembership as any).organizations;
-        const verifiedRole = activeMembership.role as UserRole;
+        if (!isUserRole(activeMembership.role)) {
+          throw new AuthorizationError('Your workspace role is invalid. Ask a workspace administrator to correct your membership.');
+        }
+        const verifiedRole: UserRole = activeMembership.role;
 
         return {
           userId,
