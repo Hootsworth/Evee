@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
         sent_at,
         created_at,
         businesses (id, display_name, general_business_email),
-        contacts (id, email, contact_name),
+        contacts (id, email_address, contact_name),
         email_drafts (id, subject)
       `)
       .eq('organization_id', orgId)
@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
           sentBusinessIdSet.add(msg.business_id);
         }
 
-        const email = (contact?.email || biz?.general_business_email || '').trim().toLowerCase();
+        const email = (contact?.email_address || biz?.general_business_email || '').trim().toLowerCase();
         if (email && email.includes('@')) {
           sentEmailSet.add(email);
           const companyName = biz?.display_name || 'Business Lead';

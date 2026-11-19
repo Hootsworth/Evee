@@ -7,6 +7,7 @@ import { getPartnerAllottedLeadIds, allotLeadsToPartner } from '@/lib/services/p
 import { createAdminClient } from '@/lib/supabase/admin';
 import { normalizeBusinessName, extractCanonicalDomain } from '@/lib/normalization/deduplication';
 import { normalizeEmail } from '@/lib/compliance/suppression';
+import type { PartnerLeadsResponse } from '@/lib/types';
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,7 +18,11 @@ export async function GET(req: NextRequest) {
 
     const allottedIds = await getPartnerAllottedLeadIds(partner.id, partner.organizationId);
     if (allottedIds.length === 0) {
-      return NextResponse.json({ businesses: [], partner });
+      const response: PartnerLeadsResponse = {
+        businesses: [],
+        partner: { id: partner.id, name: partner.name, email: partner.email },
+      };
+      return NextResponse.json(response);
     }
 
     const admin = createAdminClient();
@@ -35,14 +40,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({
+    const response: PartnerLeadsResponse = {
       businesses: businesses || [],
       partner: {
         id: partner.id,
         name: partner.name,
         email: partner.email,
       },
-    });
+    };
+    return NextResponse.json(response);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

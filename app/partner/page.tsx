@@ -31,6 +31,12 @@ import {
   Moon,
   Download,
 } from 'lucide-react';
+import type {
+  AccountWithContacts,
+  PartnerLeadsResponse,
+  PartnerOutreachHistoryResponse,
+  PartnerOutreachRecord,
+} from '@/lib/types';
 import {
   parseAndAnalyzeCsv,
   CsvColumnMapping,
@@ -58,37 +64,8 @@ interface Partner {
   status: 'active' | 'paused';
 }
 
-interface LeadRecord {
-  id: string;
-  display_name: string;
-  official_website_url?: string | null;
-  canonical_domain?: string | null;
-  general_business_email?: string | null;
-  public_business_phone?: string | null;
-  city?: string | null;
-  country_code?: string | null;
-  business_type?: string | null;
-  record_status: string;
-  created_at: string;
-  contacts?: Array<{
-    id: string;
-    contact_name?: string;
-    email_address?: string;
-    phone_number?: string;
-  }>;
-}
-
-interface SentMessage {
-  id: string;
-  recipient_email: string;
-  subject: string;
-  sent_at: string;
-  business_id?: string;
-  delivery_status: string;
-  businesses?: {
-    display_name?: string;
-  };
-}
+type LeadRecord = AccountWithContacts;
+type SentMessage = PartnerOutreachRecord;
 
 function PartnerPortalContent() {
   const searchParams = useSearchParams();
@@ -235,13 +212,13 @@ function PartnerPortalContent() {
       ]);
 
       if (leadsRes.ok) {
-        const leadsData = await leadsRes.json();
+        const leadsData = await leadsRes.json() as Partial<PartnerLeadsResponse>;
         // The partner API returns assigned business records as `businesses`.
         // Accept `leads` too so older/newer API versions remain compatible.
         setLeads(leadsData.businesses || leadsData.leads || []);
       }
       if (sentRes.ok) {
-        const sentData = await sentRes.json();
+        const sentData = await sentRes.json() as PartnerOutreachHistoryResponse;
         setSentMessages(sentData.messages || sentData.sentRecords || []);
       }
     } catch (err: any) {

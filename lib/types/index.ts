@@ -27,6 +27,8 @@ export interface Profile {
 
 export interface Business {
   id: string;
+  /** Tenant that owns this account. Optional while legacy rows are being migrated. */
+  organization_id?: string | null;
   normalized_name: string;
   display_name: string;
   business_type: string;
@@ -46,7 +48,23 @@ export interface Business {
   updated_at: string;
 }
 
+/** Canonical account name used by workspace features. */
+export type Account = Business;
 export type BusinessRecord = Business;
+
+export interface AccountWithContacts extends Account {
+  contacts: Contact[];
+}
+
+export interface BusinessCollectionResponse {
+  businesses: AccountWithContacts[];
+}
+
+export interface PartnerLeadsResponse extends BusinessCollectionResponse {
+  /** Legacy response alias accepted by older portal clients. */
+  leads?: AccountWithContacts[];
+  partner?: { id: string; name: string; email: string };
+}
 
 export interface BusinessSource {
   id: string;
@@ -140,6 +158,27 @@ export interface Contact {
   last_verified_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface PartnerOutreachRecord {
+  id: string;
+  business_id: string | null;
+  recipient_email: string;
+  subject: string;
+  sent_at: string | null;
+  delivery_status: string;
+  metadata: Record<string, unknown> | null;
+  businesses?: { display_name?: string | null } | null;
+}
+
+export interface PartnerOutreachHistoryResponse {
+  success: boolean;
+  messages: PartnerOutreachRecord[];
+  /** Legacy response alias retained while existing clients transition. */
+  sentRecords?: PartnerOutreachRecord[];
+  sentEmails: string[];
+  sentBusinessIds: string[];
+  totalSent: number;
 }
 
 export interface LeadScore {

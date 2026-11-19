@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getUserContext } from '@/lib/auth/context';
 import { assertAuthenticated } from '@/lib/auth/rbac';
+import type { BusinessCollectionResponse } from '@/lib/types';
 
 export async function GET(req: NextRequest) {
   try {
@@ -30,10 +31,11 @@ export async function GET(req: NextRequest) {
 
     const { data: businesses, error } = await query;
     if (error) {
-      return NextResponse.json({ businesses: [] });
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ businesses });
+    const response: BusinessCollectionResponse = { businesses: businesses || [] };
+    return NextResponse.json(response);
   } catch (err: any) {
     const status = err.statusCode || (err.message?.includes('Unauthenticated') ? 401 : 500);
     return NextResponse.json({ error: err.message }, { status });

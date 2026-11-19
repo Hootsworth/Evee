@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { resolvePartnerContext } from '@/lib/auth/partner-context';
 import { getPartnerAllottedLeadIds } from '@/lib/services/partner-store';
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { PartnerOutreachHistoryResponse, PartnerOutreachRecord } from '@/lib/types';
 
 export async function GET(req: NextRequest) {
   try {
@@ -34,13 +35,16 @@ export async function GET(req: NextRequest) {
     const sentEmails = Array.from(new Set(partnerSentRecords.map((r) => r.recipient_email?.toLowerCase().trim()).filter(Boolean)));
     const sentBusinessIds = Array.from(new Set(partnerSentRecords.map((r) => r.business_id).filter(Boolean)));
 
-    return NextResponse.json({
+    const typedRecords = partnerSentRecords as PartnerOutreachRecord[];
+    const response: PartnerOutreachHistoryResponse = {
       success: true,
-      sentRecords: partnerSentRecords,
+      messages: typedRecords,
+      sentRecords: typedRecords,
       sentEmails,
       sentBusinessIds,
       totalSent: partnerSentRecords.length,
-    });
+    };
+    return NextResponse.json(response);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
