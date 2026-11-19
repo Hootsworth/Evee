@@ -180,6 +180,10 @@ export default function SettingsPage() {
         if (field.isSecret) credentials[field.key] = value;
         else config[field.key] = value;
       }
+      if (formValues.__fieldMappings?.trim()) {
+        try { config.__fieldMappings = JSON.parse(formValues.__fieldMappings); }
+        catch { throw new Error('Field mappings must be valid JSON.'); }
+      }
       const res = await fetch('/api/integrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1622,6 +1626,15 @@ export default function SettingsPage() {
                                     </div>
                                   );
                                 })}
+                                {integ.category === 'crm' && (
+                                  <div className="space-y-1 pt-2">
+                                    <label className="text-[10px] font-mono uppercase text-[#959494] block">Field mapping JSON:</label>
+                                    <textarea rows={4} value={integrationFormState[integ.id]?.__fieldMappings ?? (integ.config?.__fieldMappings || '{\n  "email": "email",\n  "company": "company",\n  "website": "website",\n  "city": "city",\n  "industry": "industry"\n}')}
+                                      onChange={(event) => setIntegrationFormState((prev) => ({ ...prev, [integ.id]: { ...(prev[integ.id] || {}), __fieldMappings: event.target.value } }))}
+                                      className="w-full text-xs font-mono p-2 border border-[#ebebeb] dark:border-white/[0.08] rounded-[3px] bg-white dark:bg-[#010120] text-black dark:text-white" />
+                                    <p className="text-[9px] text-[#777]">Map Evee fields to CRM property names. Sync direction is currently push only.</p>
+                                  </div>
+                                )}
                               </div>
 
                               {/* Status Feedback Message */}
@@ -1645,7 +1658,8 @@ export default function SettingsPage() {
                               {/* Telemetry info */}
                               {integ.lastSyncAt && (
                                 <div className="text-[10px] font-mono text-[#959494]">
-                                  Last synced: {new Date(integ.lastSyncAt).toLocaleTimeString()} ({integ.syncedRecordsCount} records)
+                                  Last synced: {new Date(integ.lastSyncAt).toLocaleTimeString()} ({integ.syncedRecordsCount} records) · {integ.lastSyncStatus || 'unknown'}
+                                  {integ.lastSyncError && <p className="text-rose-500 mt-1">Latest issue: {integ.lastSyncError}</p>}
                                 </div>
                               )}
                             </div>

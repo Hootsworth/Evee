@@ -37,6 +37,7 @@ export async function POST(
     }
     let secret = '';
     let publicConfig: Record<string, string> = {};
+    let fieldMappings: Record<string, string> = {};
 
     if (isSupabaseConfigured()) {
       const { data: cred } = await admin
@@ -50,6 +51,9 @@ export async function POST(
         secret = decryptSecret(cred.encrypted_access_token);
         publicConfig = (cred.scopes as any)?.publicConfig || {};
       }
+      const { data: mapping } = await admin.from('integration_field_mappings').select('mappings')
+        .eq('organization_id', orgId).eq('provider_id', providerId).maybeSingle();
+      if (mapping?.mappings && typeof mapping.mappings === 'object' && !Array.isArray(mapping.mappings)) fieldMappings = mapping.mappings as Record<string, string>;
     }
 
     // Fetch active qualified leads with valid emails to sync strictly within this organization
@@ -70,6 +74,19 @@ export async function POST(
     if (providerId === 'hubspot' && secret) {
       for (const lead of eligibleLeads) {
         try {
+          const canonical: Record<string, string> = {
+            email: lead.general_business_email,
+            company: lead.display_name,
+            website: lead.official_website_url || '',
+            city: lead.city || '',
+            industry: lead.business_type || '',
+            lead_source: 'Evee Prospecting',
+          };
+          const properties: Record<string, string> = {};
+          for (const [source, destination] of Object.entries(fieldMappings)) {
+            if (typeof destination === 'string' && /^[a-zA-Z0-9_]{1,100}$/.test(destination) && source in canonical) properties[destination] = canonical[source];
+          }
+          if (!Object.keys(properties).length) Object.assign(properties, canonical);
           const response = await fetch('https://api.hubapi.com/crm/v3/objects/contacts', {
             method: 'POST',
             headers: {
@@ -77,14 +94,7 @@ export async function POST(
               Authorization: `Bearer ${secret}`,
             },
             body: JSON.stringify({
-              properties: {
-                email: lead.general_business_email,
-                company: lead.display_name,
-                website: lead.official_website_url,
-                city: lead.city,
-                industry: lead.business_type,
-                lead_source: 'Evee Prospecting',
-              },
+              properties,
             }),
           });
           if (!response.ok) {

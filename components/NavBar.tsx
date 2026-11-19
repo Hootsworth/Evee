@@ -61,6 +61,8 @@ export default function NavBar() {
     { label: 'Campaigns', href: '/campaigns' },
     { label: 'Leads', href: '/leads' },
     { label: 'Work', href: '/work' },
+    { label: 'Copilot', href: '/copilot' },
+    { label: 'Developer API', href: '/developers' },
     { label: 'Revenue', href: '/revenue' },
     { label: 'Operations', href: '/operations' },
     { label: 'Automations', href: '/workflow-templates' },

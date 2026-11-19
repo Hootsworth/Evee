@@ -336,7 +336,8 @@ export interface BackgroundJob<T = Record<string, unknown>> {
     | 'sync_replies'
     | 'process_followups'
     | 'refresh_evidence'
-    | 'reconcile_unknown_send';
+    | 'reconcile_unknown_send'
+    | 'deliver_webhook';
   payload: T;
   status: JobStatus;
   priority: number;

@@ -55,6 +55,14 @@ export async function GET() {
       } catch (e) {
         console.warn('Failed to load integration credentials from database:', e);
       }
+      if (userCtx.organizationId) {
+        const { data: mappings } = await createAdminClient().from('integration_field_mappings').select('provider_id, mappings')
+          .eq('organization_id', userCtx.organizationId);
+        for (const row of mappings || []) {
+          const current = configsMap[row.provider_id] || {};
+          configsMap[row.provider_id] = { ...current, config: { ...(current.config || {}), __fieldMappings: JSON.stringify(row.mappings, null, 2) } };
+        }
+      }
     }
 
     // Combine definitions with configuration status

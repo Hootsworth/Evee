@@ -78,6 +78,25 @@ export class MultiLlmProvider implements ResearchProvider, DraftProvider {
     return 'gpt-4o-mini';
   }
 
+  async answerWorkspaceQuestion(question: string, context: Record<string, unknown>) {
+    const response = await fetch(`${this.getEffectiveBaseUrl()}/chat/completions`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.config.apiKey}` },
+      body: JSON.stringify({
+        model: this.getEffectiveModel(), temperature: 0.2, response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: 'You are Evee, a careful B2B work copilot. Answer only from the supplied workspace records, cite relevant record IDs inline, say when information is missing, and never claim an action was completed. Return JSON with answer (string) and proposedTasks (array of objects with title, description, priority, accountId, dueAt). Propose tasks only when useful; never suggest sending messages or making financial commitments.' },
+          { role: 'user', content: JSON.stringify({ question, context }) },
+        ],
+      }), signal: AbortSignal.timeout(30000),
+    });
+    if (!response.ok) throw new Error(`AI provider returned HTTP ${response.status}.`);
+    const result = await response.json();
+    const raw = result?.choices?.[0]?.message?.content;
+    if (typeof raw !== 'string') throw new Error('AI provider returned no answer.');
+    const parsed = JSON.parse(raw);
+    return { answer: String(parsed.answer || '').slice(0, 8000), proposedTasks: Array.isArray(parsed.proposedTasks) ? parsed.proposedTasks.slice(0, 5) : [] };
+  }
+
   async analyzeBusiness(
     businessContext: { name: string; category?: string; websiteUrl?: string; city?: string },
     evidence: EvidenceItem[],

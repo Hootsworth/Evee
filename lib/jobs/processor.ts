@@ -9,6 +9,9 @@ import { getDynamicAiProvider } from '@/lib/providers/ai';
 import { getEmailProvider } from '@/lib/providers/email';
 import { sendEmailWithSafetyChecks } from '@/lib/providers/email/sender';
 import { decryptSecret } from '@/lib/compliance/encryption';
+import crypto from 'crypto';
+import { lookup } from 'dns/promises';
+import { isIP } from 'net';
 import { checkSuppression, normalizeEmail } from '@/lib/compliance/suppression';
 import { calculateLeadScore } from '@/lib/scoring/engine';
 import { inspectWebsite } from '@/lib/research/inspector';
@@ -27,6 +30,20 @@ export class ManualReviewError extends Error {
     super(message);
     this.name = 'ManualReviewError';
   }
+}
+
+function isNonPublicAddress(address: string): boolean {
+  const ip = address.toLowerCase();
+  if (ip.includes(':')) {
+    if (ip.startsWith('::ffff:')) return isNonPublicAddress(ip.slice(7));
+    return ip === '::' || ip === '::1' || ip.startsWith('fc') || ip.startsWith('fd') || ip.startsWith('fe80:');
+  }
+  const octets = ip.split('.').map(Number);
+  if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return true;
+  const [a, b] = octets;
+  return a === 0 || a === 10 || a === 127 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) || (a === 192 && (b === 168 || (b === 0 && octets[2] === 0))) ||
+    (a === 198 && (b === 18 || b === 19)) || a >= 224;
 }
 
 export async function processBackgroundJobs(batchSize = 5, organizationId?: string): Promise<JobProcessingResult> {
@@ -73,7 +90,6 @@ export async function processBackgroundJobs(batchSize = 5, organizationId?: stri
           updated_at: new Date().toISOString(),
         })
         .eq('id', job.id);
-
       summary.succeeded++;
 
       // Deliverability Pacing: 2.5s pause between consecutive email sends in the same batch to avoid burst spam triggers
@@ -104,6 +120,10 @@ export async function processBackgroundJobs(batchSize = 5, organizationId?: stri
           updated_at: new Date().toISOString(),
         })
         .eq('id', job.id);
+      if (job.job_type === 'deliver_webhook' && (job.payload as any)?.deliveryId) {
+        await supabase.from('webhook_deliveries').update({ status: nextStatus === 'failed' ? 'failed' : 'queued', attempt_count: job.attempt_count + 1, last_error: error.message.slice(0, 500) })
+          .eq('id', (job.payload as any).deliveryId).eq('organization_id', (job as any).organization_id);
+      }
     }
   }
 
@@ -542,6 +562,37 @@ async function executeSingleJob(job: BackgroundJob, supabase: any): Promise<void
       if (!result.success && !result.suppressed) {
         throw new Error(`CSV email send failed: ${result.error || 'Unknown dispatch error'}`);
       }
+      break;
+    }
+
+    case 'deliver_webhook': {
+      const deliveryId = payload.deliveryId;
+      if (!deliveryId || !orgId) throw new Error('Webhook delivery is missing its tenant or delivery id.');
+      const { data: delivery, error: deliveryError } = await supabase.from('webhook_deliveries').select('*')
+        .eq('id', deliveryId).eq('organization_id', orgId).maybeSingle();
+      if (deliveryError || !delivery) throw new Error('Webhook delivery could not be found.');
+      const { data: subscription, error: subscriptionError } = await supabase.from('webhook_subscriptions').select('*')
+        .eq('id', delivery.subscription_id).eq('organization_id', orgId).eq('status', 'active').maybeSingle();
+      if (subscriptionError || !subscription) throw new Error('Webhook subscription is unavailable or paused.');
+      const endpoint = new URL(subscription.endpoint_url);
+      if (endpoint.protocol !== 'https:' || isIP(endpoint.hostname) || endpoint.hostname === 'localhost' || endpoint.hostname.endsWith('.localhost') || endpoint.hostname.endsWith('.local') || endpoint.hostname.endsWith('.internal')) {
+        throw new Error('Webhook endpoint failed the public HTTPS safety check.');
+      }
+      const resolved = await lookup(endpoint.hostname, { all: true });
+      if (!resolved.length || resolved.some((item) => isNonPublicAddress(item.address))) {
+        throw new Error('Webhook endpoint resolves to a private or link-local address.');
+      }
+      const secret = decryptSecret(subscription.encrypted_secret);
+      const body = JSON.stringify({ id: delivery.id, type: delivery.event_type, createdAt: delivery.created_at, data: delivery.payload });
+      const signature = crypto.createHmac('sha256', secret).update(body).digest('hex');
+      const response = await fetch(endpoint, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Evee-Signature': `sha256=${signature}`, 'X-Evee-Delivery': delivery.id },
+        body, signal: AbortSignal.timeout(10000), redirect: 'error',
+      });
+      const responseText = await response.text();
+      if (!response.ok) throw new Error(`Webhook returned HTTP ${response.status}: ${responseText.slice(0, 200)}`);
+      await supabase.from('webhook_deliveries').update({ status: 'delivered', attempt_count: job.attempt_count + 1, response_status: response.status, last_error: null, delivered_at: new Date().toISOString() })
+        .eq('id', delivery.id).eq('organization_id', orgId);
       break;
     }
 

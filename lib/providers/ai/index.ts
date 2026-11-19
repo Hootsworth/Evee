@@ -73,4 +73,13 @@ export function getAiProvider(): ResearchProvider & DraftProvider {
   return new MockAiProvider();
 }
 
+export async function answerWorkspaceQuestion(organizationId: string, question: string, context: Record<string, unknown>) {
+  const provider = await getDynamicAiProvider(organizationId);
+  if (provider instanceof MultiLlmProvider) return provider.answerWorkspaceQuestion(question, context);
+  return {
+    answer: 'Workspace copilot needs an AI provider configured. You can still review the account and work records shown above.',
+    proposedTasks: [],
+  };
+}
+
 export * from './interface';

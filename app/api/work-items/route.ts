@@ -3,6 +3,7 @@ import { getUserContext } from '@/lib/auth/context';
 import { assertAuthenticated, assertAuthorized } from '@/lib/auth/rbac';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { dispatchWorkflowTrigger } from '@/lib/workflows/template-engine';
+import { queueWorkspaceWebhook } from '@/lib/integrations/webhooks';
 
 const workTypes = ['task', 'follow_up', 'research', 'approval', 'handoff', 'other'];
 const statuses = ['open', 'in_progress', 'blocked', 'completed', 'cancelled'];
@@ -132,6 +133,7 @@ export async function POST(req: NextRequest) {
       blocked_by_work_item_id: blockedById,
     }).select('*').single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    await queueWorkspaceWebhook(user.organizationId!, 'work_item.created', { id: item.id, title: item.title, status: item.status, accountId: item.account_id });
 
     if (collaboratorIds.length) {
       const { error: collaboratorError } = await admin.from('work_item_collaborators').insert(collaboratorIds.map((userId) => ({

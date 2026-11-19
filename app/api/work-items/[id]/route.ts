@@ -3,6 +3,7 @@ import { getUserContext } from '@/lib/auth/context';
 import { assertAuthenticated, assertAuthorized, hasMinimumRole } from '@/lib/auth/rbac';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { dispatchWorkflowTrigger } from '@/lib/workflows/template-engine';
+import { queueWorkspaceWebhook } from '@/lib/integrations/webhooks';
 
 const statuses = ['open', 'in_progress', 'blocked', 'completed', 'cancelled'];
 const priorities = ['low', 'normal', 'high', 'urgent'];
@@ -95,6 +96,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const { data, error } = await admin.from('work_items').update(update).eq('id', id)
         .eq('organization_id', user.organizationId).select('*').maybeSingle();
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      await queueWorkspaceWebhook(user.organizationId!, 'work_item.updated', { id: data.id, title: data.title, status: data.status, accountId: data.account_id });
       if (!data) return NextResponse.json({ error: 'Work item changed while saving. Refresh and try again.' }, { status: 409 });
       item = data;
     }

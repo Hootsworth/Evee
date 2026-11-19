@@ -4,6 +4,7 @@ import { assertAuthenticated, assertAuthorized } from '@/lib/auth/rbac';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getAllPartners } from '@/lib/services/partner-store';
 import { dispatchWorkflowTrigger } from '@/lib/workflows/template-engine';
+import { queueWorkspaceWebhook } from '@/lib/integrations/webhooks';
 import { recordTypes } from '@/lib/workspace-records/types';
 
 const statusByType: Record<string, string[]> = {
@@ -161,6 +162,7 @@ export async function POST(req: NextRequest) {
     };
     const { data, error } = await admin.from('account_workspace_records').insert(record).select('*').single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    await queueWorkspaceWebhook(user.organizationId!, 'account_record.created', { id: data.id, type: data.record_type, title: data.title, accountId: data.account_id, status: data.status });
 
     let followUpCreated = false;
     if (body.recordType === 'inbound_lead' && dueAt) {
