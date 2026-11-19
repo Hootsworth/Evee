@@ -1,7 +1,7 @@
 // Evee - Outbound Email Dispatcher Utility
 // Loads encrypted SMTP / Google App Passwords / Gmail credentials securely and dispatches emails
 
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
 import { decryptSecret } from '@/lib/compliance/encryption';
 import { getEmailProvider } from '@/lib/providers/email';
 import { checkSuppression, normalizeEmail } from '@/lib/compliance/suppression';
@@ -10,6 +10,7 @@ import {
   recordMailboxSend,
   recordMailboxFailure,
 } from '@/lib/deliverability/rotator';
+import { checkCrmCollision } from '@/lib/crm/collision-guard';
 
 export async function isSuppressed(
   identifier: { email?: string | null },
@@ -17,6 +18,7 @@ export async function isSuppressed(
 ): Promise<boolean> {
   const normEmail = identifier.email ? normalizeEmail(identifier.email) : null;
   if (!normEmail) return false;
+  if (!isSupabaseConfigured()) return false;
 
   try {
     const admin = createAdminClient();
@@ -60,6 +62,14 @@ export interface DispatchEmailResult {
 }
 
 export async function getActiveEmailProvider(organizationId?: string | null) {
+  if (!isSupabaseConfigured()) {
+    return {
+      provider: getEmailProvider(),
+      fromEmail: 'operator@evee.ai',
+      isConfigured: false,
+    };
+  }
+
   const admin = createAdminClient();
 
   // 1. Try to load configured SMTP App Password for this organization (or global fallback)
@@ -141,6 +151,25 @@ export async function sendEmailWithSafetyChecks(options: DispatchEmailOptions): 
         suppressed: true,
         error: `Recipient ${recipient} is blocked in the suppression registry.`,
       };
+    }
+
+    // Safety Gate 2: Enterprise CRM Opportunity Collision Guard
+    if (options.organizationId) {
+      try {
+        const crmCheck = await checkCrmCollision(options.organizationId, {
+          email: recipient,
+        });
+        if (crmCheck.hasCollision && crmCheck.shouldSuppress) {
+          return {
+            success: false,
+            provider: 'crm_collision_guard',
+            suppressed: true,
+            error: `Outreach blocked by CRM Collision Guard: ${crmCheck.reason}`,
+          };
+        }
+      } catch (err) {
+        console.warn('CRM collision check skipped due to error:', err);
+      }
     }
   }
 

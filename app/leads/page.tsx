@@ -76,7 +76,7 @@ export default function LeadsPage() {
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'active' | 'sent' | 'all' | 'missing_email' | 'archived' | 'suppressed' | 'duplicates' | 'flagged_emails'>('active');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'sent' | 'all' | 'missing_email' | 'archived' | 'suppressed' | 'duplicates' | 'flagged_emails' | 'crm_protected'>('active');
   const [archiving, setArchiving] = useState(false);
 
   // Sent Outreach Registry State (Prevents duplicate sends)
@@ -92,6 +92,10 @@ export default function LeadsPage() {
   // CSV Export state
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportScope, setExportScope] = useState<'all' | 'filtered' | 'selected'>('all');
+
+  // CRM Collision Guard State
+  const [crmOpportunities, setCrmOpportunities] = useState<any[]>([]);
+  const [crmSettings, setCrmSettings] = useState<any>(null);
 
   // Partner Allotment State
   const [partnersList, setPartnersList] = useState<any[]>([]);
@@ -215,10 +219,24 @@ export default function LeadsPage() {
     }
   };
 
+  const fetchCrmData = async () => {
+    try {
+      const res = await fetch('/api/crm/opportunities');
+      const data = await res.json();
+      if (res.ok) {
+        setCrmOpportunities(data.opportunities || []);
+        setCrmSettings(data.settings || null);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch CRM opportunities:', e);
+    }
+  };
+
   useEffect(() => {
     fetchBusinesses();
     fetchSentData();
     fetchPartnersAndAllotments();
+    fetchCrmData();
     fetch('/api/settings/providers')
       .then((res) => res.json())
       .then((data) => {
@@ -285,6 +303,50 @@ export default function LeadsPage() {
     }
     return map;
   }, [emailAuditReport]);
+
+  // Derived CRM Opportunity Collision map (domain / company / email lookup)
+  const crmCollisionMap = useMemo(() => {
+    const map = new Map<string, any>();
+    if (!crmSettings?.collisionProtectionEnabled || crmOpportunities.length === 0) {
+      return map;
+    }
+
+    const domainMap = new Map<string, any>();
+    const nameMap = new Map<string, any>();
+
+    for (const opp of crmOpportunities) {
+      if (opp.domain) domainMap.set(opp.domain.toLowerCase().trim(), opp);
+      if (opp.companyName) {
+        nameMap.set(opp.companyName.toLowerCase().replace(/[^a-z0-9]/g, ''), opp);
+      }
+    }
+
+    const protectedStagesLower = (crmSettings.protectedStages || []).map((s: string) => s.toLowerCase());
+
+    for (const b of businesses) {
+      const websiteDomain = b.canonical_domain || (b.official_website_url ? b.official_website_url.replace(/^https?:\/\//, '').replace(/\/.*$/, '') : null);
+      const emailDomain = b.general_business_email?.includes('@') ? b.general_business_email.split('@')[1] : null;
+      const cleanName = (b.display_name || b.normalized_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      let matchedOpp = null;
+      if (websiteDomain && domainMap.has(websiteDomain.toLowerCase().trim())) {
+        matchedOpp = domainMap.get(websiteDomain.toLowerCase().trim());
+      } else if (emailDomain && domainMap.has(emailDomain.toLowerCase().trim())) {
+        matchedOpp = domainMap.get(emailDomain.toLowerCase().trim());
+      } else if (cleanName && nameMap.has(cleanName)) {
+        matchedOpp = nameMap.get(cleanName);
+      }
+
+      if (matchedOpp) {
+        const isProtected = protectedStagesLower.includes(matchedOpp.stage.toLowerCase()) || matchedOpp.isClosedWon;
+        if (isProtected) {
+          map.set(b.id, matchedOpp);
+        }
+      }
+    }
+
+    return map;
+  }, [crmOpportunities, crmSettings, businesses]);
 
   const totalFlaggedEmailsCount = emailAuditReport.totalFlagged;
 
@@ -382,6 +444,9 @@ export default function LeadsPage() {
     }
     if (statusFilter === 'suppressed') {
       return b.record_status === 'suppressed';
+    }
+    if (statusFilter === 'crm_protected') {
+      return crmCollisionMap.has(b.id);
     }
     return b.record_status === 'active';
   });
@@ -788,7 +853,16 @@ export default function LeadsPage() {
     is_sent: isLeadSent(b),
     sent_info: getLeadSentInfo(b),
   }));
-  const activeRecipients = outreachCandidates.filter((c) => Boolean(c.email && c.email.includes('@')));
+  // Enforce CRM Opportunity Collision Guard on outreach recipients
+  const crmSuppressedRecipientsCount = outreachCandidates.filter(
+    (c) => Boolean(c.email && c.email.includes('@') && crmCollisionMap.has(c.id))
+  ).length;
+
+  const activeRecipients = outreachCandidates.filter(
+    (c) =>
+      Boolean(c.email && c.email.includes('@')) &&
+      (!crmSettings?.autoSuppressColdOutreach || !crmCollisionMap.has(c.id))
+  );
   const sampleCandidate = activeRecipients[previewLeadIdx] || activeRecipients[0] || {};
   const renderedSubject = replaceTemplateVariables(outreachSubject, sampleCandidate);
   const renderedBody = replaceTemplateVariables(outreachBody, sampleCandidate);
@@ -1378,6 +1452,9 @@ export default function LeadsPage() {
               ...(totalDuplicateLeadsCount > 0
                 ? [{ id: 'duplicates', label: 'Duplicates', count: totalDuplicateLeadsCount }]
                 : []),
+              ...(crmCollisionMap.size > 0
+                ? [{ id: 'crm_protected', label: 'CRM Protected', count: crmCollisionMap.size }]
+                : []),
               { id: 'archived', label: 'Archived', count: archivedCount },
               { id: 'all', label: 'All', count: businesses.length },
               { id: 'suppressed', label: 'Suppressed', count: 0 },
@@ -1424,6 +1501,26 @@ export default function LeadsPage() {
                 <span>DUPLICATE PROTECTED</span>
               </span>
             </div>
+          </div>
+        )}
+
+        {/* CRM Collision Protected Banner */}
+        {statusFilter === 'crm_protected' && (
+          <div className="mb-6 p-4 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+            <div className="flex items-center space-x-2.5">
+              <ShieldCheck className="w-4 h-4 text-amber-500 shrink-0" />
+              <div>
+                <span className="font-semibold">Showing {filtered.length} leads with active CRM opportunities or customer contracts.</span>
+                <span className="text-[11px] opacity-80 block sm:inline sm:ml-2">Cold outreach is automatically suppressed to protect ongoing enterprise sales conversations and active AE pipelines.</span>
+              </div>
+            </div>
+            <Link
+              href="/settings"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-800 dark:text-amber-200 font-semibold transition shrink-0"
+            >
+              <span>Manage CRM Rules</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
           </div>
         )}
 
@@ -1612,6 +1709,27 @@ export default function LeadsPage() {
                                   >
                                     <UserCheck className="w-3 h-3 text-purple-600 dark:text-purple-400" />
                                     <span className="truncate max-w-[120px]">{allotments[b.id].partnerName || 'Partner'}</span>
+                                  </span>
+                                )}
+                                {crmCollisionMap.has(b.id) && (
+                                  <span
+                                    title={
+                                      crmCollisionMap.get(b.id)?.isClosedWon
+                                        ? `Existing Customer: ${crmCollisionMap.get(b.id).name}`
+                                        : `Active ${crmCollisionMap.get(b.id).provider?.toUpperCase() || 'CRM'} Deal: ${crmCollisionMap.get(b.id).name} at stage "${crmCollisionMap.get(b.id).stage}"${crmCollisionMap.get(b.id).amount ? ` ($${crmCollisionMap.get(b.id).amount.toLocaleString()})` : ''}`
+                                    }
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+                                      crmCollisionMap.get(b.id)?.isClosedWon
+                                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
+                                        : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20'
+                                    }`}
+                                  >
+                                    <ShieldCheck className="w-3 h-3 text-amber-500" />
+                                    <span>
+                                      {crmCollisionMap.get(b.id)?.isClosedWon
+                                        ? 'CRM Customer'
+                                        : `CRM: ${crmCollisionMap.get(b.id).stage}`}
+                                    </span>
                                   </span>
                                 )}
                               </div>
@@ -2094,6 +2212,18 @@ export default function LeadsPage() {
                     >
                       {excludeAlreadySent ? 'Include anyway' : 'Exclude sent'}
                     </button>
+                  </div>
+                )}
+
+                {/* CRM Collision Guard Alert */}
+                {crmSuppressedRecipientsCount > 0 && crmSettings?.autoSuppressColdOutreach && (
+                  <div className="p-3 rounded-[4px] border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 font-mono text-xs flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span>
+                        <strong>CRM Collision Guard Active:</strong> {crmSuppressedRecipientsCount} candidate {crmSuppressedRecipientsCount === 1 ? 'business has' : 'businesses have'} active CRM opportunities or customer contracts in Salesforce/HubSpot and {crmSuppressedRecipientsCount === 1 ? 'has' : 'have'} been safely excluded from cold outreach.
+                      </span>
+                    </div>
                   </div>
                 )}
 
