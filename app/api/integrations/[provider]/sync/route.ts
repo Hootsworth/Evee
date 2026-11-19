@@ -27,6 +27,14 @@ export async function POST(
     }
 
     const admin = createAdminClient();
+    let runId: string | null = null;
+    const startedAt = new Date().toISOString();
+    if (isSupabaseConfigured()) {
+      const { data: run } = await admin.from('integration_sync_runs').insert({
+        organization_id: orgId, provider_id: providerId, status: 'running', started_at: startedAt,
+      }).select('id').single();
+      runId = run?.id || null;
+    }
     let secret = '';
     let publicConfig: Record<string, string> = {};
 
@@ -56,12 +64,13 @@ export async function POST(
     const eligibleLeads = (leads || []).filter((l) => l.general_business_email && l.general_business_email.includes('@'));
 
     let syncedCount = 0;
+    const failures: Array<{ recordId: string; message: string }> = [];
 
     // Dispatch to CRM based on provider
     if (providerId === 'hubspot' && secret) {
       for (const lead of eligibleLeads) {
         try {
-          await fetch('https://api.hubapi.com/crm/v3/objects/contacts', {
+          const response = await fetch('https://api.hubapi.com/crm/v3/objects/contacts', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -78,14 +87,18 @@ export async function POST(
               },
             }),
           });
-          syncedCount++;
+          if (!response.ok) {
+            const errorBody = await response.text();
+            failures.push({ recordId: lead.id, message: `HubSpot returned ${response.status}: ${errorBody.slice(0, 300)}` });
+          } else syncedCount++;
         } catch (e) {
-          console.warn(`HubSpot sync item failed for ${lead.display_name}:`, e);
+          failures.push({ recordId: lead.id, message: e instanceof Error ? e.message.slice(0, 300) : 'Network request failed' });
         }
       }
+    } else if (providerId === 'hubspot') {
+      failures.push({ recordId: '', message: 'Connector is not configured with an access token.' });
     } else {
-      // Mock / simulated sync for development
-      syncedCount = eligibleLeads.length;
+      failures.push({ recordId: '', message: `Sync is not implemented for ${providerId}; no records were sent.` });
     }
 
     // Update sync telemetry in database scoped strictly to this organization
@@ -99,6 +112,13 @@ export async function POST(
           .maybeSingle();
 
         const currentScopes = (existing?.scopes as any) || {};
+        const failedCount = failures.filter((failure) => failure.recordId).length;
+        const status = failures.length === 0 ? 'succeeded' : syncedCount > 0 ? 'partial' : 'failed';
+        if (runId) await admin.from('integration_sync_runs').update({
+          status, total_count: eligibleLeads.length, synced_count: syncedCount,
+          failed_count: Math.max(failedCount, eligibleLeads.length - syncedCount),
+          errors: failures.slice(0, 20), finished_at: new Date().toISOString(),
+        }).eq('id', runId).eq('organization_id', orgId);
 
         await admin.from('oauth_credentials').upsert(
           {
@@ -109,6 +129,8 @@ export async function POST(
               ...currentScopes,
               lastSyncAt: new Date().toISOString(),
               syncedRecordsCount: (currentScopes.syncedRecordsCount || 0) + syncedCount,
+              lastSyncStatus: status,
+              lastSyncError: failures[0]?.message || null,
             } as any,
           },
           { onConflict: 'organization_id,provider' }
@@ -138,6 +160,9 @@ export async function POST(
       providerId,
       syncedCount,
       totalEligible: eligibleLeads.length,
+      failedCount: Math.max(failures.filter((failure) => failure.recordId).length, eligibleLeads.length - syncedCount),
+      status: failures.length === 0 ? 'succeeded' : syncedCount > 0 ? 'partial' : 'failed',
+      errors: failures.slice(0, 10),
       timestamp: new Date().toISOString(),
     });
   } catch (err: any) {

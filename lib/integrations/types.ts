@@ -42,6 +42,8 @@ export interface IntegrationConfigRecord {
   lastTestSuccess?: boolean;
   lastTestMessage?: string;
   lastSyncAt?: string;
+  lastSyncStatus?: string;
+  lastSyncError?: string | null;
   syncedRecordsCount?: number;
   config: Record<string, string>;
 }

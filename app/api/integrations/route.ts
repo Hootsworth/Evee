@@ -46,6 +46,8 @@ export async function GET() {
             lastTestSuccess: meta?.lastTestSuccess,
             lastTestMessage: meta?.lastTestMessage,
             lastSyncAt: meta?.lastSyncAt,
+            lastSyncStatus: meta?.lastSyncStatus,
+            lastSyncError: meta?.lastSyncError,
             syncedRecordsCount: meta?.syncedRecordsCount || 0,
             config: meta?.publicConfig || {},
           };
@@ -66,6 +68,8 @@ export async function GET() {
         lastTestSuccess: existing.lastTestSuccess,
         lastTestMessage: existing.lastTestMessage,
         lastSyncAt: existing.lastSyncAt,
+        lastSyncStatus: existing.lastSyncStatus,
+        lastSyncError: existing.lastSyncError,
         syncedRecordsCount: existing.syncedRecordsCount || 0,
         config: existing.config || {},
       };
@@ -96,23 +100,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing providerId' }, { status: 400 });
     }
 
+    const definition = INTEGRATION_REGISTRY.find((item) => item.id === providerId);
+    if (!definition) return NextResponse.json({ error: 'Unknown integration provider' }, { status: 400 });
+
     const orgId = userCtx.organizationId;
 
     // Sanitize credentials - extract primary secret (API Key, access token, or webhook secret)
     let primarySecret: string | null = null;
-    if (credentials) {
-      primarySecret =
-        credentials.apiKey ||
-        credentials.accessToken ||
-        credentials.webhookUrl ||
-        credentials.botToken ||
-        credentials.zapierWebhookUrl ||
-        credentials.makeWebhookUrl ||
-        null;
+    const secretFields = definition.fields.filter((field) => field.isSecret).map((field) => field.key);
+    for (const field of secretFields) {
+      const value = credentials?.[field] || config?.[field];
+      if (value?.trim()) { primarySecret = value.trim(); break; }
     }
 
     // Filter out secrets from public config
-    const publicConfig = { ...config };
+    const publicConfig: Record<string, string> = {};
+    for (const field of definition.fields.filter((item) => !item.isSecret)) {
+      const value = config?.[field.key];
+      if (typeof value === 'string') publicConfig[field.key] = value.slice(0, 500);
+    }
+    const fieldMappings = config?.__fieldMappings;
     if (credentials?.targetChannel) {
       publicConfig.targetChannel = credentials.targetChannel;
     }
@@ -160,6 +167,15 @@ export async function POST(req: NextRequest) {
           },
           { onConflict: 'organization_id,provider' }
         );
+        if (fieldMappings && typeof fieldMappings === 'object' && !Array.isArray(fieldMappings)) {
+          await admin.from('integration_field_mappings').upsert({
+            organization_id: orgId,
+            provider_id: providerId,
+            mappings: fieldMappings,
+            sync_direction: 'push',
+            updated_by: userCtx.userId,
+          }, { onConflict: 'organization_id,provider_id' });
+        }
       } catch (err) {
         console.warn(`Failed to save encrypted credential for ${providerId}:`, err);
       }

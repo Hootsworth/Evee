@@ -172,12 +172,21 @@ export default function SettingsPage() {
     setIntegrationStatusMsg(null);
     try {
       const formValues = integrationFormState[providerId] || {};
+      const definition = integrationsList.find((item) => item.id === providerId);
+      const credentials: Record<string, string> = {};
+      const config: Record<string, string> = {};
+      for (const field of definition?.fields || []) {
+        const value = formValues[field.key] || '';
+        if (field.isSecret) credentials[field.key] = value;
+        else config[field.key] = value;
+      }
       const res = await fetch('/api/integrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           providerId,
-          config: formValues,
+          credentials,
+          config,
           enabled: true,
         }),
       });

@@ -85,7 +85,7 @@ export default function WorkPage() {
       const response = await fetch('/api/work-items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, workType, priority, dueAt: dueAt || null, ownerId: ownerId || userId, accountId: accountId || null, collaboratorIds }),
+        body: JSON.stringify({ title, description, workType, priority, dueAt: dueAt ? new Date(`${dueAt}T12:00:00`).toISOString() : null, ownerId: ownerId || userId, accountId: accountId || null, collaboratorIds }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not create the work item.');
