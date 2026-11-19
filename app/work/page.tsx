@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, CalendarDays, Check, CirclePlus, ListTodo, LoaderCircle, RefreshCw } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, Check, ChevronDown, CirclePlus, FileText, ListChecks, ListTodo, LoaderCircle, MessageCircle, Paperclip, RefreshCw, Send, ShieldCheck, Trash2 } from 'lucide-react';
 
 type Member = { user_id: string; role: string; display_name: string };
 type Account = { id: string; display_name: string };
@@ -11,6 +11,11 @@ type WorkItem = {
   due_at: string | null; account_id: string | null; account_name: string | null; owner_id: string | null;
   collaborator_ids: string[]; created_by: string;
 };
+type Comment = { id: string; body: string; author_id: string; author_name: string; created_at: string; mention_ids: string[] };
+type ChecklistItem = { id: string; title: string; checklist_name: string; is_complete: boolean };
+type Approval = { id: string; status: string; request_note: string; decision_note: string; requested_by_name: string; approver_name: string | null; requested_at: string };
+type Attachment = { id: string; file_name: string; file_size: number; content_type: string; uploaded_by: string; created_at: string };
+type WorkItemDetails = { comments: Comment[]; checklist: ChecklistItem[]; approvals: Approval[]; userId: string; role: string; attachments: Attachment[] };
 
 const statusLabels: Record<string, string> = { open: 'Open', in_progress: 'In progress', blocked: 'Blocked', completed: 'Completed', cancelled: 'Cancelled' };
 const typeLabels: Record<string, string> = { task: 'Task', follow_up: 'Follow up', research: 'Research', approval: 'Approval', handoff: 'Handoff', other: 'Other' };
@@ -34,6 +39,14 @@ export default function WorkPage() {
   const [ownerId, setOwnerId] = useState('');
   const [accountId, setAccountId] = useState('');
   const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
+  const [expandedItem, setExpandedItem] = useState<string | null>(null);
+  const [details, setDetails] = useState<Record<string, WorkItemDetails>>({});
+  const [commentDraft, setCommentDraft] = useState<Record<string, string>>({});
+  const [mentionDraft, setMentionDraft] = useState<Record<string, string[]>>({});
+  const [checklistDraft, setChecklistDraft] = useState<Record<string, string>>({});
+  const [approvalNote, setApprovalNote] = useState<Record<string, string>>({});
+  const [approvalOwner, setApprovalOwner] = useState<Record<string, string>>({});
+  const [uploadingItem, setUploadingItem] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setError('');
@@ -94,6 +107,66 @@ export default function WorkPage() {
     }
   };
 
+  const loadDetails = async (itemId: string) => {
+    const [collaborationResponse, attachmentResponse] = await Promise.all([
+      fetch(`/api/work-items/${itemId}/collaboration`),
+      fetch(`/api/work-items/${itemId}/attachments`),
+    ]);
+    const [collaborationData, attachmentData] = await Promise.all([collaborationResponse.json(), attachmentResponse.json()]);
+    if (!collaborationResponse.ok) throw new Error(collaborationData.error || 'Could not load work item details.');
+    if (!attachmentResponse.ok) throw new Error(attachmentData.error || 'Could not load attachments.');
+    setDetails((current) => ({ ...current, [itemId]: { ...collaborationData, attachments: attachmentData.attachments || [] } }));
+  };
+
+  const toggleDetails = async (itemId: string) => {
+    setError('');
+    if (expandedItem === itemId) { setExpandedItem(null); return; }
+    setExpandedItem(itemId);
+    try { await loadDetails(itemId); }
+    catch (err) { setError(err instanceof Error ? err.message : 'Could not load work item details.'); }
+  };
+
+  const collaborationAction = async (itemId: string, body: Record<string, unknown>) => {
+    setError(''); setNotice('');
+    try {
+      const response = await fetch(`/api/work-items/${itemId}/collaboration`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not update this work item.');
+      await loadDetails(itemId);
+      return data;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update this work item.');
+      return null;
+    }
+  };
+
+  const uploadAttachment = async (itemId: string, file?: File) => {
+    if (!file) return;
+    setUploadingItem(itemId); setError('');
+    try {
+      const body = new FormData(); body.set('file', file);
+      const response = await fetch(`/api/work-items/${itemId}/attachments`, { method: 'POST', body });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not upload the attachment.');
+      await loadDetails(itemId);
+      setNotice('Attachment uploaded.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not upload the attachment.');
+    } finally { setUploadingItem(null); }
+  };
+
+  const removeAttachment = async (itemId: string, attachmentId: string) => {
+    setError('');
+    try {
+      const response = await fetch(`/api/work-items/${itemId}/attachments?attachmentId=${encodeURIComponent(attachmentId)}`, { method: 'DELETE' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not remove the attachment.');
+      await loadDetails(itemId);
+    } catch (err) { setError(err instanceof Error ? err.message : 'Could not remove the attachment.'); }
+  };
+
   const memberLabel = (id: string | null) => members.find((member) => member.user_id === id)?.display_name || 'Unassigned';
   const isOverdue = (due: string | null, status: string) => due && !['completed', 'cancelled'].includes(status) && new Date(due).getTime() < Date.now();
 
@@ -143,6 +216,90 @@ export default function WorkPage() {
                   {item.account_id && <Link href={`/leads/${item.account_id}`} className="inline-flex items-center gap-1 text-[#4f6653] dark:text-[#afc6ad] hover:underline">{item.account_name || 'Account'}<ArrowUpRight className="w-3 h-3" /></Link>}
                   {item.collaborator_ids.length > 0 && <span>{item.collaborator_ids.length} collaborator{item.collaborator_ids.length === 1 ? '' : 's'}</span>}
                 </div>
+                <button type="button" onClick={() => void toggleDetails(item.id)} className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-[#4f6653] dark:text-[#afc6ad] hover:underline">
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expandedItem === item.id ? 'rotate-180' : ''}`} />
+                  {expandedItem === item.id ? 'Hide details' : 'Comments, checklist & files'}
+                </button>
+
+                {expandedItem === item.id && <div className="mt-4 border-t border-[#e8e9e5] dark:border-white/[0.08] pt-4 grid lg:grid-cols-2 gap-6">
+                  <section>
+                    <h4 className="text-sm font-medium flex items-center gap-2"><MessageCircle className="w-4 h-4 text-[#4f6653]" /> Comments and mentions</h4>
+                    <div className="mt-3 space-y-3 max-h-64 overflow-y-auto">
+                      {(details[item.id]?.comments || []).map((comment) => <div key={comment.id} className="rounded-lg bg-[#f6f7f4] dark:bg-white/[0.04] p-3">
+                        <div className="flex justify-between gap-3 text-xs"><strong>{comment.author_name}</strong><time className="text-[#858981]">{new Date(comment.created_at).toLocaleString()}</time></div>
+                        <p className="mt-1.5 text-sm whitespace-pre-wrap">{comment.body}</p>
+                        {!!comment.mention_ids.length && <p className="mt-2 text-[11px] text-[#4f6653] dark:text-[#afc6ad]">Mentioned: {comment.mention_ids.map(memberLabel).join(', ')}</p>}
+                      </div>)}
+                      {!details[item.id]?.comments?.length && <p className="text-xs text-[#858981]">No comments yet.</p>}
+                    </div>
+                    {role !== 'viewer' && <form onSubmit={(event) => {
+                      event.preventDefault();
+                      void collaborationAction(item.id, { action: 'comment', body: commentDraft[item.id], mentionIds: mentionDraft[item.id] || [] }).then((result) => { if (result) { setCommentDraft((old) => ({ ...old, [item.id]: '' })); setMentionDraft((old) => ({ ...old, [item.id]: [] })); } });
+                    }} className="mt-3 space-y-2">
+                      <textarea value={commentDraft[item.id] || ''} onChange={(event) => setCommentDraft((old) => ({ ...old, [item.id]: event.target.value }))} rows={2} maxLength={4000} placeholder="Add a comment" className="w-full rounded-lg border border-[#dfe2dc] dark:border-white/10 bg-transparent px-3 py-2 text-sm" />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <select multiple aria-label="Mention people" value={mentionDraft[item.id] || []} onChange={(event) => setMentionDraft((old) => ({ ...old, [item.id]: Array.from(event.target.selectedOptions, (option) => option.value) }))} className="min-w-36 flex-1 rounded-lg border border-[#dfe2dc] dark:border-white/10 bg-transparent px-2 py-1.5 text-xs">
+                          {members.map((member) => <option key={member.user_id} value={member.user_id}>{member.display_name}</option>)}
+                        </select>
+                        <button disabled={!commentDraft[item.id]?.trim()} className="inline-flex items-center gap-1 rounded-lg bg-[#4f6653] text-white px-3 py-2 text-xs disabled:opacity-50"><Send className="w-3 h-3" /> Comment</button>
+                      </div>
+                    </form>}
+                  </section>
+
+                  <section>
+                    <h4 className="text-sm font-medium flex items-center gap-2"><ListChecks className="w-4 h-4 text-[#4f6653]" /> Checklist</h4>
+                    <div className="mt-3 space-y-2">
+                      {(details[item.id]?.checklist || []).map((checkItem) => <label key={checkItem.id} className="flex items-start gap-2 text-sm">
+                        <input type="checkbox" checked={checkItem.is_complete} disabled={role === 'viewer'} onChange={(event) => void collaborationAction(item.id, { action: 'checklist_toggle', checklistItemId: checkItem.id, isComplete: event.target.checked })} className="mt-0.5 accent-[#4f6653]" />
+                        <span className={checkItem.is_complete ? 'line-through text-[#858981]' : ''}>{checkItem.title}</span>
+                        {checkItem.checklist_name !== 'Checklist' && <span className="text-[10px] text-[#858981]">{checkItem.checklist_name}</span>}
+                      </label>)}
+                      {!details[item.id]?.checklist?.length && <p className="text-xs text-[#858981]">No checklist items yet.</p>}
+                    </div>
+                    {role !== 'viewer' && <form onSubmit={(event) => { event.preventDefault(); void collaborationAction(item.id, { action: 'checklist_add', title: checklistDraft[item.id] }).then((result) => { if (result) setChecklistDraft((old) => ({ ...old, [item.id]: '' })); }); }} className="mt-3 flex gap-2">
+                      <input value={checklistDraft[item.id] || ''} onChange={(event) => setChecklistDraft((old) => ({ ...old, [item.id]: event.target.value }))} placeholder="Add a checklist item" maxLength={300} className="min-w-0 flex-1 rounded-lg border border-[#dfe2dc] dark:border-white/10 bg-transparent px-3 py-2 text-sm" />
+                      <button disabled={!checklistDraft[item.id]?.trim()} className="rounded-lg border border-[#dfe2dc] dark:border-white/10 px-3 text-xs disabled:opacity-50">Add</button>
+                    </form>}
+
+                    <div className="mt-6 border-t border-[#e8e9e5] dark:border-white/[0.08] pt-4">
+                      <h4 className="text-sm font-medium flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-[#4f6653]" /> Approval</h4>
+                      <div className="mt-2 space-y-2">
+                        {(details[item.id]?.approvals || []).map((approval) => <div key={approval.id} className="rounded-lg bg-[#f6f7f4] dark:bg-white/[0.04] p-3 text-xs">
+                          <div className="flex items-center justify-between gap-2"><strong className="capitalize">{approval.status}</strong><span className="text-[#858981]">Requested by {approval.requested_by_name}</span></div>
+                          {approval.request_note && <p className="mt-1.5 text-sm">{approval.request_note}</p>}
+                          {approval.decision_note && <p className="mt-1.5 text-[#777a74]">Decision: {approval.decision_note}</p>}
+                          {approval.status === 'pending' && ['admin', 'manager'].includes(role) && <div className="mt-2 flex gap-2">
+                            <button type="button" onClick={() => void collaborationAction(item.id, { action: 'approval_decide', approvalId: approval.id, status: 'approved' })} className="rounded bg-emerald-700 text-white px-2.5 py-1.5">Approve</button>
+                            <button type="button" onClick={() => void collaborationAction(item.id, { action: 'approval_decide', approvalId: approval.id, status: 'rejected' })} className="rounded bg-red-700 text-white px-2.5 py-1.5">Reject</button>
+                          </div>}
+                        </div>)}
+                        {!details[item.id]?.approvals?.length && <p className="text-xs text-[#858981]">No approval requested.</p>}
+                      </div>
+                      {role !== 'viewer' && <form onSubmit={(event) => { event.preventDefault(); void collaborationAction(item.id, { action: 'approval_request', approverId: approvalOwner[item.id] || null, requestNote: approvalNote[item.id] || '' }).then((result) => { if (result) { setApprovalNote((old) => ({ ...old, [item.id]: '' })); setNotice('Approval requested.'); } }); }} className="mt-3 space-y-2">
+                        <select value={approvalOwner[item.id] || ''} onChange={(event) => setApprovalOwner((old) => ({ ...old, [item.id]: event.target.value }))} className="w-full rounded-lg border border-[#dfe2dc] dark:border-white/10 bg-transparent px-2 py-2 text-xs"><option value="">Any manager can review</option>{members.filter((member) => ['admin', 'manager'].includes(member.role)).map((member) => <option key={member.user_id} value={member.user_id}>{member.display_name}</option>)}</select>
+                        <div className="flex gap-2"><input value={approvalNote[item.id] || ''} onChange={(event) => setApprovalNote((old) => ({ ...old, [item.id]: event.target.value }))} maxLength={2000} placeholder="What needs approval?" className="min-w-0 flex-1 rounded-lg border border-[#dfe2dc] dark:border-white/10 bg-transparent px-3 py-2 text-xs" /><button className="rounded-lg border border-[#dfe2dc] dark:border-white/10 px-3 text-xs">Request</button></div>
+                      </form>}
+                    </div>
+                  </section>
+
+                  <section className="lg:col-span-2 border-t border-[#e8e9e5] dark:border-white/[0.08] pt-4">
+                    <h4 className="text-sm font-medium flex items-center gap-2"><Paperclip className="w-4 h-4 text-[#4f6653]" /> Attachments</h4>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(details[item.id]?.attachments || []).map((attachment) => <div key={attachment.id} className="inline-flex items-center gap-2 rounded-lg border border-[#dfe2dc] dark:border-white/10 px-3 py-2 text-xs">
+                        <FileText className="w-3.5 h-3.5 text-[#4f6653]" />
+                        <a href={`/api/work-items/${item.id}/attachments?attachmentId=${encodeURIComponent(attachment.id)}`} target="_blank" rel="noreferrer" className="max-w-48 truncate hover:underline">{attachment.file_name}</a>
+                        <span className="text-[#858981]">{(attachment.file_size / 1024).toFixed(0)} KB</span>
+                        {role !== 'viewer' && (['admin', 'manager'].includes(role) || attachment.uploaded_by === userId) && <button type="button" title="Remove attachment" onClick={() => void removeAttachment(item.id, attachment.id)} className="text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>}
+                      </div>)}
+                      {!details[item.id]?.attachments?.length && <p className="text-xs text-[#858981]">No attachments yet.</p>}
+                    </div>
+                    {role !== 'viewer' && <label className="mt-3 inline-flex items-center gap-2 rounded-lg border border-[#dfe2dc] dark:border-white/10 px-3 py-2 text-xs cursor-pointer hover:bg-[#f6f7f4] dark:hover:bg-white/[0.04]">
+                      <Paperclip className="w-3.5 h-3.5" />{uploadingItem === item.id ? 'Uploading…' : 'Attach file'}
+                      <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.docx,.xlsx" disabled={uploadingItem === item.id} onChange={(event) => { const file = event.target.files?.[0]; void uploadAttachment(item.id, file); event.currentTarget.value = ''; }} className="sr-only" />
+                    </label>}
+                    <p className="mt-1 text-[10px] text-[#858981]">Private files, up to 4 MB. Downloads are authorized and links expire after one minute.</p>
+                  </section>
+                </div>}
               </article>
             ))}</div>}
           </section>

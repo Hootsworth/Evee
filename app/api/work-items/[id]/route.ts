@@ -138,10 +138,17 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     assertAuthorized(user, 'manager');
     const { id } = await params;
     const admin = createAdminClient();
+    const { data: attachments, error: attachmentError } = await admin.from('work_item_attachments').select('storage_path')
+      .eq('organization_id', user.organizationId).eq('work_item_id', id);
+    if (attachmentError) return NextResponse.json({ error: attachmentError.message }, { status: 500 });
     const { data, error } = await admin.from('work_items').delete().eq('id', id)
       .eq('organization_id', user.organizationId).select('id').maybeSingle();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     if (!data) return NextResponse.json({ error: 'Work item not found.' }, { status: 404 });
+    if (attachments?.length) {
+      const { error: storageError } = await admin.storage.from('work-item-attachments').remove(attachments.map((attachment) => attachment.storage_path));
+      if (storageError) console.warn('[work-items] Could not remove attachment objects after deleting item:', storageError.message);
+    }
     return NextResponse.json({ success: true });
   } catch (err: any) {
     const status = err.statusCode || (err.message?.includes('Unauthenticated') ? 401 : 500);
