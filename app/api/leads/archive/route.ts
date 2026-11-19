@@ -70,18 +70,18 @@ export async function POST(req: NextRequest) {
 
     // Log audit event for compliance and traceability scoped to organization
     try {
-      await admin.from('audit_events').insert({
+      const eventType = action === 'unarchive' ? 'LEADS_UNARCHIVED' : 'LEADS_ARCHIVED';
+      await admin.from('audit_events').insert((updatedRecords || []).map((record) => ({
         organization_id: orgId,
-        event_type: action === 'unarchive' ? 'LEADS_UNARCHIVED' : 'LEADS_ARCHIVED',
+        event_type: eventType,
         entity_type: 'businesses',
+        entity_id: record.id,
         details: {
-          count: updatedCount,
           action: targetStatus,
           allMissingEmail: Boolean(allMissingEmail),
-          targetIds,
           operatorId: userCtx.userId,
         },
-      });
+      })));
     } catch (auditErr) {
       console.warn('Failed to record audit log for archival:', auditErr);
     }

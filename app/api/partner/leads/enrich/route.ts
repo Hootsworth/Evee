@@ -77,6 +77,22 @@ export async function POST(req: NextRequest) {
           if (partner.organizationId) updateQuery = updateQuery.eq('organization_id', partner.organizationId);
           await updateQuery;
 
+          if (partner.organizationId) {
+            const { error: auditError } = await admin.from('audit_events').insert({
+              organization_id: partner.organizationId,
+              event_type: 'LEAD_ENRICHED',
+              entity_type: 'businesses',
+              entity_id: b.id,
+              details: {
+                changedFields: ['general_business_email'],
+                actorName: partner.name,
+                actorEmail: partner.email,
+                source: 'partner_enrichment',
+              },
+            });
+            if (auditError) console.warn('[partner/leads/enrich] Could not record account activity:', auditError.message);
+          }
+
           await admin.from('contacts').insert({
             business_id: b.id,
             contact_name: primaryContact?.fullName || `${b.display_name} Contact`,

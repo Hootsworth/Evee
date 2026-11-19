@@ -181,6 +181,22 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    if (Object.keys(updateData).length > 0 && partner.organizationId) {
+      const { error: auditError } = await admin.from('audit_events').insert({
+        organization_id: partner.organizationId,
+        event_type: 'ACCOUNT_UPDATED',
+        entity_type: 'businesses',
+        entity_id: businessId,
+        details: {
+          changedFields: Object.keys(updateData),
+          actorName: partner.name,
+          actorEmail: partner.email,
+          source: 'partner_portal',
+        },
+      });
+      if (auditError) console.warn('[partner/leads] Could not record account activity:', auditError.message);
+    }
+
     // If contact name or email provided, update/insert contact
     if (general_business_email && general_business_email.includes('@')) {
       const normEmail = normalizeEmail(general_business_email);

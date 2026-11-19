@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ExternalLink, CheckCircle2, AlertTriangle, ArrowLeft, ShieldCheck, Mail, Sparkles, ChevronRight, X, Archive, RotateCcw } from 'lucide-react';
+import { ExternalLink, CheckCircle2, AlertTriangle, ArrowLeft, ShieldCheck, Mail, Sparkles, ChevronRight, X, Archive, RotateCcw, Clock3 } from 'lucide-react';
+import type { AccountActivityItem } from '@/lib/types';
 
 export default function BusinessDetailPage() {
   const { id } = useParams();
@@ -92,6 +93,7 @@ export default function BusinessDetailPage() {
   }
 
   const { business, evidence, contacts, score, drafts } = data;
+  const activities: AccountActivityItem[] = data.activities || [];
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#09090b] transition-colors duration-150">
@@ -312,6 +314,34 @@ export default function BusinessDetailPage() {
             </div>
           </div>
         </div>
+
+        <section className="mt-8 border border-[#e5e7eb] dark:border-[#27272a] rounded-xl p-6 bg-white dark:bg-[#121217] shadow-sm">
+          <div className="flex items-center space-x-2 mb-5">
+            <Clock3 className="w-4 h-4 text-[#111827] dark:text-white" />
+            <h3 className="mono-eyebrow text-[#111827] dark:text-white font-normal text-xs">ACCOUNT ACTIVITY</h3>
+          </div>
+          {activities.length === 0 ? (
+            <p className="text-xs text-[#9ca3af] dark:text-[#71717a] font-mono font-light">No activity has been recorded for this account yet.</p>
+          ) : (
+            <ol className="border-l border-[#e5e7eb] dark:border-[#27272a] ml-1.5 space-y-0">
+              {activities.map((activity) => (
+                <li key={activity.id} className="relative pl-5 pb-5 last:pb-0">
+                  <span className="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-[#cc785c] ring-4 ring-white dark:ring-[#121217]" />
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1.5">
+                    <div>
+                      <p className="text-sm font-medium text-[#111827] dark:text-white">{activity.title}</p>
+                      <p className="text-xs text-[#6b7280] dark:text-[#a1a1aa] mt-1">{activity.description}</p>
+                      {activity.actor && <p className="text-[10px] text-[#9ca3af] dark:text-[#71717a] mt-1">By {activity.actor}</p>}
+                    </div>
+                    <time className="shrink-0 text-[10px] font-mono text-[#9ca3af] dark:text-[#71717a]">
+                      {new Date(activity.occurredAt).toLocaleString()}
+                    </time>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
       </main>
     </div>
   );

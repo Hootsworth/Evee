@@ -157,6 +157,7 @@ export async function POST(req: Request) {
       await supabase.from('audit_events').insert({
         event_type: `INBOUND_REPLY_${sentiment}`,
         entity_type: 'inbound_replies',
+        entity_id: businessId || cleanEmail,
         organization_id: organizationId,
         details: {
           sender: cleanEmail,

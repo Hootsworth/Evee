@@ -60,6 +60,16 @@ export interface BusinessCollectionResponse {
   businesses: AccountWithContacts[];
 }
 
+export interface AccountActivityItem {
+  id: string;
+  kind: 'account' | 'research' | 'assignment' | 'edit' | 'approval' | 'message' | 'outcome';
+  title: string;
+  description: string;
+  occurredAt: string;
+  status?: string;
+  actor?: string;
+}
+
 export interface PartnerLeadsResponse extends BusinessCollectionResponse {
   /** Legacy response alias accepted by older portal clients. */
   leads?: AccountWithContacts[];
