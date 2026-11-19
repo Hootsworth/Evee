@@ -12,6 +12,12 @@ Evee already has prospect and business records, contact enrichment, evidence-bac
 
 ## Roadmap
 
+## Implementation status (2026-11-20)
+
+The workspace foundation now covers shared work items and approvals, reviewed workflow templates, account and revenue records, cross-functional operations, scoped API keys and read/write endpoints, webhook subscriptions and queued delivery, HubSpot push-sync with field mapping and sync history, and a review-first copilot that can propose tasks.
+
+The roadmap is not fully delivered yet. Remaining product work includes calendar and document-storage connectors; real sync implementations for the other registered providers; pull and bidirectional sync with conflict handling; end-user webhook delivery history and retry controls; broader activity provenance; relationship maps and customer-facing onboarding checklists; role-aware copilot recommendations and outcome-quality metrics. These should continue as separate increments so each external integration and workflow has a complete permission, recovery, and audit path.
+
 ### 1. Make the current workspace dependable
 
 - Close reliability gaps in tenant and partner scoping, record ownership, and allocation visibility.
