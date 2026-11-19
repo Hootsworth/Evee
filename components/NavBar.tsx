@@ -60,6 +60,7 @@ export default function NavBar() {
     { label: 'Overview', href: '/' },
     { label: 'Campaigns', href: '/campaigns' },
     { label: 'Leads', href: '/leads' },
+    { label: 'Work', href: '/work' },
     { label: 'Partners', href: '/partners' },
     { label: 'Jobs', href: '/jobs' },
     {
