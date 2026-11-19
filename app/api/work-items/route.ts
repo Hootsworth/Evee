@@ -101,6 +101,20 @@ export async function POST(req: NextRequest) {
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       if (!account) return NextResponse.json({ error: 'Account not found in your workspace.' }, { status: 400 });
     }
+    const parentRecordId = typeof body.parentRecordId === 'string' && body.parentRecordId ? body.parentRecordId : null;
+    if (parentRecordId) {
+      const { data: parent, error } = await admin.from('account_workspace_records').select('id')
+        .eq('id', parentRecordId).eq('organization_id', user.organizationId).maybeSingle();
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      if (!parent) return NextResponse.json({ error: 'Parent record not found in this workspace.' }, { status: 400 });
+    }
+    const blockedById = typeof body.blockedByWorkItemId === 'string' && body.blockedByWorkItemId ? body.blockedByWorkItemId : null;
+    if (blockedById) {
+      const { data: blocker, error } = await admin.from('work_items').select('id')
+        .eq('id', blockedById).eq('organization_id', user.organizationId).maybeSingle();
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      if (!blocker) return NextResponse.json({ error: 'Dependency must be another work item in this workspace.' }, { status: 400 });
+    }
 
     const dueAt = body.dueAt ? new Date(body.dueAt) : null;
     if (body.dueAt && (!dueAt || Number.isNaN(dueAt.getTime()))) return NextResponse.json({ error: 'Invalid due date.' }, { status: 400 });
@@ -114,6 +128,8 @@ export async function POST(req: NextRequest) {
       account_id: accountId,
       owner_id: ownerId,
       created_by: user.userId,
+      parent_record_id: parentRecordId,
+      blocked_by_work_item_id: blockedById,
     }).select('*').single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
