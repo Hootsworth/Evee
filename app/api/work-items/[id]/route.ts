@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserContext } from '@/lib/auth/context';
 import { assertAuthenticated, assertAuthorized, hasMinimumRole } from '@/lib/auth/rbac';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { dispatchWorkflowTrigger } from '@/lib/workflows/template-engine';
 
 const statuses = ['open', 'in_progress', 'blocked', 'completed', 'cancelled'];
 const priorities = ['low', 'normal', 'high', 'urgent'];
@@ -114,6 +115,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     const nextStatus = update.status as string | undefined;
+    if (nextStatus && nextStatus !== existing.status) {
+      void dispatchWorkflowTrigger(user.organizationId, 'work_item_status_changed', id, {
+        title: (item as any).title, statusFrom: existing.status, statusTo: nextStatus,
+      }, user.userId);
+    }
     if (Object.keys(update).length || collaboratorIds) {
       await admin.from('audit_events').insert({
         organization_id: user.organizationId,

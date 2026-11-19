@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserContext } from '@/lib/auth/context';
 import { assertAuthenticated, assertAuthorized } from '@/lib/auth/rbac';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { dispatchWorkflowTrigger } from '@/lib/workflows/template-engine';
 
 const workTypes = ['task', 'follow_up', 'research', 'approval', 'handoff', 'other'];
 const statuses = ['open', 'in_progress', 'blocked', 'completed', 'cancelled'];
@@ -136,6 +137,9 @@ export async function POST(req: NextRequest) {
       entity_id: item.id,
       details: { title, workType: item.work_type, ownerId, accountId, actorName: user.displayName },
     });
+    void dispatchWorkflowTrigger(user.organizationId, 'work_item_created', item.id, {
+      accountId, title, workType: item.work_type, priority: item.priority, status: item.status,
+    }, user.userId);
     return NextResponse.json({ item: { ...item, collaborator_ids: collaboratorIds } }, { status: 201 });
   } catch (err: any) {
     const status = err.statusCode || (err.message?.includes('Unauthenticated') ? 401 : 500);

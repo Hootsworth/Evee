@@ -16,6 +16,7 @@ type ChecklistItem = { id: string; title: string; checklist_name: string; is_com
 type Approval = { id: string; status: string; request_note: string; decision_note: string; requested_by_name: string; approver_name: string | null; requested_at: string };
 type Attachment = { id: string; file_name: string; file_size: number; content_type: string; uploaded_by: string; created_at: string };
 type WorkItemDetails = { comments: Comment[]; checklist: ChecklistItem[]; approvals: Approval[]; userId: string; role: string; attachments: Attachment[] };
+type ActivityEvent = { id: string; event_type: string; entity_type: string; details: Record<string, any>; timestamp: string };
 
 const statusLabels: Record<string, string> = { open: 'Open', in_progress: 'In progress', blocked: 'Blocked', completed: 'Completed', cancelled: 'Cancelled' };
 const typeLabels: Record<string, string> = { task: 'Task', follow_up: 'Follow up', research: 'Research', approval: 'Approval', handoff: 'Handoff', other: 'Other' };
@@ -47,18 +48,24 @@ export default function WorkPage() {
   const [approvalNote, setApprovalNote] = useState<Record<string, string>>({});
   const [approvalOwner, setApprovalOwner] = useState<Record<string, string>>({});
   const [uploadingItem, setUploadingItem] = useState<string | null>(null);
+  const [activity, setActivity] = useState<ActivityEvent[]>([]);
 
   const refresh = useCallback(async () => {
     setError('');
     try {
-      const response = await fetch(`/api/work-items${filter === 'mine' ? '?ownerId=me' : ''}`);
-      const data = await response.json();
+      const [response, activityResponse] = await Promise.all([
+        fetch(`/api/work-items${filter === 'mine' ? '?ownerId=me' : ''}`),
+        fetch('/api/work-items/activity?limit=30'),
+      ]);
+      const [data, activityData] = await Promise.all([response.json(), activityResponse.json()]);
       if (!response.ok) throw new Error(data.error || 'Could not load work items.');
+      if (!activityResponse.ok) throw new Error(activityData.error || 'Could not load workspace activity.');
       setItems(data.items || []);
       setMembers(data.members || []);
       setAccounts(data.accounts || []);
       setUserId(data.userId || '');
       setRole(data.role || 'viewer');
+      setActivity(activityData.events || []);
       setOwnerId((current) => current || data.userId || '');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load work items.');
@@ -302,6 +309,10 @@ export default function WorkPage() {
                 </div>}
               </article>
             ))}</div>}
+            <section aria-label="Workspace activity" className="mt-10">
+              <h2 className="font-semibold text-lg mb-4">Recent activity</h2>
+              {activity.length === 0 ? <p className="rounded-xl border border-dashed border-[#d5d9d2] dark:border-white/15 p-6 text-sm text-[#777a74]">Workspace activity will appear here.</p> : <div className="divide-y divide-[#e8e9e5] dark:divide-white/[0.08] rounded-xl border border-[#e3e5e0] dark:border-white/[0.08] bg-white dark:bg-[#1e211d] px-4">{activity.map((event) => <div key={event.id} className="py-3 flex items-start justify-between gap-4"><div><p className="text-sm font-medium">{event.event_type.replaceAll('_', ' ').toLowerCase()}</p><p className="mt-0.5 text-xs text-[#777a74] dark:text-[#a2a69e]">{event.details?.actorName || 'Workspace'}{event.details?.title ? ` · ${event.details.title}` : ''}{event.details?.fileName ? ` · ${event.details.fileName}` : ''}</p></div><time className="text-[10px] text-[#858981] whitespace-nowrap">{new Date(event.timestamp).toLocaleString()}</time></div>)}</div>}
+            </section>
           </section>
 
           {role !== 'viewer' && <form onSubmit={createItem} className="rounded-xl border border-[#e3e5e0] dark:border-white/[0.08] bg-white dark:bg-[#1e211d] p-5 space-y-4">
