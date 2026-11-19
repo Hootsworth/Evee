@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { leads } = body as { leads: Array<Record<string, any>> };
+    const { leads, source } = body as { leads: Array<Record<string, any>>; source?: string };
 
     if (!Array.isArray(leads) || leads.length === 0) {
       return NextResponse.json({ error: 'No leads provided' }, { status: 400 });
@@ -71,10 +71,15 @@ export async function POST(req: NextRequest) {
     const admin = createAdminClient();
     const orgId = partner.organizationId;
     const insertedIds: string[] = [];
+    let invalidCount = 0;
+    let failedCount = 0;
 
     for (const item of leads) {
       const name = item.companyName || item.name || item.display_name;
-      if (!name || !name.trim()) continue;
+      if (!name || typeof name !== 'string' || !name.trim()) {
+        invalidCount++;
+        continue;
+      }
 
       const website = item.website || item.official_website_url || '';
       const email = item.email || item.general_business_email || '';
@@ -118,12 +123,32 @@ export async function POST(req: NextRequest) {
             contact_eligibility: 'eligible',
           });
         }
-      }
+      } else failedCount++;
     }
 
     // Automatically allot all newly created leads to this partner!
     if (insertedIds.length > 0) {
       await allotLeadsToPartner(insertedIds, partner.id, partner.name, orgId);
+    }
+
+    if (source === 'csv' && orgId) {
+      const { error: auditError } = await admin.from('audit_events').insert({
+        organization_id: orgId,
+        event_type: 'CSV_IMPORT_COMPLETED',
+        entity_type: 'csv_imports',
+        entity_id: `partner_import_${Date.now()}`,
+        details: {
+          totalReceived: leads.length,
+          importedCount: insertedIds.length,
+          duplicateCount: 0,
+          enrichedCount: 0,
+          invalidCount,
+          failedCount,
+          source: 'partner_portal',
+          actorName: partner.name,
+        },
+      });
+      if (auditError) console.warn('[partner/leads] Could not record CSV import activity:', auditError.message);
     }
 
     return NextResponse.json({

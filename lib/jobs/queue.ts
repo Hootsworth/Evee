@@ -8,7 +8,7 @@ export interface QueueJob {
   id: string;
   organization_id?: string | null;
   job_type: 'lead_discovery' | 'lead_enrichment' | 'website_inspection' | 'outreach_drafting' | 'email_dispatch';
-  status: 'queued' | 'processing' | 'succeeded' | 'failed';
+  status: 'queued' | 'processing' | 'succeeded' | 'failed' | 'manual_review';
   payload: Record<string, any>;
   attempts: number;
   max_attempts: number;
@@ -67,7 +67,7 @@ export async function enqueueJob(
         return data as QueueJob;
       }
     } catch {
-      // Fallback
+      // Fall back to the local queue when persistence is unavailable.
     }
   }
 
@@ -89,7 +89,7 @@ export async function claimNextBatch(workerId: string, batchSize = 5): Promise<Q
         return claimed as QueueJob[];
       }
     } catch {
-      // Fallback
+      // Fall back to the in-memory queue in local and test environments.
     }
   }
 
@@ -136,7 +136,7 @@ export async function markJobComplete(jobId: string, resultData?: Record<string,
         })
         .eq('id', jobId);
     } catch {
-      // Fallback
+      // Fall back to the in-memory queue.
     }
   }
 
@@ -185,28 +185,55 @@ export async function markJobFailed(jobId: string, error: string): Promise<void>
   }
 }
 
-export async function recoverStaleJobs(timeoutMinutes = 5): Promise<number> {
+export async function recoverStaleJobs(
+  timeoutMinutes = 5,
+  organizationId?: string
+): Promise<{ requeued: number; manualReview: number }> {
   const cutoff = new Date(Date.now() - timeoutMinutes * 60 * 1000).toISOString();
-  let recoveredCount = 0;
+  let requeued = 0;
+  let manualReview = 0;
 
   if (isSupabaseConfigured()) {
     try {
       const supabase = createAdminClient();
-      const { data } = await supabase
+      let staleQuery = supabase
         .from('background_jobs')
-        .update({
-          status: 'queued',
-          locked_by: null,
-          locked_at: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('status', 'processing')
-        .lt('locked_at', cutoff)
-        .select();
+        .select('id, job_type')
+        .eq('status', 'running')
+        .lt('locked_at', cutoff);
+      if (organizationId) staleQuery = staleQuery.eq('organization_id', organizationId);
+      const { data: staleJobs, error: staleError } = await staleQuery;
+      if (staleError) throw staleError;
 
-      if (data) recoveredCount += data.length;
-    } catch {
-      // Fallback
+      const safeIds = (staleJobs || []).filter((job) => !['send_email', 'csv_email_dispatch'].includes(job.job_type)).map((job) => job.id);
+      const uncertainSendIds = (staleJobs || []).filter((job) => ['send_email', 'csv_email_dispatch'].includes(job.job_type)).map((job) => job.id);
+      const now = new Date().toISOString();
+
+      if (safeIds.length > 0) {
+        let update = supabase.from('background_jobs').update({
+          status: 'queued', locked_by: null, locked_at: null, updated_at: now,
+          last_error_code: 'STALE_JOB_RECOVERED',
+          last_error_summary: 'Worker lock expired; job returned to the queue.',
+        }).in('id', safeIds).eq('status', 'running').lt('locked_at', cutoff);
+        if (organizationId) update = update.eq('organization_id', organizationId);
+        const { data, error } = await update.select('id');
+        if (error) throw error;
+        requeued += data?.length || 0;
+      }
+
+      if (uncertainSendIds.length > 0) {
+        let update = supabase.from('background_jobs').update({
+          status: 'manual_review', locked_by: null, locked_at: null, updated_at: now,
+          last_error_code: 'STALE_SEND_REQUIRES_REVIEW',
+          last_error_summary: 'Worker stopped during a send. Check the provider before retrying to avoid a duplicate.',
+        }).in('id', uncertainSendIds).eq('status', 'running').lt('locked_at', cutoff);
+        if (organizationId) update = update.eq('organization_id', organizationId);
+        const { data, error } = await update.select('id');
+        if (error) throw error;
+        manualReview += data?.length || 0;
+      }
+    } catch (error) {
+      throw new Error(`Could not recover stale jobs: ${(error as Error).message}`);
     }
   }
 
@@ -216,51 +243,60 @@ export async function recoverStaleJobs(timeoutMinutes = 5): Promise<number> {
       job.locked_at &&
       new Date(job.locked_at).getTime() < Date.now() - timeoutMinutes * 60 * 1000
     ) {
-      job.status = 'queued';
+      const isEmailJob = job.job_type === 'email_dispatch';
+      job.status = isEmailJob ? 'manual_review' : 'queued';
       job.locked_by = null;
       job.locked_at = null;
       job.updated_at = new Date().toISOString();
-      recoveredCount += 1;
+      if (isEmailJob) manualReview += 1;
+      else requeued += 1;
     }
   }
 
-  return recoveredCount;
+  return { requeued, manualReview };
 }
 
-export async function getQueueMetrics(): Promise<{
+export async function getQueueMetrics(organizationId?: string): Promise<{
   queued: number;
   processing: number;
   succeeded: number;
   failed: number;
+  manualReview: number;
+  cancelled: number;
   total: number;
 }> {
-  const metrics = { queued: 0, processing: 0, succeeded: 0, failed: 0, total: 0 };
+  const metrics = { queued: 0, processing: 0, succeeded: 0, failed: 0, manualReview: 0, cancelled: 0, total: 0 };
 
   if (isSupabaseConfigured()) {
     try {
       const supabase = createAdminClient();
-      const { data } = await supabase.from('background_jobs').select('status');
-      if (data && data.length > 0) {
-        metrics.total = data.length;
-        for (const row of data) {
-          if (row.status === 'queued') metrics.queued++;
-          else if (row.status === 'processing') metrics.processing++;
-          else if (row.status === 'succeeded') metrics.succeeded++;
-          else if (row.status === 'failed') metrics.failed++;
-        }
-        return metrics;
+      let query = supabase.from('background_jobs').select('status');
+      if (organizationId) query = query.eq('organization_id', organizationId);
+      const { data, error } = await query;
+      if (error) throw new Error(`Could not load queue metrics: ${error.message}`);
+      metrics.total = data?.length || 0;
+      for (const row of data || []) {
+        if (row.status === 'queued') metrics.queued++;
+        else if (row.status === 'processing' || row.status === 'running') metrics.processing++;
+        else if (row.status === 'succeeded') metrics.succeeded++;
+        else if (row.status === 'failed') metrics.failed++;
+        else if (row.status === 'manual_review') metrics.manualReview++;
+        else if (row.status === 'cancelled') metrics.cancelled++;
       }
-    } catch {
-      // Fallback
+      return metrics;
+    } catch (error) {
+      throw new Error(`Could not load queue metrics: ${(error as Error).message}`);
     }
   }
 
   for (const job of memoryQueue.values()) {
+    if (organizationId && job.organization_id !== organizationId) continue;
     metrics.total++;
     if (job.status === 'queued') metrics.queued++;
     else if (job.status === 'processing') metrics.processing++;
     else if (job.status === 'succeeded') metrics.succeeded++;
     else if (job.status === 'failed') metrics.failed++;
+    else if (job.status === 'manual_review') metrics.manualReview++;
   }
 
   return metrics;

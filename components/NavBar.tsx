@@ -61,6 +61,7 @@ export default function NavBar() {
     { label: 'Campaigns', href: '/campaigns' },
     { label: 'Leads', href: '/leads' },
     { label: 'Partners', href: '/partners' },
+    { label: 'Jobs', href: '/jobs' },
     {
       label: 'Drafts',
       href: '/drafts',

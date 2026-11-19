@@ -57,6 +57,7 @@ export interface DispatchEmailResult {
   success: boolean;
   provider: string;
   fromEmail?: string;
+  unknownOutcome?: boolean;
   providerMessageId?: string;
   error?: string;
   suppressed?: boolean;
@@ -229,6 +230,7 @@ export async function sendEmailWithSafetyChecks(options: DispatchEmailOptions): 
       success: false,
       provider: provider.name,
       fromEmail: effectiveFromEmail,
+      unknownOutcome: result.status === 'unknown_outcome',
       error: result.error || 'Failed to dispatch email via mailer.',
     };
   }

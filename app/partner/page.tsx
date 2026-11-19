@@ -500,7 +500,7 @@ function PartnerPortalContent() {
       const res = await fetch('/api/partner/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leads: payloadLeads }),
+        body: JSON.stringify({ leads: payloadLeads, source: 'csv' }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -537,6 +537,13 @@ function PartnerPortalContent() {
     const dateStr = new Date().toISOString().split('T')[0];
     const safePartnerSlug = partner?.name ? partner.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'allotted';
     downloadCsvFile(csvContent, `evee-partner-leads-${safePartnerSlug}-${dateStr}.csv`);
+    void fetch('/api/partner/leads/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recordCount: leads.length }),
+    }).then((response) => {
+      if (!response.ok) console.warn('[partner portal] Could not record CSV export activity.');
+    }).catch((error) => console.warn('[partner portal] Could not record CSV export activity:', error));
   };
 
   // Candidates for Outreach Studio

@@ -1227,6 +1227,13 @@ export default function LeadsPage() {
 
     const dateStr = new Date().toISOString().split('T')[0];
     downloadCsvFile(csvContent, `${exportFilename}-${dateStr}.csv`);
+    void fetch('/api/leads/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recordCount: exportList.length, scope: chosenScope }),
+    }).then((response) => {
+      if (!response.ok) console.warn('[leads] Could not record CSV export activity.');
+    }).catch((error) => console.warn('[leads] Could not record CSV export activity:', error));
     setShowExportModal(false);
     setEnrichMessage({
       text: `Downloaded ${exportList.length} ${exportList.length === 1 ? 'lead' : 'leads'} as CSV successfully.`,

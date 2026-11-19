@@ -199,7 +199,7 @@ export async function POST(req: NextRequest) {
 
       // Automatically kick off initial queue processing immediately so ready emails dispatch without delay
       try {
-        processBackgroundJobs(Math.min(jobsToInsert.length, 10)).catch((procErr) => {
+        processBackgroundJobs(Math.min(jobsToInsert.length, 10), orgId).catch((procErr) => {
           console.error('[dispatch] Background processor kickoff notice:', procErr);
         });
       } catch {}

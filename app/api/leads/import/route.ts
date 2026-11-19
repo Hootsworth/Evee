@@ -15,6 +15,7 @@ import { getUserContext } from '@/lib/auth/context';
 import { assertAuthenticated, assertAuthorized } from '@/lib/auth/rbac';
 
 export async function POST(req: NextRequest) {
+  let auditContext: { admin: ReturnType<typeof createAdminClient>; organizationId: string; importId: string } | null = null;
   try {
     const userCtx = await getUserContext();
     assertAuthenticated(userCtx);
@@ -33,12 +34,15 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminClient();
     const orgId = userCtx.organizationId;
+    const importId = `import_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    auditContext = { admin, organizationId: orgId, importId };
 
     // Fetch existing businesses for deduplication strictly within this organization
-    const { data: existingBusinesses } = await admin
+    const { data: existingBusinesses, error: existingError } = await admin
       .from('businesses')
       .select('id, normalized_name, canonical_domain, city, public_business_phone')
       .eq('organization_id', orgId);
+    if (existingError) return NextResponse.json({ error: existingError.message }, { status: 500 });
 
     const companyCol = mapping?.companyName || 'company_name';
     const websiteCol = mapping?.website || 'website';
@@ -50,6 +54,8 @@ export async function POST(req: NextRequest) {
 
     let importedCount = 0;
     let duplicateCount = 0;
+    let invalidCount = 0;
+    let failedCount = 0;
     const insertedIdsForEnrichment: string[] = [];
 
     for (const row of leads) {
@@ -61,7 +67,10 @@ export async function POST(req: NextRequest) {
         row.business ||
         '';
 
-      if (!name || !name.trim()) continue;
+      if (!name || !name.trim()) {
+        invalidCount++;
+        continue;
+      }
 
       const website = row[websiteCol] || row.website || row.url || '';
       const email = row[emailCol] || row.email || row.mail || '';
@@ -142,6 +151,7 @@ export async function POST(req: NextRequest) {
 
       if (insErr || !newBusiness) {
         console.error('Failed to insert lead business:', insErr);
+        failedCount++;
         continue;
       }
 
@@ -244,15 +254,44 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      success: true,
+    const summary = {
+      totalReceived: leads.length,
       importedCount,
       duplicateCount,
       enrichedCount,
-      totalReceived: leads.length,
+      invalidCount,
+      failedCount,
+    };
+    const { error: auditError } = await admin.from('audit_events').insert({
+      organization_id: orgId,
+      event_type: 'CSV_IMPORT_COMPLETED',
+      entity_type: 'csv_imports',
+      entity_id: importId,
+      details: { importId, ...summary, autoEnrich: Boolean(autoEnrich), actorName: userCtx.displayName },
+    });
+    if (auditError) console.warn('[leads/import] Could not record import summary:', auditError.message);
+
+    return NextResponse.json({
+      success: true,
+      importId,
+      ...summary,
     });
   } catch (err: unknown) {
     const error = err as any;
+    if (auditContext) {
+      try {
+        const { error: auditError } = await auditContext.admin.from('audit_events').insert({
+          organization_id: auditContext.organizationId,
+          event_type: 'CSV_IMPORT_FAILED',
+          entity_type: 'csv_imports',
+          entity_id: auditContext.importId,
+          details: { importId: auditContext.importId, error: String(error.message || 'Import failed').slice(0, 300) },
+        });
+        if (auditError) console.warn('[leads/import] Could not record failed import:', auditError.message);
+      } catch (auditFailure) {
+        console.warn('[leads/import] Could not record failed import:', auditFailure);
+      }
+    }
     const status = error.statusCode || (error.message?.includes('Unauthenticated') ? 401 : error.message?.includes('Unauthorized') ? 403 : 500);
     return NextResponse.json({ error: error.message || 'Failed to import CSV leads' }, { status });
   }

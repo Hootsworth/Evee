@@ -54,6 +54,20 @@ export async function GET(req: NextRequest) {
     const dateStr = new Date().toISOString().split('T')[0];
     const filename = `evee-leads-${dateStr}.csv`;
 
+    const { error: auditError } = await admin.from('audit_events').insert({
+      organization_id: userCtx.organizationId,
+      event_type: 'CSV_EXPORT_CREATED',
+      entity_type: 'csv_exports',
+      entity_id: `export_${Date.now()}`,
+      details: {
+        recordCount: records.length,
+        filters: { status: status || 'all', city: city || null, selectedIds: Boolean(idsParam) },
+        actorName: userCtx.displayName,
+        filename,
+      },
+    });
+    if (auditError) console.warn('[leads/export] Could not record export summary:', auditError.message);
+
     return new Response(csvContent, {
       status: 200,
       headers: {
@@ -62,6 +76,33 @@ export async function GET(req: NextRequest) {
         'Cache-Control': 'no-store, no-cache, must-revalidate',
       },
     });
+  } catch (err: any) {
+    const status = err.statusCode || (err.message?.includes('Unauthenticated') ? 401 : 500);
+    return NextResponse.json({ error: err.message }, { status });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const userCtx = await getUserContext(req);
+    assertAuthenticated(userCtx);
+    const body = await req.json().catch(() => ({}));
+    const recordCount = Number(body.recordCount);
+    const scope = ['all', 'filtered', 'selected', 'server_query'].includes(body.scope) ? body.scope : 'all';
+    if (!Number.isInteger(recordCount) || recordCount < 0 || recordCount > 100000) {
+      return NextResponse.json({ error: 'recordCount must be a valid non-negative integer.' }, { status: 400 });
+    }
+
+    const admin = createAdminClient();
+    const { error } = await admin.from('audit_events').insert({
+      organization_id: userCtx.organizationId,
+      event_type: 'CSV_EXPORT_CREATED',
+      entity_type: 'csv_exports',
+      entity_id: `export_${Date.now()}`,
+      details: { recordCount, scope, actorName: userCtx.displayName },
+    });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true });
   } catch (err: any) {
     const status = err.statusCode || (err.message?.includes('Unauthenticated') ? 401 : 500);
     return NextResponse.json({ error: err.message }, { status });

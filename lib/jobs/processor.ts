@@ -18,22 +18,33 @@ export interface JobProcessingResult {
   claimedJobs: number;
   succeeded: number;
   failed: number;
+  manualReview: number;
   errors: Array<{ jobId: string; error: string }>;
 }
 
-export async function processBackgroundJobs(batchSize = 5): Promise<JobProcessingResult> {
+export class ManualReviewError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ManualReviewError';
+  }
+}
+
+export async function processBackgroundJobs(batchSize = 5, organizationId?: string): Promise<JobProcessingResult> {
   const supabase = createAdminClient();
   const workerId = `vercel-worker-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
 
   // Claim batch using PostgreSQL SKIP LOCKED function or fallback query
-  const { data: claimed, error: claimErr } = await supabase.rpc('claim_background_jobs', {
+  const claimArgs: Record<string, unknown> = {
     p_worker_id: workerId,
     p_batch_size: batchSize,
     p_lock_timeout_seconds: 300,
-  });
+  };
+  if (organizationId) claimArgs.p_organization_id = organizationId;
+  const { data: claimed, error: claimErr } = await supabase.rpc('claim_background_jobs', claimArgs);
 
   if (claimErr) {
     console.error('[processBackgroundJobs] claim_background_jobs RPC error:', claimErr);
+    throw new Error(`Could not claim background jobs: ${claimErr.message}`);
   } else {
     console.log('[processBackgroundJobs] Claimed jobs count:', claimed ? claimed.length : 0);
   }
@@ -44,6 +55,7 @@ export async function processBackgroundJobs(batchSize = 5): Promise<JobProcessin
     claimedJobs: jobs.length,
     succeeded: 0,
     failed: 0,
+    manualReview: 0,
     errors: [],
   };
 
@@ -74,16 +86,18 @@ export async function processBackgroundJobs(batchSize = 5): Promise<JobProcessin
       }
     } catch (err: unknown) {
       const error = err as Error;
-      summary.failed++;
       summary.errors.push({ jobId: job.id, error: error.message });
 
-      const nextStatus = job.attempt_count + 1 >= job.max_attempts ? 'failed' : 'queued';
+      const isManualReview = error instanceof ManualReviewError;
+      if (isManualReview) summary.manualReview++;
+      else summary.failed++;
+      const nextStatus = isManualReview ? 'manual_review' : job.attempt_count >= job.max_attempts ? 'failed' : 'queued';
 
       await supabase
         .from('background_jobs')
         .update({
           status: nextStatus,
-          last_error_code: 'JOB_EXECUTION_ERROR',
+          last_error_code: isManualReview ? 'SEND_OUTCOME_UNKNOWN' : 'JOB_EXECUTION_ERROR',
           last_error_summary: error.message.slice(0, 500),
           locked_at: null,
           locked_by: null,
@@ -522,6 +536,9 @@ async function executeSingleJob(job: BackgroundJob, supabase: any): Promise<void
         isTestSend: false,
       });
 
+      if (result.unknownOutcome) {
+        throw new ManualReviewError(`CSV email outcome is unknown for ${recipientEmail}. Check the mailbox before retrying.`);
+      }
       if (!result.success && !result.suppressed) {
         throw new Error(`CSV email send failed: ${result.error || 'Unknown dispatch error'}`);
       }
