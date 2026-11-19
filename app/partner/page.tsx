@@ -586,7 +586,7 @@ function PartnerPortalContent() {
       if (res.ok && data.success) {
         setTestResult({
           success: true,
-          message: `Test email dispatched to ${data.sentTo}. Please check your inbox.`,
+          message: `Test email sent from ${data.sentFrom || partner?.email} to ${data.sentTo}. Please check your inbox.`,
         });
       } else {
         setTestResult({
@@ -1722,6 +1722,11 @@ function PartnerPortalContent() {
                   <p className="text-[11px] leading-relaxed opacity-90">
                     Dispatch a real verification email to yourself to confirm copywriting and token formatting before live sending.
                   </p>
+                </div>
+
+                <div className="p-3 rounded-lg border border-[#e6dfd8] dark:border-white/10 bg-white/70 dark:bg-[#181715] text-[11px] text-[#6c6a64] dark:text-[#a09d96]">
+                  <span className="font-semibold text-[#141413] dark:text-[#faf9f5]">Sender: {partner?.name} &lt;{partner?.email}&gt;</span>
+                  <p className="mt-1">For Gmail, this address must be an approved “Send mail as” alias for the connected mailbox. SMTP authentication still uses the saved mailbox credentials.</p>
                 </div>
 
                 <div>

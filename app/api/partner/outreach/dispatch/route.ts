@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
 
       const sendRes = await sendEmailWithSafetyChecks({
         to: targetEmail,
+        fromEmail: partner.email,
         subject: renderedSubj,
         bodyText: renderedBody,
         isTestSend: true,
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest) {
         success: sendRes.success,
         isTest: true,
         sentTo: targetEmail,
+        sentFrom: sendRes.fromEmail,
         providerMessageId: sendRes.providerMessageId,
         error: sendRes.error,
       });
@@ -120,6 +122,7 @@ export async function POST(req: NextRequest) {
       try {
         const sendRes = await sendEmailWithSafetyChecks({
           to: normEmail,
+          fromEmail: partner.email,
           subject: renderedSubject,
           bodyText: renderedBody,
           organizationId: partner.organizationId,
@@ -139,6 +142,7 @@ export async function POST(req: NextRequest) {
               partnerId: partner.id,
               partnerName: partner.name,
               partnerEmail: partner.email,
+              fromEmail: sendRes.fromEmail,
               cadence: cadence || 'human',
             },
           });
@@ -151,6 +155,7 @@ export async function POST(req: NextRequest) {
             email: normEmail,
             company: prospect.company_name || prospect.display_name,
             status: 'succeeded',
+            fromEmail: sendRes.fromEmail,
             messageId: sendRes.providerMessageId,
           });
         } else {

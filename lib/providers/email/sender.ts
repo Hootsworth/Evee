@@ -43,6 +43,8 @@ export async function isSuppressed(
 
 export interface DispatchEmailOptions {
   to: string;
+  /** Explicit, server-selected sender identity (used by partner outreach). */
+  fromEmail?: string;
   subject: string;
   bodyText: string;
   bodyHtml?: string;
@@ -54,6 +56,7 @@ export interface DispatchEmailOptions {
 export interface DispatchEmailResult {
   success: boolean;
   provider: string;
+  fromEmail?: string;
   providerMessageId?: string;
   error?: string;
   suppressed?: boolean;
@@ -175,7 +178,7 @@ export async function sendEmailWithSafetyChecks(options: DispatchEmailOptions): 
 
   // Deliverability Gate: Multi-Inbox Rotation & Spacing Engine
   let rotatedSelection: Awaited<ReturnType<typeof selectNextSendingMailbox>> = null;
-  if (options.organizationId && !options.isTestSend) {
+  if (options.organizationId && !options.isTestSend && !options.fromEmail) {
     try {
       rotatedSelection = await selectNextSendingMailbox({
         organizationId: options.organizationId,
@@ -187,7 +190,7 @@ export async function sendEmailWithSafetyChecks(options: DispatchEmailOptions): 
   }
 
   const { provider, fromEmail: defaultFromEmail } = await getActiveEmailProvider(options.organizationId);
-  const effectiveFromEmail = rotatedSelection?.mailbox.email || defaultFromEmail;
+  const effectiveFromEmail = options.fromEmail?.trim() || rotatedSelection?.mailbox.email || defaultFromEmail;
 
   const idempotencyKey = options.idempotencyKey || `csv-dispatch-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -207,6 +210,7 @@ export async function sendEmailWithSafetyChecks(options: DispatchEmailOptions): 
     return {
       success: true,
       provider: provider.name,
+      fromEmail: effectiveFromEmail,
       providerMessageId: result.providerMessageId,
       rotatedMailbox: rotatedSelection?.mailbox.email,
       domain: rotatedSelection?.domain.domain,
@@ -224,6 +228,7 @@ export async function sendEmailWithSafetyChecks(options: DispatchEmailOptions): 
     return {
       success: false,
       provider: provider.name,
+      fromEmail: effectiveFromEmail,
       error: result.error || 'Failed to dispatch email via mailer.',
     };
   }

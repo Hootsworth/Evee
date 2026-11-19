@@ -50,10 +50,13 @@ export class SmtpAppPasswordProvider implements EmailProvider {
       };
     } catch (err: unknown) {
       const error = err as Error;
+      const isAuthenticationFailure = /\b535\b|invalid login/i.test(error.message || '');
       return {
         providerMessageId: '',
         status: 'failed',
-        error: error.message,
+        error: isAuthenticationFailure
+          ? `SMTP authentication was rejected for ${this.user}. Check the saved SMTP username and Google App Password. The partner address is used as the From identity but does not replace the authenticated mailbox. Details: ${error.message}`
+          : error.message,
       };
     }
   }
