@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useTheme } from '@/components/ThemeProvider';
+import ScreenGuide from '@/components/ScreenGuide';
 import {
   Search,
   Plus,
@@ -740,6 +741,7 @@ function PartnerPortalContent() {
   // ----------------------------------------------------
   return (
     <div className="min-h-screen bg-[#f7f7f5] dark:bg-[#171916] text-[#20211f] dark:text-[#f1f2ee] font-sans antialiased pb-24 transition-colors duration-150">
+      <ScreenGuide screen="partner" />
       {/* Top Editorial Navigation Bar */}
       <header className="sticky top-0 z-40 bg-[#f7f7f5]/95 dark:bg-[#171916]/95 backdrop-blur-xl border-b border-[#e8e9e5] dark:border-white/10">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-[68px] flex items-center justify-between">

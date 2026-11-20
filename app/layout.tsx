@@ -5,6 +5,7 @@ import './globals.css';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import ScreenGuide from '@/components/ScreenGuide';
 
 export default function RootLayout({
   children,
@@ -42,6 +43,7 @@ export default function RootLayout({
         <ThemeProvider>
           {!isAuthPage && <NavBar />}
           <main className="flex-1 flex flex-col">{children}</main>
+          {!isAuthPage && !isPartnerPortal && <ScreenGuide />}
           {!isAuthPage && !isPartnerPortal && <Footer />}
         </ThemeProvider>
       </body>
